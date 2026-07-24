@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: demo
+  labels:
+    app: api-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+        # Single source of truth for the deployed version. The GIT_VERSION env
+        # is derived from this label via the Downward API, and the OTel resource
+        # attrs are composed from it — so a version bump touches only this line.
+        git_version: v4.0.0
+      annotations:
+        # Day5: the Operator's admission webhook injects the Python
+        # auto-instrumentation (init container + PYTHONPATH + env vars) at
+        # Pod creation time — no `opentelemetry-instrument` wrapper needed
+        # in the Dockerfile CMD anymore. Value is the Instrumentation CR's
+        # name (demo-services/k8s/16-instrumentation.yaml), same namespace.
+        instrumentation.opentelemetry.io/inject-python: "python-instrumentation"
+    spec:
+      containers:
+        - name: gateway
+          image: demo-services/api-gateway:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            # GIT_REPO is the only repo/version literal in the container spec;
+            # GIT_VERSION is pulled from the pod's git_version label so the
+            # version number is never duplicated here.
+            - name: GIT_REPO
+              value: tedmax100/o11y-bench
+            - name: GIT_VERSION
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['git_version']
+            - name: LOG_LEVEL
+              value: INFO
+            - name: USER_SERVICE_URL
+              value: http://user-service.demo.svc:8000
+            - name: ORDER_SERVICE_URL
+              value: http://order-service.demo.svc:8000
+            - name: PAYMENT_SERVICE_URL
+              value: http://payment-service.demo.svc:8000
+            - name: OTEL_SERVICE_NAME
+              value: api-gateway
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.namespace=demo,deployment.environment=demo,service.version=$(GIT_VERSION),git_repo=$(GIT_REPO),git_version=$(GIT_VERSION)"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://otel-collector.demo.svc:4318
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: http/protobuf
+            - name: OTEL_TRACES_EXPORTER
+              value: otlp
+            - name: OTEL_METRICS_EXPORTER
+              value: otlp
+            - name: OTEL_LOGS_EXPORTER
+              value: otlp
+            - name: OTEL_PYTHON_LOG_CORRELATION
+              value: "true"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  namespace: demo
+spec:
+  selector:
+    app: api-gateway
+  ports:
+    - port: 8000
+      targetPort: 8000
+      name: http

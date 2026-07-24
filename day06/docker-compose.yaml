@@ -1,0 +1,99 @@
+# Demo services stack — runs payment-service against its own Grafana+OTel
+# Collector+Loki+Tempo+Prometheus pipeline so we can verify the new schema
+# (git_repo / git_version / event) end-to-end.
+#
+# Once Phase 1 is verified, this stack stays independent of the aiops-agent
+# sidecar. Wire the agent at it later by pointing MCP_GRAFANA_URL to this
+# Grafana's mcp-grafana sidecar (Phase 2+).
+
+services:
+  payment-service:
+    container_name: demo-payment
+    build:
+      context: .
+      dockerfile: services/payment/Dockerfile
+    environment:
+      OTEL_SERVICE_NAME: payment-service
+      GIT_REPO: tedmax100/o11y-bench
+      GIT_VERSION: v2.4.1
+      DEPLOYMENT_ENV: demo
+      # Compose has no Downward API / $(VAR) trick, so the resource attrs are
+      # spelled out. Without this line traces & metrics carry NO git_repo /
+      # git_version (only the stdout JSON logs did, via GIT_* above). Keep
+      # service.version / git_version in sync with GIT_VERSION when bumping.
+      # The k8s path derives all of these from one label — see
+      # k8s/20-payment-service.yaml.
+      OTEL_RESOURCE_ATTRIBUTES: "service.namespace=demo,deployment.environment=demo,service.version=v2.4.1,git_repo=tedmax100/o11y-bench,git_version=v2.4.1"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      FEATURE_FLAGS_PATH: /etc/demo/flags.json
+      LOG_LEVEL: INFO
+    volumes:
+      - ./flags.json:/etc/demo/flags.json:ro
+    ports:
+      - "8001:8000"
+    depends_on:
+      otel-collector:
+        condition: service_started
+
+  otel-collector:
+    container_name: demo-otel-collector
+    image: otel/opentelemetry-collector-contrib:0.111.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-collector/config.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4318:4318"   # OTLP HTTP
+      - "4317:4317"   # OTLP gRPC
+    depends_on:
+      loki:
+        condition: service_started
+      tempo:
+        condition: service_started
+      prometheus:
+        condition: service_started
+
+  prometheus:
+    container_name: demo-prometheus
+    image: prom/prometheus:v2.55.0
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--web.enable-remote-write-receiver"
+      - "--enable-feature=exemplar-storage"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9091:9090"
+
+  loki:
+    container_name: demo-loki
+    image: grafana/loki:3.2.0
+    command: ["-config.file=/etc/loki/config.yaml"]
+    volumes:
+      - ./loki/config.yaml:/etc/loki/config.yaml:ro
+    ports:
+      - "3101:3100"
+
+  tempo:
+    container_name: demo-tempo
+    image: grafana/tempo:2.6.0
+    command: ["-config.file=/etc/tempo/config.yaml"]
+    volumes:
+      - ./tempo/config.yaml:/etc/tempo/config.yaml:ro
+    ports:
+      - "3201:3200"
+
+  grafana:
+    container_name: demo-grafana
+    image: grafana/grafana:11.3.0
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_FEATURE_TOGGLES_ENABLE: traceqlEditor
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+      - loki
+      - tempo

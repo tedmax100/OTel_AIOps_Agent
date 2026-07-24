@@ -1,0 +1,35 @@
+# Signal declaration OWNED by order-service. Compiled into the agent's
+# app/signals/{topology,contracts}.yaml by `python -m app.signals.compile`.
+service: order-service
+role: "products / cart / orders; calls user + payment"
+tier: 1
+journeys: [checkout]
+git_version: v3.1.2
+freshness_seconds: 60
+supported_decisions: [rca]
+slis:
+  - kind: error
+    promql: '(sum(rate(orders_total{status="error"}[5m])) or vector(0)) / clamp_min(sum(rate(orders_total[5m])) or vector(0), 1)'
+    objective: "error_rate < 1%"
+    unit: ratio
+  - kind: latency
+    promql: 'histogram_quantile(0.95, sum by (le) (rate(order_create_duration_seconds_bucket[5m])))'
+    objective: "p95 < 0.3s"
+    unit: s
+  - kind: throughput
+    promql: 'sum(rate(orders_total[5m]))'
+    unit: rps
+logs:
+  selector: '{service_name="order-service"}'
+  error_events: [order.cancelled]
+  error_query: 'sum by (reason) (count_over_time({service_name="order-service"} | event="order.cancelled" [5m]))'
+  note: "order.cancelled carries reason=auth_failed|payment_declined|unknown_product. Selector key is service_name (NOT service). No event=\"order_failed\"/\"error\" exists — filter by event=\"order.cancelled\" after the selector."
+exclusions:
+  - "status=cancelled is a business outcome (auth_failed / payment_declined / unknown_product), not a service error — exclude it from the error SLI; check `reason` to see if a downstream dep is the cause."
+# order owns its outbound edges + how it attributes each dependency's failures
+# (orders_total.reason). The agent's topology graph is the union of these.
+depends_on:
+  - callee: user-service
+    attribution: 'sum(rate(orders_total{reason=~"auth|user_upstream"}[5m]))'
+  - callee: payment-service
+    attribution: 'sum(rate(orders_total{reason=~"payment|payment_upstream"}[5m]))'

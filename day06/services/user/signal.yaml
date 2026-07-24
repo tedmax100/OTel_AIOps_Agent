@@ -1,0 +1,24 @@
+# Signal declaration OWNED by user-service. Compiled into the agent's
+# app/signals/{topology,contracts}.yaml by `python -m app.signals.compile`.
+service: user-service
+role: "user lookup + auth check"
+tier: 2          # off the checkout main chain
+journeys: []
+git_version: v1.3.0
+freshness_seconds: 60
+supported_decisions: [rca]
+slis:
+  - kind: throughput
+    promql: 'sum(rate(user_lookups_total[5m]))'
+    unit: rps
+  - kind: throughput
+    promql: 'sum(rate(user_auth_checks_total[5m]))'
+    unit: rps
+logs:
+  selector: '{service_name="user-service"}'
+  error_events: [user.auth_failed]
+  error_query: 'sum by (reason) (count_over_time({service_name="user-service"} | event="user.auth_failed" [5m]))'
+  note: "user.auth_failed carries reason=not_found|transient. Selector key is service_name (NOT service); filter event after the selector."
+exclusions:
+  - "user-service emits no latency histogram and no explicit error counter; for errors/latency fall back to the auto HTTP server signal and Loki event=user.auth_failed."
+depends_on: []   # user-service is a leaf

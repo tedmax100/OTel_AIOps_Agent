@@ -1,0 +1,101 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loki-config
+  namespace: demo
+data:
+  config.yaml: |
+    auth_enabled: false
+
+    server:
+      http_listen_port: 3100
+      grpc_listen_port: 9096
+
+    common:
+      instance_addr: 127.0.0.1
+      path_prefix: /tmp/loki
+      storage:
+        filesystem:
+          chunks_directory: /tmp/loki/chunks
+          rules_directory: /tmp/loki/rules
+      replication_factor: 1
+      ring:
+        kvstore:
+          store: inmemory
+
+    schema_config:
+      configs:
+        - from: 2024-01-01
+          store: tsdb
+          object_store: filesystem
+          schema: v13
+          index:
+            prefix: index_
+            period: 24h
+
+    limits_config:
+      allow_structured_metadata: true
+      otlp_config:
+        # Stream labels: low-cardinality, indexed. These are what `sum by (...)`
+        # selectors filter on.
+        resource_attributes:
+          attributes_config:
+            - action: index_label
+              attributes:
+                - service.name
+                - git_repo
+                - git_version
+                - deployment.environment
+        # event / level / trace_id / span_id flow through as structured metadata
+        # (the OTLP default). LogQL can still aggregate on them via the
+        # pipeline parser, e.g.:
+        #   sum by (event) (count_over_time({service_name="..."} | json [5m]))
+        # Loki rejects index_label on log_attributes — only resource_attributes
+        # are eligible to become stream labels.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loki
+  namespace: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loki
+  template:
+    metadata:
+      labels:
+        app: loki
+    spec:
+      containers:
+        - name: loki
+          image: grafana/loki:3.2.0
+          args: ["-config.file=/etc/loki/config.yaml"]
+          ports:
+            - containerPort: 3100
+              name: http
+          volumeMounts:
+            - name: config
+              mountPath: /etc/loki
+            - name: data
+              mountPath: /tmp/loki
+      volumes:
+        - name: config
+          configMap:
+            name: loki-config
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki
+  namespace: demo
+spec:
+  selector:
+    app: loki
+  ports:
+    - port: 3100
+      targetPort: 3100
+      name: http

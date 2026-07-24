@@ -1,0 +1,15 @@
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: python-instrumentation
+  namespace: demo
+spec:
+  exporter:
+    endpoint: http://otel-collector.demo.svc:4318
+  propagators:
+    - tracecontext
+    - baggage
+  python:
+    env:
+      - name: OTEL_EXPORTER_OTLP_PROTOCOL
+        value: http/protobuf

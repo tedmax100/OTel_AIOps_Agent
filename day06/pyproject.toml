@@ -1,0 +1,16 @@
+[project]
+name = "demo-services"
+version = "0.1.0"
+description = "E-commerce demo services emitting structured telemetry with git_repo/git_version/event schema"
+requires-python = ">=3.12"
+
+[tool.uv.workspace]
+members = ["shared", "services/*"]
+
+[tool.uv.sources]
+o11y-shared = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "ruff>=0.6",
+]
