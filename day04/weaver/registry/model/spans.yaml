@@ -1,0 +1,70 @@
+# Span conventions for the core business operations.
+#
+# Today these operations are covered by HTTP server/client spans from the
+# FastAPI/httpx auto-instrumentation (which follow the official HTTP semconv).
+# The groups below define the *business* span attributes we want on those
+# operations — the convention to satisfy if/when a manual span is opened with
+# `tracer.start_as_current_span(...)`. They give the trace signal an explicit,
+# checkable standard rather than leaving it implicit.
+groups:
+  - id: span.app.order.create
+    type: span
+    span_kind: server
+    stability: development
+    brief: >-
+      The order-service handling of `POST /api/orders` — create-order
+      business operation.
+    attributes:
+      - ref: biz.user.id
+        requirement_level: required
+      - ref: biz.product.id
+        requirement_level: required
+      - ref: app.outcome
+        requirement_level: required
+      - ref: biz.order.id
+        requirement_level:
+          conditionally_required: when the order was created.
+      - ref: biz.amount_cents
+        requirement_level: recommended
+      - ref: app.fail_reason
+        requirement_level:
+          conditionally_required: when `app.outcome` is not `created`.
+
+  - id: span.app.payment.charge
+    type: span
+    span_kind: server
+    stability: development
+    brief: The payment-service handling of `POST /charge`.
+    attributes:
+      - ref: biz.order.id
+        requirement_level: required
+      - ref: biz.user.id
+        requirement_level: required
+      - ref: app.outcome
+        requirement_level: required
+      - ref: biz.amount_cents
+        requirement_level: recommended
+      - ref: biz.payment.id
+        requirement_level:
+          conditionally_required: when the charge was authorized.
+      - ref: app.fail_reason
+        requirement_level:
+          conditionally_required: when `app.outcome` is `declined` or `error`.
+
+  - id: span.app.proxy.forward
+    type: span
+    span_kind: client
+    stability: development
+    brief: >-
+      An edge/proxy hop (webapp -> api-gateway -> backend). The outbound call
+      that forwards a request to an upstream service.
+    attributes:
+      - ref: app.upstream.service
+        requirement_level: required
+      - ref: app.http.method
+        requirement_level: recommended
+      - ref: app.http.route
+        requirement_level: recommended
+      - ref: app.upstream.status_code
+        requirement_level:
+          conditionally_required: when an HTTP response was received.

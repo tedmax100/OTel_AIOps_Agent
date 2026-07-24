@@ -1,0 +1,14 @@
+# Weaver registry manifest for demo-services.
+#
+# This is a *self-contained* custom registry (no dependency on the official
+# OpenTelemetry semantic-conventions model) so `weaver registry check` runs
+# fully offline. Where an attribute maps onto an official semconv attribute,
+# it is noted on the attribute itself.
+#
+# Run:  bash demo-services/scripts/weaver.sh check
+name: demo-services-biz
+description: >-
+  Semantic conventions for the o11y-bench demo-services telemetry — the
+  business-flavoured attributes, metrics, events (logs) and spans emitted by
+  webapp / api-gateway / order / payment / user.
+schema_url: https://tedmax100.github.io/o11y-bench/demo-services/schemas/0.1.0

@@ -1,0 +1,20 @@
+# Signal declaration OWNED by webapp. Compiled into the agent's
+# app/signals/{topology,contracts}.yaml by `python -m app.signals.compile`.
+service: webapp
+role: "public edge — receives external HTTP, forwards to api-gateway"
+tier: 1
+journeys: [checkout]
+git_version: v5.2.0
+freshness_seconds: 60
+supported_decisions: [rca]
+slis: []          # no custom RED metrics; relies on auto HTTP + Loki
+logs:
+  selector: '{service_name="webapp"}'
+  error_events: [http.request_failed]
+  error_query: 'sum by (upstream, status) (count_over_time({service_name="webapp"} | event="http.request_failed" [5m]))'
+  note: "http.request_failed carries upstream + status. Selector key is service_name (NOT service); filter event after the selector."
+exclusions:
+  - "No custom application metrics: derive latency/throughput from the auto HTTP server histogram (discover_metrics for the exact name), and errors from Loki event=http.request_failed."
+  - "Public edge — an error here usually originates downstream (api-gateway → user/order/payment). Trace the journey before blaming webapp."
+depends_on:
+  - {callee: api-gateway}

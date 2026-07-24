@@ -1,0 +1,130 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aiops-plugin-provisioning
+  namespace: demo
+data:
+  # Auto-enables the AIOps app plugin and points it at the agent service
+  # running on the host. See aiops-agent/plugin/provisioning/plugins/apps.yaml.
+  apps.yaml: |
+    apiVersion: 1
+    apps:
+      - type: 'tedmax100-aiops-app'
+        org_id: 1
+        org_name: 'tedmax100'
+        disabled: false
+        jsonData:
+          agentServiceUrl: http://localhost:8000
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: demo
+data:
+  datasources.yaml: |
+    apiVersion: 1
+
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        uid: prometheus
+        access: proxy
+        url: http://prometheus.demo.svc:9090
+        isDefault: true
+        editable: true
+
+      - name: Loki
+        type: loki
+        uid: loki
+        access: proxy
+        url: http://loki.demo.svc:3100
+        editable: true
+        jsonData:
+          derivedFields:
+            - datasourceUid: tempo
+              matcherRegex: '"trace_id":"(\w+)"'
+              name: trace_id
+              url: '$${__value.raw}'
+
+      - name: Tempo
+        type: tempo
+        uid: tempo
+        access: proxy
+        url: http://tempo.demo.svc:3200
+        editable: true
+        jsonData:
+          tracesToLogsV2:
+            datasourceUid: loki
+            spanStartTimeShift: -1m
+            spanEndTimeShift: 1m
+            filterByTraceID: true
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:11.3.0
+          env:
+            - name: GF_AUTH_ANONYMOUS_ENABLED
+              value: "true"
+            - name: GF_AUTH_ANONYMOUS_ORG_ROLE
+              value: Admin
+            - name: GF_FEATURE_TOGGLES_ENABLE
+              value: traceqlEditor
+            # AIOps plugin is unsigned (local build) — allow loading it.
+            # The plugin files are bind-mounted from the k3d node's
+            # /aiops-plugin/tedmax100-aiops-app, populated by up.sh via docker cp.
+            - name: GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS
+              value: tedmax100-aiops-app
+          ports:
+            - containerPort: 3000
+              name: http
+          volumeMounts:
+            - name: datasources
+              mountPath: /etc/grafana/provisioning/datasources
+            - name: aiops-plugin
+              mountPath: /var/lib/grafana/plugins/tedmax100-aiops-app
+              readOnly: true
+            - name: aiops-provisioning
+              mountPath: /etc/grafana/provisioning/plugins
+              readOnly: true
+      volumes:
+        - name: datasources
+          configMap:
+            name: grafana-datasources
+        - name: aiops-plugin
+          hostPath:
+            path: /aiops-plugin/tedmax100-aiops-app
+            type: Directory
+        - name: aiops-provisioning
+          configMap:
+            name: aiops-plugin-provisioning
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: demo
+spec:
+  type: NodePort
+  selector:
+    app: grafana
+  ports:
+    - port: 3000
+      targetPort: 3000
+      nodePort: 30001
+      name: http

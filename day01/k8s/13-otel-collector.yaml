@@ -1,0 +1,122 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-config
+  namespace: demo
+data:
+  config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          http:
+            endpoint: 0.0.0.0:4318
+          grpc:
+            endpoint: 0.0.0.0:4317
+
+    processors:
+      batch:
+        timeout: 5s
+      resource:
+        attributes:
+          - key: service
+            from_attribute: service.name
+            action: insert
+
+    exporters:
+      otlp/tempo:
+        endpoint: tempo.demo.svc:4317
+        tls:
+          insecure: true
+
+      prometheusremotewrite:
+        endpoint: http://prometheus.demo.svc:9090/api/v1/write
+        target_info:
+          enabled: false
+        resource_to_telemetry_conversion:
+          enabled: true
+
+      otlphttp/loki:
+        endpoint: http://loki.demo.svc:3100/otlp
+        tls:
+          insecure: true
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [otlp/tempo]
+        metrics:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [prometheusremotewrite]
+        logs:
+          receivers: [otlp]
+          processors: [resource, batch]
+          exporters: [otlphttp/loki]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-collector
+  namespace: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: otel-collector
+  template:
+    metadata:
+      labels:
+        app: otel-collector
+    spec:
+      containers:
+        - name: collector
+          image: otel/opentelemetry-collector-contrib:0.111.0
+          args: ["--config=/etc/otelcol/config.yaml"]
+          ports:
+            - containerPort: 4318
+              name: otlp-http
+            - containerPort: 4317
+              name: otlp-grpc
+          volumeMounts:
+            - name: config
+              mountPath: /etc/otelcol
+      volumes:
+        - name: config
+          configMap:
+            name: otel-collector-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector
+  namespace: demo
+spec:
+  selector:
+    app: otel-collector
+  ports:
+    - port: 4318
+      targetPort: 4318
+      name: otlp-http
+    - port: 4317
+      targetPort: 4317
+      name: otlp-grpc
+---
+# Optional NodePort so xk6/k6 scripts running on the host can push directly
+# to the collector if they need to (mainly useful for debugging the
+# instrumentation pipeline).
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector-nodeport
+  namespace: demo
+spec:
+  type: NodePort
+  selector:
+    app: otel-collector
+  ports:
+    - port: 4318
+      targetPort: 4318
+      nodePort: 30003
+      name: otlp-http

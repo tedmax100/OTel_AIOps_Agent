@@ -1,0 +1,175 @@
+# Event (log) conventions — the structured business events.
+#
+# Each group's `name` is the standardized event name (== the BizEvent value).
+# In the idiomatic model the event NAME identifies the event; current code
+# instead carries it as the `app.event` (flat: `event`) log attribute. The
+# attributes below are the structured `extra={...}` fields each call site
+# passes to `log_event(...)`.
+groups:
+  # ---- payment domain -------------------------------------------------------
+  - id: event.payment.requested
+    type: event
+    name: payment.requested
+    stability: development
+    brief: A charge was requested from payment-service.
+    attributes:
+      - ref: biz.order.id
+        requirement_level: required
+      - ref: biz.user.id
+        requirement_level: required
+      - ref: biz.amount_cents
+        requirement_level: required
+
+  - id: event.payment.authorized
+    type: event
+    name: payment.authorized
+    stability: development
+    brief: A charge succeeded and a payment was persisted.
+    attributes:
+      - ref: biz.payment.id
+        requirement_level: required
+      - ref: biz.order.id
+        requirement_level: required
+
+  - id: event.payment.declined
+    type: event
+    name: payment.declined
+    stability: development
+    brief: A charge was declined by validation.
+    attributes:
+      - ref: biz.order.id
+        requirement_level: required
+      - ref: app.fail_reason
+        requirement_level: recommended
+
+  - id: event.payment.gateway_error
+    type: event
+    name: payment.gateway_error
+    stability: development
+    brief: The (simulated) upstream payment gateway failed.
+    attributes:
+      - ref: biz.order.id
+        requirement_level: required
+
+  - id: event.payment.refunded
+    type: event
+    name: payment.refunded
+    stability: development
+    brief: A previously authorized charge was refunded. (reserved — not yet emitted)
+    attributes:
+      - ref: biz.payment.id
+        requirement_level: required
+      - ref: biz.order.id
+        requirement_level: recommended
+
+  # ---- order domain ---------------------------------------------------------
+  - id: event.order.created
+    type: event
+    name: order.created
+    stability: development
+    brief: An order was accepted and persisted.
+    attributes:
+      - ref: biz.order.id
+        requirement_level: required
+      - ref: biz.user.id
+        requirement_level: required
+      - ref: biz.amount_cents
+        requirement_level: required
+
+  - id: event.order.updated
+    type: event
+    name: order.updated
+    stability: development
+    brief: An existing order changed state. (reserved — not yet emitted)
+    attributes:
+      - ref: biz.order.id
+        requirement_level: required
+
+  - id: event.order.cancelled
+    type: event
+    name: order.cancelled
+    stability: development
+    brief: An order attempt was rejected/cancelled.
+    attributes:
+      - ref: biz.user.id
+        requirement_level: required
+      - ref: app.fail_reason
+        requirement_level: required
+      - ref: biz.product.id
+        requirement_level: recommended
+      - ref: app.upstream.status_code
+        requirement_level:
+          conditionally_required: when the cancellation was caused by an upstream HTTP error.
+
+  # ---- user domain ----------------------------------------------------------
+  - id: event.user.logged_in
+    type: event
+    name: user.logged_in
+    stability: development
+    brief: An auth check passed.
+    attributes:
+      - ref: biz.user.id
+        requirement_level: required
+
+  - id: event.user.registered
+    type: event
+    name: user.registered
+    stability: development
+    brief: A new user was registered. (reserved — not yet emitted)
+    attributes:
+      - ref: biz.user.id
+        requirement_level: required
+
+  - id: event.user.auth_failed
+    type: event
+    name: user.auth_failed
+    stability: development
+    brief: An auth check or user lookup failed.
+    attributes:
+      - ref: biz.user.id
+        requirement_level: required
+      - ref: app.fail_reason
+        requirement_level: required
+
+  # ---- gateway / webapp -----------------------------------------------------
+  - id: event.http.request_received
+    type: event
+    name: http.request_received
+    stability: development
+    brief: An inbound request was accepted by an edge/proxy service.
+    attributes:
+      - ref: app.http.route
+        requirement_level: required
+      - ref: app.http.method
+        requirement_level: recommended
+
+  - id: event.http.request_failed
+    type: event
+    name: http.request_failed
+    stability: development
+    brief: An upstream HTTP call failed or returned 5xx.
+    attributes:
+      - ref: app.upstream.service
+        requirement_level: required
+      - ref: app.fail_reason
+        requirement_level:
+          conditionally_required: when the failure was transport-level (no HTTP response).
+      - ref: app.upstream.status_code
+        requirement_level:
+          conditionally_required: when the upstream returned an HTTP response.
+
+  # ---- infrastructure-ish ---------------------------------------------------
+  - id: event.cache.miss
+    type: event
+    name: cache.miss
+    stability: development
+    brief: A cache lookup missed. (reserved — not yet emitted)
+
+  - id: event.deployment.started
+    type: event
+    name: deployment.started
+    stability: development
+    brief: A deployment of a service began. (reserved — not yet emitted)
+    attributes:
+      - ref: service.version
+        requirement_level: recommended
