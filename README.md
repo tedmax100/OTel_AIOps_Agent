@@ -16,7 +16,8 @@
 | Day4 | [`day04/`](./day04/) | 安裝 OTel Operator，Collector 遷移成 `OpenTelemetryCollector` CR + 宣告 `Instrumentation` CR（未接 annotation） |
 | Day5 | [`day05/`](./day05/) | api-gateway 改用 annotation 驅動的 auto-instrumentation 注入，附 collector `OOMKilled` 排查案例 |
 | Day6 | [`day06/`](./day06/) | Operator 設定轉 GitOps；`weaver/` 目錄提前建好（registry + `biz_policies.rego` 自訂 policy） |
-| Day7 | [`day07/`](./day07/) | （純概念）Weaver 基礎知識，無程式碼異動 |
+| Day7 | [`day07/`](./day07/) | Weaver 基礎知識：`group` 五種 `type`（span/metric/attribute_group/event/entity）各一份可執行範例，含一份故意示範 resolver 錯誤 |
 | Day8 | [`day08/`](./day08/) | 第一次真的對 `day06/weaver/` 的 registry 跑 `weaver registry check`（含 resolver/checker 兩種錯誤的示範性重現） |
+| Day9 | [`day09/`](./day09/) | `weaver registry infer`：把 `day01/` 四個服務跑起來、送真實流量，反推 schema 草稿，證實 `userId`/`user_id` 被當成兩個獨立 attribute 學了進去 |
 
 後續每天寫完文章，會依同樣模式新增 `dayXX/` 資料夾。
