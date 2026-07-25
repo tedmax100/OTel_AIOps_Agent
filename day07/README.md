@@ -4,9 +4,9 @@
 
 這天原本規劃是純概念日、不碰程式碼，但文章裡示範 `group` 的五種 `type`（`span`/`metric`/`attribute_group`/`event`/`entity`）時，把每個範例都真的丟給 `weaver registry check` 跑過一次，抓到兩個原本沒發現的真實坑（`stability` 缺了只警告、`brief` 缺了直接判失敗）。這些範例因此值得留下來，不是「無程式碼異動」。
 
-demo stack 本身沿用 [`../day06/`](../day06/) 的狀態不變；這裡新增的 `examples/` 只是六份獨立、最小可執行的 registry，純粹用來驗證 `group` 的語法，跟 `demo-services` 的正式 registry（`../day06/weaver/`）無關。
+demo stack 本身沿用 [`../day06/`](../day06/) 的狀態不變；這裡新增的 `examples/` 只是七份獨立、最小可執行的 registry，純粹用來驗證 `group` 的語法，跟 `demo-services` 的正式 registry（`../day06/weaver/`）無關。
 
-## 六份範例
+## 七份範例
 
 ```
 examples/
@@ -16,9 +16,11 @@ examples/
   event/                # type: event，乾淨通過
   entity/               # type: entity，乾淨通過
   combined/             # order.yaml + common.yaml 兩個檔案合成一份 registry，ref 解析成功
+  attr-types/           # attribute 的型別變化：int/double/boolean/string[]/enum/template
+                        # 以及 requirement_level 四級（含 conditionally_required）
 ```
 
-跑法（本機需要 `weaver` CLI）：
+跑法（本機需要 `weaver` CLI，實測版本 0.24.1）：
 
 ```bash
 cd examples
@@ -27,10 +29,18 @@ weaver registry check -r attribute-group
 weaver registry check -r event
 weaver registry check -r entity
 weaver registry check -r combined
+weaver registry check -r attr-types
 
 # 故意會失敗的那份（resolver 錯誤，離開碼 1）
 weaver registry check -r metric-dangling-ref
 ```
+
+> ⚠️ **不要用 `-r .`。** 在 weaver 0.24.1 上，`cd` 進 registry 目錄再跑 `weaver registry check -r .`（或 `-r ./`）會找到 `manifest.yaml`、印出綠燈，但實際上**一個 group 都沒載入**——連 `metric-dangling-ref` 這種故意寫錯的都會過。用目錄名（`-r span-only`）、`..` 開頭的相對路徑，或絕對路徑都正常。驗證方式是跑 `weaver registry stats`，看 group 數量是不是 0：
+>
+> ```bash
+> cd span-only && weaver registry stats -r .   #   - 0 groups   ← 假綠燈
+> cd .. && weaver registry stats -r span-only  #   - 1 groups   ← 正常
+> ```
 
 ## 真實結果
 
@@ -63,4 +73,16 @@ Diagnostic report:
 - **漏 `stability`**：只印警告（`Invalid stability on group ... does not contain a stability field`），離開碼還是 `0`。
 - **漏 attribute 的 `brief`**：直接判失敗（`This attribute is not deprecated and does not contain a brief field`），離開碼 `1`。
 
-這兩條都是 weaver 內建的驗證規則，不需要額外寫 Rego policy 就會生效——跟 Day8 的自訂 policy（`biz_policies.rego`）是兩層不同的檢查。目前 repo 裡的六份範例都已經是修正過、乾淨通過的版本。
+這兩條都是 weaver 內建的驗證規則，不需要額外寫 Rego policy 就會生效——跟 Day8 的自訂 policy（`biz_policies.rego`）是兩層不同的檢查。目前 repo 裡的七份範例都已經是修正過、乾淨通過的版本。
+
+## 三種嚴格度（用 `attr-types/` 實測）
+
+拿 `attr-types/` 這份乾淨的範例分別弄壞三次，結果分三級：
+
+| 弄壞什麼 | 輸出 | 離開碼 |
+|---|---|---|
+| group 缺 `stability` | `⚠ Invalid stability on group ...` | 0 |
+| attribute 缺 `brief` | `× Invalid attribute definition ...` | 1 |
+| attribute 缺 `examples` | 完全不吭聲 | 0 |
+
+第三級是重點：**內建規則不管命名風格**，`userId` 當 attribute id 一樣給綠燈。要攔命名慣例、要攔「高基數欄位不准當 metric label」，得自己寫 Rego policy（Day8 第一次用到，Day10-11 展開講）。

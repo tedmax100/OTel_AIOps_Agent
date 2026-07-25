@@ -2,7 +2,7 @@
 
 對應文章：Day8（2026 鐵人賽《AIOps with OpenTelemetry》）
 
-沿用 [`../day06/`](../day06/) 的狀態，不新增/修改任何 stack 檔案——`../day06/weaver/` 底下的 registry（`registry/model/*.yaml`）跟自訂 policy（`policies/biz_policies.rego`）在 Day6 就已經建好，今天要做的事只有一件：第一次真的對它跑 `weaver registry check`，貼真實輸出。
+沿用 [`../day06/`](../day06/) 的狀態，不修改任何 stack 檔案（唯一新增的是本目錄的 `policies/biz_policies.rego`，見下文「修正版 policy」）——`../day06/weaver/` 底下的 registry（`registry/model/*.yaml`）跟自訂 policy（`policies/biz_policies.rego`）在 Day6 就已經建好，今天要做的事只有一件：第一次真的對它跑 `weaver registry check`，貼真實輸出。
 
 ## 跑法
 
@@ -80,6 +80,64 @@ Violation: semconv_attribute
 ```
 
 這正是 `policies/biz_policies.rego` 要擋的事——`biz.*` 是高基數的業務識別碼（user id、order id…），一旦被拿去當 metric label，等於让每個不同的 id 都變成一條新的時間序列。這條 policy 把 `o11y_shared/events.py` docstring 裡那句警告（「Never include dynamic ids... every addition widens the label space」）變成一個會在 CI 擋下來的自動化規則，而不是只停留在註解裡靠人記得。
+
+## 示範三：policy 沒抓到的那一種
+
+前兩個示範是「弄壞、被抓到」。更值得記的是「弄壞、沒被抓到」——`../day06/weaver/policies/biz_policies.rego` 的規則本體只做兩個字串比對（`group.type == "metric"` 且 `startswith(attr.name, "biz.")`），也就是說它擋的不是「高基數」，是「名字開頭是 `biz.`」。
+
+在同一份丟棄式複製上，定義一個一樣高基數、但掛在 `app.*` 底下的追蹤碼：
+
+```yaml
+# common.yaml
+  - id: registry.leak
+    type: attribute_group
+    stability: development
+    brief: "示範用：一個高基數、但沒有掛在 biz.* 命名空間底下的識別碼"
+    attributes:
+      - id: app.order.tracking_id
+        type: string
+        stability: development
+        brief: "訂單追蹤碼（每筆訂單都不同，高基數）"
+        examples: ["trk-90a1f"]
+```
+
+```yaml
+# metrics.yaml，掛到 metric.app.orders.count 上
+      - ref: app.order.tracking_id
+        requirement_level: recommended
+```
+
+```
+✔ No `after_resolution` policy violation
+exit=0
+```
+
+綠燈。輸出跟「完全沒問題」無法區分。
+
+## 修正版 policy：從「檢查名字」到「檢查值域」
+
+`policies/biz_policies.rego`（本目錄，**不覆蓋 day06 那份**，方便對照）把規則翻轉成預設拒絕：
+
+> metric label 只能是值域有界的型別——enum（`type` 是帶 `members` 的物件）或 boolean。其他一律視為無界，除非明確列入 `allowed_unbounded_label` 白名單並寫上理由。
+
+支點是 `is_object(attr.type)`：Rego 拿到的是 resolved schema，enum 的 `type` 在那裡是 `{"members": [...]}` 物件，普通字串欄位的 `type` 就是 `"string"`，所以「是不是 enum」等同於「`type` 是不是物件」。原本那條 `biz.*` 規則保留——它守的是分層（業務識別資料不上 metric），跟新規則守的成本是兩件事。
+
+跑法：
+
+```bash
+cd day08
+weaver registry check -r ../day06/weaver/registry -p policies
+```
+
+實測三個情境：
+
+| 情境 | 結果 | 離開碼 |
+|---|---|---|
+| 乾淨 registry（含白名單） | `✔ No after_resolution policy violation` | 0 |
+| 示範三的 `app.order.tracking_id` | `id=unbounded_metric_label, attr=app.order.tracking_id` | 1 |
+| 示範二的 `biz.order.id` | `id=high_cardinality_metric_label, attr=biz.order.id` | 1 |
+
+**意外收穫**：把白名單拿掉再跑乾淨的 registry，新規則抓到兩個真的——`gen_ai.request.model`（`type: string`）掛在兩個 GenAI metric 上，是 Day6 寫下來就存在、舊規則永遠看不到的。這裡選擇把它列入白名單並寫上理由（model id 會隨供應商更新而變，寫死成 enum 會讓每次換模型都變成一次 registry 改版），而不是改成 enum。白名單本身就成了「這份 registry 目前承擔的所有 cardinality 風險」的完整清單。
 
 ## 對照 Day7 的 crate 分工
 

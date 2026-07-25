@@ -1,0 +1,3 @@
+name: day7-attr-types
+description: Day7 文章「attribute 的型別有哪些」段落的範例，示範 string 以外的各種 type
+schema_url: https://example.com/schemas/day7-attr-types/0.1.0

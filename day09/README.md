@@ -62,3 +62,35 @@ payment-service 這次刻意沒接（本機 8001 剛好被另一個既有的 k3d
 ```
 
 完整輸出（1852 行）沒有進 repo——它本來就只是一份丟棄式的草稿，不是治理成果。
+
+## 受控往返實驗：`emit` → `infer`
+
+上面那份草稿混雜了兩種粗糙（服務本身沒治理 vs `infer` 的能力上限）。為了把兩者分開，再跑一次受控版本：拿 [`../day06/weaver/registry`](../day06/weaver/) 這份**已經治理好**的 registry（34 groups、有 enum/brief/requirement_level），用 `weaver registry emit` 發成 OTLP，再用 `infer` 反推回來。
+
+```bash
+weaver registry infer -o /tmp/d9probe --grpc-port 24317 --admin-port 28080 \
+  --inactivity-timeout 20 &
+weaver registry emit -r ../day06/weaver/registry --endpoint http://localhost:24317
+curl -X POST http://localhost:28080/stop
+```
+
+```
+✔ Emitted registry `../day06/weaver/registry`
+OTLP receiver stopped. Accumulated: 4 resource attrs, 6 spans, 8 metrics, 15 events
+Generated registry file: "/tmp/d9probe/registry.yaml"
+```
+
+輸入完美，所以輸出的落差就純粹是 `infer` 的上限：
+
+| 資訊 | 往返之後 |
+|---|---|
+| group 名字、metric 的 `instrument`/`unit`、attribute 名字與基本型別 | ✅ 保住 |
+| `examples` | ⚠️ 只剩這次剛好流過的值 |
+| `brief` / `note` | ❌ 全空 |
+| `requirement_level` | ❌ 一律 `recommended`（原本 `required`）|
+| `enum` 的 `members` | ❌ 退化成 `type: string`（`app.outcome` 原本有 13 個成員）|
+| group id | ❌ 被加上重複前綴（`span.app.order.create` → `span.span.app.order.create`）|
+
+另外多出一個沒人定義過的 `span.otel.weaver.emit`——那是 `emit` 自己送資料產生的 span，`infer` 一視同仁學了進去，是 Day12 那個 4317 撞 port 問題的縮小版。
+
+結論：`brief`、`requirement_level`、`enum` 這三樣**從來就沒被送上線路**，所以 `infer` 再怎麼樣都還原不出來。它們是團隊的決定，不是資料的屬性。
