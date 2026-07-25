@@ -56,6 +56,91 @@ weaver registry check -r registry -p policies --display-policy-coverage
 
 同一個 `userId` 被 `camel_case_attribute` 報兩次是預期行為——Rego 看到的是 resolved schema，`ref` 已經展開，那個 attribute 真的同時存在於定義它的 `registry.order` 跟引用它的 `span.order.create` 裡。這個數字剛好是「改名要動幾個地方」的影響範圍。
 
+## weaver 用得到的 Rego：實測速查
+
+### 兩個 package 看到的東西完全不一樣
+
+| | `before_resolution` | `after_resolution` |
+|---|---|---|
+| 呼叫次數 | **每個 YAML 檔各一次** | **整份 registry 一次** |
+| `input` 頂層 | `groups`、`file_format`（`"definition/1"`）| `groups`、`registry_url` |
+| `input.groups` | 只有這個檔案的 group | 全部 group |
+| attribute 形狀 | 保持手寫原樣：inline 的有 `id`，引用的**只有 `ref`** | `ref` 已展開，鍵是 **`name`** 不是 `id` |
+| 看得到別的檔案嗎 | ❌ | ✅ |
+
+day06 那份 registry（5 檔、34 groups）實測：
+
+```
+# before_resolution — 跑了五次
+一次呼叫看到 4 個 group   ← common.yaml
+一次呼叫看到 15 個 group  ← events.yaml
+一次呼叫看到 6 個 group   ← metrics.yaml
+一次呼叫看到 6 個 group   ← genai.yaml
+一次呼叫看到 3 個 group   ← spans.yaml
+
+# after_resolution — 跑了一次
+KEYS=["groups", "registry_url"] groups=34
+```
+
+選哪個：命名／基數／值域這類「實際生效」的規則用 `after_resolution`；「不准 inline、一律用 ref」「每個檔案都要有 X」這類看得出手寫形式的用 `before_resolution`。**跨檔案的撞名檢查一定要用 `after_resolution`**——`before_resolution` 一次只看得到一個檔案。
+
+### 骨架
+
+```rego
+package after_resolution      # 只有這兩個名字有效，打錯 = 靜默綠燈
+import rego.v1                # 選用，引擎本來就是 v1
+
+deny contains f if {          # deny 是唯一會被收集的規則名
+	g := input.groups[_]      # [_] = 對每個都試一次，不是取第 0 個
+	a := g.attributes[_]
+	regex.match(`[a-z][A-Z]`, a.name)   # 條件全部 AND
+	f := {"id": "...", "type": "semconv_attribute",
+	      "category": "...", "group": g.id, "attr": a.name}
+}
+```
+
+### 關鍵字
+
+| 語法 | 說明 |
+|---|---|
+| `x := xs[_]` / `some x in xs` | 迭代 |
+| `not <expr>` | **「無法成立」，不是布林取反**——有迭代時語意差很多 |
+| `every x in xs { … }` | 全稱 |
+| `x in xs` | 成員判斷（白名單） |
+| `[e \| some g in xs]` | comprehension，把巢狀攤平成集合（全域撞名的關鍵） |
+| `default x := false` | 避免 undefined |
+| **同名規則寫兩次** | 這就是 OR，Rego 沒有 `\|\|` |
+
+### 內建函式（實測可用）
+
+`startswith` `endswith` `contains` `lower` `upper` `split` `replace` `sprintf` `regex.match` `is_object` `is_string` `count` `object.get` `json.marshal` `walk` `semver.compare`
+
+### 只吃 Rego v1
+
+```rego
+deny[f] { ... }          # ❌ v0，直接被拒絕
+deny contains f if { }   # ✅ v1
+```
+
+```
+× Invalid policy file, error: `if` keyword is required before rule body
+```
+
+網路上 2023 年以前的範例大多是 v0，貼進來會撞這個。`import rego.v1` 加不加都能跑，`import future.keywords` 也接受。
+
+### package 名字打錯 = 靜默綠燈
+
+把 `after_resolution` 改成 `mypolicy`，其他不動：
+
+```
+✔ No `after_resolution` policy violation
+exit=0
+```
+
+沒有警告，而且 `--display-policy-coverage` **什麼都不印**（正常時會印 `policies/naming.rego has full coverage`）。
+
+所以驗證方式是：**coverage 報告裡有沒有列出你的 `.rego` 檔**——這是 policy 層的探針，地位等同用 `registry stats` 的 group 數當 registry 層的探針。
+
 ## 三個實測出來的行為（weaver 0.24.1，文件沒寫）
 
 ### 1. `level` 寫了沒用，`registry check` 只有一種嚴重度

@@ -1,0 +1,11 @@
+groups:
+  - id: event.checkout.completed
+    type: event
+    name: checkout.completed
+    stability: development
+    brief: "結帳完成（團隊自訂事件，重用 base 的支付屬性）"
+    attributes:
+      - ref: payment.id
+        requirement_level: required
+      - ref: payment.outcome
+        requirement_level: required

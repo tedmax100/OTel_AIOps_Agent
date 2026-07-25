@@ -1,0 +1,10 @@
+name: checkout-squad
+description: >-
+  結帳小隊，疊在事業群之上（第三層）。注意 dependencies 同時列了 division 跟 base——
+  依賴不會遞移，只列 division 的話 base 的 payment.id 會解不到。
+schema_url: https://example.com/schemas/checkout-squad/0.1.0
+dependencies:
+  - name: commerce-division
+    registry_path: day13/division
+  - name: payments-base
+    registry_path: day13/base

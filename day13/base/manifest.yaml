@@ -1,0 +1,3 @@
+name: payments-base
+description: 支付領域的共用 semantic convention（平台團隊維護）
+schema_url: https://example.com/schemas/payments-base/0.1.0

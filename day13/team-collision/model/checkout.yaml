@@ -1,0 +1,23 @@
+groups:
+  - id: event.checkout.completed
+    type: event
+    name: checkout.completed
+    stability: development
+    brief: "結帳完成（團隊自訂事件，重用 base 的支付屬性）"
+    attributes:
+      - ref: payment.id
+        requirement_level: required
+      - ref: payment.outcome
+        requirement_level: required
+
+  # ⚠️ 示範用：團隊以為這樣可以「覆寫」base 的 payment.id，實際上不會。
+  - id: registry.checkout_override
+    type: attribute_group
+    stability: development
+    brief: "團隊重新定義了一個 base 已經有的 attribute，型別還不一樣"
+    attributes:
+      - id: payment.id
+        type: int
+        stability: development
+        brief: "團隊版：把它改成整數"
+        examples: [1001]

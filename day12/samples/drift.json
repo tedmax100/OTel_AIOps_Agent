@@ -1,0 +1,16 @@
+[
+  {"span": {"name":"POST /api/orders","kind":"server","attributes":[
+    {"name":"user_id","value":"u-5"},
+    {"name":"order_id","value":"ord-1001"},
+    {"name":"status","value":"created"},
+    {"name":"userId","value":"u-7"}
+  ]}},
+  {"span": {"name":"span.app.order.create","kind":"server","attributes":[
+    {"name":"biz.user.id","value":"u-5"},
+    {"name":"app.outcome","value":"created"}
+  ]}},
+  {"span": {"name":"span.app.order.create","kind":"server","attributes":[
+    {"name":"app.outcome","value":"CREATED"}
+  ]}},
+  {"metric": {"name":"orders_total","instrument":"counter","unit":"{order}"}}
+]

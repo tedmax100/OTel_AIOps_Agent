@@ -1,0 +1,11 @@
+groups:
+  - id: registry.commerce
+    type: attribute_group
+    stability: development
+    brief: "事業群層級的共同屬性"
+    attributes:
+      - id: commerce.channel
+        type: string
+        stability: development
+        brief: "銷售通路"
+        examples: ["web", "app"]

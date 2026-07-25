@@ -1,0 +1,11 @@
+groups:
+  - id: event.checkout.completed
+    type: event
+    name: checkout.completed
+    stability: development
+    brief: "結帳完成——同時用到 base（第一層）跟事業群（第二層）的屬性"
+    attributes:
+      - ref: payment.id          # 來自第一層 base
+        requirement_level: required
+      - ref: commerce.channel    # 來自第二層 division
+        requirement_level: recommended
