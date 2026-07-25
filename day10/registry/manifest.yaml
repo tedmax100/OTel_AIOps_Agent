@@ -1,0 +1,5 @@
+name: day10-naming-drift
+description: >-
+  Day10 用的最小 registry：刻意保留 Day1 那個命名漂移（userId / user_id 並存），
+  外加幾個常見的命名壞味道，用來示範 naming policy 怎麼把它們攔下來。
+schema_url: https://example.com/schemas/day10-naming-drift/0.1.0
