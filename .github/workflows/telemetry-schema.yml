@@ -1,44 +1,85 @@
 name: telemetry-schema
 
-# 只有動到 registry / policy / 這份 workflow 本身才跑。
-# 治理閘門不該在每個無關的 PR 上都花時間。
+# 這個 repo 裡有兩種 registry：照規範寫的，跟**故意寫壞當教材**的。
+# 所以 CI 不能只問「check 有沒有過」——那樣故意寫壞的那幾份會讓 gate 永遠紅燈。
+# 要問的是「每一份的結果，跟它應該有的結果一不一樣」，那正是 regress.sh 在做的事：
+# 21 條斷言、每條寫死預期離開碼，其中 12 條預期 exit 1。
 on:
   pull_request:
     paths:
-      - "day10/registry/**"
-      - "day10/policies/**"
+      - "day*/**"
+      - "testability/**"
+      - ".github/workflows/telemetry-schema.yml"
+  push:
+    branches: [main]
+    paths:
+      - "day*/**"
+      - "testability/**"
       - ".github/workflows/telemetry-schema.yml"
 
-  # 手動觸發，方便在 Actions 頁面直接看兩種結果長什麼樣子。
+  # 手動觸發：單獨看一份 registry 的 check 輸出長什麼樣子（含 annotation）。
   workflow_dispatch:
     inputs:
       target:
-        description: "要檢查哪一份 registry"
+        description: "要單獨檢查哪一份 registry"
         type: choice
         default: day10-drift
         options:
-          # Day10 那份刻意留著命名漂移的 registry —— 預期紅燈，9 個違規
+          # 刻意留著命名漂移的那份 —— 預期紅燈，9 個違規（Day6 的教材）
           - day10-drift
-          # Day6 那份照目標命名寫的 registry —— 預期綠燈
+          # 照目標命名寫的那份 —— 預期綠燈
           - day06-demo-services
 
 permissions:
   contents: read
 
 env:
-  # 釘版本。weaver 還在 0.x，內建驗證規則會隨版本變嚴（Day14 會重現一次
-  # 0.23.0 對合法欄位 hard error 的踩坑），浮動版本等於讓 CI 隨時可能
-  # 因為別人發版而變紅。
+  # 釘版本。weaver 還在 0.x，內建驗證規則會隨版本變嚴（Day9 重現過一次
+  # 0.23.0 對合法欄位 hard error，以及對多層依賴直接 panic），浮動版本
+  # 等於讓 CI 隨時可能因為別人發版而變紅。
   WEAVER_VERSION: v0.24.1
   WEAVER_TARGET: weaver-x86_64-unknown-linux-musl
 
 jobs:
-  registry-check:
+  # 真正的閘門：所有治理資產的回歸測試。
+  regress:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      # pull_request 時固定檢查 day10；手動觸發時看使用者選了哪一份。
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install weaver
+        run: |
+          set -euo pipefail
+          base="https://github.com/open-telemetry/weaver/releases/download/${WEAVER_VERSION}"
+          curl -sSLf -O "${base}/${WEAVER_TARGET}.tar.xz"
+          curl -sSLf -O "${base}/${WEAVER_TARGET}.tar.xz.sha256"
+          sha256sum -c "${WEAVER_TARGET}.tar.xz.sha256"
+          tar -xf "${WEAVER_TARGET}.tar.xz"
+          sudo install "${WEAVER_TARGET}/weaver" /usr/local/bin/weaver
+          weaver --version
+
+      - name: Install python deps
+        run: pip install --quiet pyyaml opentelemetry-api opentelemetry-sdk
+
+      # 21 條斷言，12 條預期 exit 1——測的是「規則還擋不擋得住」，
+      # 不是「有沒有通過」。任何一條跟預期不符就紅燈。
+      - name: 治理資產回歸測試
+        run: ./testability/regress.sh
+
+  # 示範用：單獨對一份 registry 跑 check，看 annotation 長什麼樣子。
+  # 只在手動觸發時跑——預設那個目標是故意寫壞的教材，讓它在每個 PR 上
+  # 紅燈只會製造雜訊，而雜訊多的 gate 最後會被忽略。
+  registry-check:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
       - name: 決定檢查目標
         env:
           TARGET: ${{ inputs.target }}
@@ -47,9 +88,11 @@ jobs:
           if [ "${TARGET:-day10-drift}" = "day06-demo-services" ]; then
             echo "REGISTRY=day06/weaver/registry" >> "$GITHUB_ENV"
             echo "POLICIES=day06/weaver/policies" >> "$GITHUB_ENV"
+            echo "EXPECT=green" >> "$GITHUB_ENV"
           else
             echo "REGISTRY=day10/registry" >> "$GITHUB_ENV"
             echo "POLICIES=day10/policies" >> "$GITHUB_ENV"
+            echo "EXPECT=red" >> "$GITHUB_ENV"
           fi
 
       - name: Install weaver
@@ -63,7 +106,7 @@ jobs:
           sudo install "${WEAVER_TARGET}/weaver" /usr/local/bin/weaver
           weaver --version
 
-      # Day7 那個 `-r .` 假綠燈的教訓：先確認這個檢查真的有讀到東西。
+      # Day5 那個 `-r .` 假綠燈的教訓：先確認這個檢查真的有讀到東西。
       # 少了這一步，一個路徑打錯的 PR 會拿到綠燈而不是紅燈。
       - name: Probe — registry 真的有被讀進來
         run: |
@@ -79,16 +122,31 @@ jobs:
       # --diagnostic-stdout true 不能省：預設輸出走 stderr，
       # 而 GitHub Actions 只解析 stdout 上的 workflow command，
       # 少了它 ::error:: 只會變成紅色的純文字 log，不會變成 annotation。
-      - name: weaver registry check
+      #
+      # 這一步刻意不讓它直接決定 job 的成敗：day10 那份是教材，紅燈才是正確結果。
+      # 用 EXPECT 對照實際離開碼，符合預期就算通過。
+      - name: weaver registry check（對照 EXPECT）
         run: |
+          set +e
           weaver registry check \
             -r "$REGISTRY" -p "$POLICIES" \
             --diagnostic-format gh_workflow_command \
             --diagnostic-stdout true
+          code=$?
+          set -e
+          echo "exit=${code}, expect=${EXPECT}"
+          if [ "$EXPECT" = "red" ] && [ "$code" -eq 0 ]; then
+            echo "::error::這份 registry 應該要有違規，卻通過了——教材失效了"
+            exit 1
+          fi
+          if [ "$EXPECT" = "green" ] && [ "$code" -ne 0 ]; then
+            echo "::error::這份 registry 應該要通過，卻紅了"
+            exit 1
+          fi
 
       # resolver 階段的錯誤（例如 ref 指到不存在的 attribute）在
       # gh_workflow_command 格式下只會印出一個空的 ::group::，
       # 也就是 build 紅了但 PR 上什麼都沒說。補跑一次人看得懂的格式。
       - name: 完整診斷（失敗時才跑）
         if: failure()
-        run: weaver registry check -r "$REGISTRY" -p "$POLICIES"
+        run: weaver registry check -r "$REGISTRY" -p "$POLICIES" || true
