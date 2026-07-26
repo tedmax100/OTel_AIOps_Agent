@@ -1,0 +1,8 @@
+name: payments-metrics
+description: >-
+  Day11 用的 registry：疊在 payments-base 0.2.0 之上，補一個帶 payment.outcome
+  維度的 counter，讓「意圖」有一個真的可以查的 metric 可以指。
+schema_url: https://example.com/schemas/payments-metrics/0.1.0
+dependencies:
+  - name: payments-base
+    registry_path: day14/base-v2

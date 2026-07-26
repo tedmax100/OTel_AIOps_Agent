@@ -1,0 +1,28 @@
+groups:
+  - id: registry.shipping
+    type: attribute_group
+    stability: development
+    brief: "shipping 的共用屬性"
+    attributes:
+      - id: shipping.id
+        type: string
+        brief: "出貨識別碼"
+      - id: shippingStatus
+        type: string
+        stability: development
+        brief: "出貨狀態"
+        examples: ["shipped"]
+
+  - id: event.shipping.completed
+    type: event
+    name: shipping.completed
+    stability: development
+    brief: "出貨完成"
+    attributes:
+      - ref: shipping.id
+        requirement_level: required
+      - id: shipping.carrier
+        type: string
+        stability: development
+        brief: "物流商"
+        examples: ["black-cat"]

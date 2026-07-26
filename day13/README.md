@@ -1,6 +1,6 @@
-# Day13 — 自訂 semconv 與多 registry 分層
+# Day8 — 自訂 semconv 與多 registry 分層
 
-對應文章：Day13（2026 鐵人賽《AIOps with OpenTelemetry》）
+對應文章：Day8（2026 鐵人賽《AIOps with OpenTelemetry》）
 
 不動 demo stack。這裡是五份獨立的 registry，示範「從零寫一份 semantic convention」以及「多團隊分層」會撞到什麼。
 
@@ -18,7 +18,7 @@ day13/
 
 ## 跑法
 
-**所有指令都從 submodule 根目錄跑** —— `registry_path` 是相對於工作目錄的（見陷阱一）。
+**所有指令都從這個 repo 的根目錄跑** —— `registry_path` 是相對於工作目錄的（見陷阱一）。
 
 ```bash
 weaver registry check -r day13/base
@@ -48,7 +48,7 @@ weaver registry stats -r day13/team --include-unreferenced true   # 3 groups
 
 `manifest.yaml` **不是自足的**——同一份檔案 `cd` 到不同地方跑結果不同。本機好好的、CI 爆掉（或反過來）就是這樣來的。
 
-配上 Day7 那個 `-r .` 不能用的坑，慣例只能是：**路徑寫成相對於 repo 根目錄，所有指令固定從 repo 根目錄跑**。
+配上 Day5 那個 `-r .` 不能用的坑，慣例只能是：**路徑寫成相對於 repo 根目錄，所有指令固定從 repo 根目錄跑**。
 
 ### 2. 重複定義不是覆寫，是造出一個沒有人用的孤兒
 

@@ -1,0 +1,33 @@
+whitespace_control:
+  trim_blocks: true
+  lstrip_blocks: true
+
+templates:
+  # 1. 欄位名稱常數：所有 attribute_group 裡的 attribute
+  - template: semconv_attrs.py.j2
+    filter: >
+      .groups
+      | map(select(.type == "attribute_group"))
+      | map(.attributes[])
+      | unique_by(.name)
+      | sort_by(.name)
+    application_mode: single
+    file_name: "semconv_attrs.py"
+
+  # 2. enum 值域：只有 type 是物件（有 members）的才算
+  - template: semconv_enums.py.j2
+    filter: >
+      .groups
+      | map(select(.type == "attribute_group"))
+      | map(.attributes[])
+      | map(select(.type | type == "object"))
+      | unique_by(.name)
+      | sort_by(.name)
+    application_mode: single
+    file_name: "semconv_enums.py"
+
+  # 3. 整份 resolved registry 的 JSON：給 intent compiler 當事實來源
+  - template: registry.json.j2
+    filter: .
+    application_mode: single
+    file_name: "registry.json"

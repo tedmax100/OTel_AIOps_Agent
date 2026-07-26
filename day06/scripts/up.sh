@@ -33,7 +33,7 @@ else
 fi
 
 echo "[up] applying manifests via kustomize (k8s/kustomization.yaml)"
-# Day6: single entry point instead of looping over k8s/[0-9]*-*.yaml.
+# Day3: single entry point instead of looping over k8s/[0-9]*-*.yaml.
 # `kustomize build` resolves k8s/kustomization.yaml's `resources` list into
 # one manifest stream — that resolved stream is what a GitOps controller
 # (Argo CD / Flux) would actually apply, so building it locally the same way

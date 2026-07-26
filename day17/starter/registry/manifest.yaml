@@ -1,0 +1,7 @@
+# 新服務 registry 範本。把 <service> 換成你的服務名，其他行不要動。
+name: <service>-telemetry
+description: <service> 服務的 semantic convention（服務團隊維護）
+schema_url: https://example.com/schemas/<service>-telemetry/0.1.0   # 版本號一定要有，Day9 靠它做 diff
+dependencies:
+  - name: payments-base           # 平台團隊那份 base，路徑相對於 repo 根目錄（Day8 陷阱一）
+    registry_path: day14/base-v2

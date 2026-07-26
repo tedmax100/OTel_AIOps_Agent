@@ -1,0 +1,3 @@
+name: future-demo
+description: 三個 --future 才會變成錯誤的違規
+schema_url: https://example.com/schemas/future-demo/0.1.0

@@ -1,0 +1,24 @@
+groups:
+  - id: metric.payment.attempts
+    type: metric
+    metric_name: payment.attempts
+    instrument: counter
+    unit: "{attempt}"
+    stability: development
+    brief: "支付嘗試次數，依終態結果分維度"
+    attributes:
+      - ref: payment.outcome
+        requirement_level: required
+      - ref: payment.method
+        requirement_level: recommended
+
+  - id: metric.payment.duration
+    type: metric
+    metric_name: payment.duration
+    instrument: histogram
+    unit: s
+    stability: development
+    brief: "支付請求耗時"
+    attributes:
+      - ref: payment.outcome
+        requirement_level: required

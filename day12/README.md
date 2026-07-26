@@ -1,6 +1,8 @@
-# Day12 — `live-check`：補上 CI 看不到的那一半
+# Day7 — `live-check`：補上 CI 看不到的那一半
 
-對應文章：Day12（2026 鐵人賽《AIOps with OpenTelemetry》）
+對應文章：Day7（2026 鐵人賽《AIOps with OpenTelemetry》）
+
+> 資料夾的日號沿用文章重編之前的編號。這是文章合併前的原 Day12（live-check 那半）。
 
 不動 demo stack。這裡只有兩份遙測樣本，拿去跟 [`../day06/weaver/registry`](../day06/weaver/) 比對——`registry check` 檢查定義自不自洽，`live-check` 檢查**實際送出去的資料**符不符合那份定義。
 
@@ -13,7 +15,7 @@ day12/samples/
 ## 跑法
 
 ```bash
-# 從 submodule 根目錄
+# 從 repo 根目錄
 weaver registry live-check -r day06/weaver/registry --input-source day12/samples/drift.json
 weaver registry live-check -r day06/weaver/registry --input-source day12/samples/clean.json
 ```
@@ -80,7 +82,7 @@ Registry coverage
 
 ## 三級嚴重度在這裡才是真的
 
-Day10 找不到的 `information` / `improvement` / `violation`，屬於 live-check 的 advice 系統，不是 `registry check` 的 policy。而且它**決定離開碼**：有 violation → 1，只有 improvement/information → 0。所以 CI 可以要求「不准有 violation」，同時讓 improvement 只當技術債看板。
+Day6 找不到的 `information` / `improvement` / `violation`，屬於 live-check 的 advice 系統，不是 `registry check` 的 policy。而且它**決定離開碼**：有 violation → 1，只有 improvement/information → 0。所以 CI 可以要求「不准有 violation」，同時讓 improvement 只當技術債看板。
 
 ### 六種內建 advice type
 
@@ -95,7 +97,7 @@ Day10 找不到的 `information` / `improvement` / `violation`，屬於 live-che
 
 `not_stable` 對**完全正確**的資料也會叫——因為 day06 那份 registry 100% 都是 `development`。它是技術債提醒，不是錯誤。
 
-`missing_namespace` 跟 `invalid_format` 是 Day10 手寫規則的內建版，差別在守的時間點：Day10 守 PR 階段的**定義**，這裡守 runtime 的**實際資料**。
+`missing_namespace` 跟 `invalid_format` 是 Day6 手寫規則的內建版，差別在守的時間點：Day6 守 PR 階段的**定義**，這裡守 runtime 的**實際資料**。
 
 ## 兩個坑
 

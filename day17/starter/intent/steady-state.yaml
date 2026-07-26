@@ -1,0 +1,24 @@
+# 意圖範本（Day11）。why 跟 first_check 不要留空——那兩欄才是這份檔案存在的理由。
+apiVersion: intent.o11y/v1
+kind: SteadyStateIntent
+metadata:
+  service: <service>
+  owner: <team>
+  registry: day17/services/<service>/registry
+spec:
+  objectives:
+    - id: <service>-success-rate
+      statement: "<service> 的成功率不得低於 99.9%"
+      why: >-
+        寫清楚：低於這條線時，哪一群使用者會受到什麼影響，以及這個數字是怎麼推出來的。
+        「因為這很重要」不算 why。
+      signal:
+        metric: <service>.attempts
+        dimension: <service>.outcome
+        good_values: [ok]
+      objective:
+        ratio_min: 0.999
+        window: 5m
+      on_violation:
+        severity: page
+        first_check: "寫清楚：被叫起來的人第一個該打開的東西是什麼"

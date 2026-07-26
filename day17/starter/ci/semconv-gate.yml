@@ -1,0 +1,66 @@
+# 新服務的 CI gate 範本。四個地方是 Day11 的踩坑結論，不要拿掉：
+#   ① 版本釘死（含 sha256）——0.x 的規則會變嚴，功能也會往回消失（Day14 那個 exit 134）
+#   ② --diagnostic-stdout true——不加就完全不會產生 PR annotation
+#   ③ group 數 > 0 的探針——防 Day7 那種「registry 是空的但 check 綠燈」的假綠燈
+#   ④ if: failure() 的 ansi 補印——resolver 錯誤在 gh 格式下只會印一個空 group
+name: semconv gate
+on:
+  pull_request:
+    paths:
+      - 'day17/services/<service>/registry/**'
+      - 'day17/services/<service>/intent/**'
+
+env:
+  WEAVER_VERSION: 0.24.1                     # ①
+  WEAVER_SHA256: <sha256-of-musl-tarball>    # ① musl，不要用 gnu（GLIBC 2.38+ 才跑得動）
+
+jobs:
+  semconv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0                     # breaking change gate 需要 baseline
+
+      - name: Install weaver
+        run: |
+          curl -sSLO "https://github.com/open-telemetry/weaver/releases/download/v${WEAVER_VERSION}/weaver-x86_64-unknown-linux-musl.tar.xz"
+          echo "${WEAVER_SHA256}  weaver-x86_64-unknown-linux-musl.tar.xz" | sha256sum -c -
+          tar -xJf weaver-*.tar.xz && sudo mv weaver-*/weaver /usr/local/bin/
+
+      - name: Registry check（含 policy 與 --future）
+        run: |
+          weaver registry check \
+            -r day17/services/<service>/registry \
+            -p day10/policies \
+            --future \
+            --diagnostic-format gh_workflow_command \
+            --diagnostic-stdout true          # ②
+
+      - name: 假綠燈探針：group 數必須 > 0
+        run: |
+          COUNT=$(weaver registry stats -r day17/services/<service>/registry \
+                    --include-unreferenced true | grep -oP '\d+(?= groups)')
+          echo "groups=$COUNT"
+          test "$COUNT" -gt 0                 # ③
+
+      - name: Breaking change gate（跟 main 上的同一份 registry 比）
+        run: |
+          git worktree add /tmp/baseline origin/main
+          weaver registry check \
+            -r day17/services/<service>/registry \
+            --baseline-registry /tmp/baseline/day17/services/<service>/registry \
+            -p day14/policies
+
+      - name: 意圖必須編得過
+        run: |
+          weaver registry generate -r day17/services/<service>/registry \
+            --templates day16/templates python /tmp/generated --include-unreferenced true
+          python3 day16/compile_intent.py day17/services/<service>/intent/steady-state.yaml
+
+      - name: 失敗時補印人看得懂的診斷
+        if: failure()                         # ④
+        run: |
+          weaver registry check -r day17/services/<service>/registry -p day10/policies --future || true
+
+# 別忘了：required status check 不在這個 YAML 裡，要去 branch protection 設（Day11 最後那段）

@@ -1,0 +1,36 @@
+groups:
+  - id: registry.payment
+    type: attribute_group
+    stability: development
+    brief: "支付領域的共用屬性"
+    attributes:
+      - id: payment.id
+        type: string
+        stability: development
+        brief: "支付交易識別碼"
+        examples: ["pay-1001"]
+      - id: payment.outcome
+        type:
+          members:
+            - id: authorized
+              value: authorized
+              brief: "授權成功"
+              stability: development
+            - id: declined
+              value: declined
+              brief: "被拒絕"
+              stability: development
+        stability: development
+        brief: "支付的終態結果"
+
+  - id: metric.payment.duration
+    type: metric
+    metric_name: payment.duration
+    instrument: histogram
+    unit: s
+    stability: development
+    brief: "支付請求耗時"
+    attributes:
+      - ref: payment.outcome
+        requirement_level: required
+        metric_requirement_level: recommended

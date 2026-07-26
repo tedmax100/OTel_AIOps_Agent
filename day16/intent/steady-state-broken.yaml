@@ -1,0 +1,22 @@
+# 故意寫壞的版本：三個錯誤各對應一種 agent 會犯的錯。
+apiVersion: intent.o11y/v1
+kind: SteadyStateIntent
+metadata:
+  service: payment
+  owner: payments-team
+  registry: day16/registry
+spec:
+  objectives:
+    - id: payment-success-rate
+      statement: "結帳付款的成功率不得低於 99.5%"
+      why: "同上，但這條意圖指向的東西一個都不存在"
+      signal:
+        metric: payment.attempts
+        dimension: payment.status        # ← registry 裡沒有這個維度（正確的是 payment.outcome）
+        good_values: [AUTHORIZED]        # ← 大小寫不符（enum 裡是 authorized）
+      objective:
+        ratio_min: 0.995
+        window: 5m
+      on_violation:
+        severity: page
+        first_check: "—"

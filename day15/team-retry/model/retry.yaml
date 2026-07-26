@@ -1,0 +1,20 @@
+groups:
+  - id: registry.retry
+    type: attribute_group
+    stability: development
+    brief: "重試相關的團隊自訂屬性"
+    attributes:
+      - id: retry.count
+        type: int
+        stability: development
+        brief: "這筆請求已經重試過幾次（不含首次嘗試）"
+        examples: [2]
+
+  - id: event.payment.retried
+    type: event
+    name: payment.retried
+    stability: development
+    brief: "一次支付重試"
+    attributes:
+      - ref: retry.count
+        requirement_level: required

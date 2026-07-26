@@ -1,0 +1,6 @@
+name: checkout-team
+description: 結帳團隊，疊在 payments-base 0.2.0 之上（仍在用被改名的 payment.id）
+schema_url: https://example.com/schemas/checkout-team/0.1.0
+dependencies:
+  - name: payments-base
+    registry_path: day14/base-v2

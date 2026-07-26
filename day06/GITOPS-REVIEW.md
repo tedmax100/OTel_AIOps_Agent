@@ -23,7 +23,7 @@ Before approving a PR that touches `k8s/`, check:
    `service.version` from every span's resource attributes going forward.
 
 3. **Does this PR change `13-otel-collector.yaml`'s resource limits?**
-   Day5 showed collector `OOMKilled` under-provisioning fails silently from
+   Day4 showed collector `OOMKilled` under-provisioning fails silently from
    the app's point of view (no exporter error — spans just never arrive
    downstream). A resource-limit change here deserves the same scrutiny as
    a code change to the collector, not a rubber-stamp because "it's just a
@@ -46,7 +46,7 @@ Before approving a PR that touches `k8s/`, check:
    just read the file-level PR diff.
 
 None of this is enforced by a schema. It's the list of "looks like a no-op,
-isn't" changes this stack has already produced once (Day5's collector
+isn't" changes this stack has already produced once (Day4's collector
 OOMKilled) or could easily produce next (a new service missing its
 annotation). The checklist exists because `kubectl apply` succeeding is not
 the same claim as "traces still flow."

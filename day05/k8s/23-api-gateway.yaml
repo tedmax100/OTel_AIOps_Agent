@@ -19,7 +19,7 @@ spec:
         # attrs are composed from it — so a version bump touches only this line.
         git_version: v4.0.0
       annotations:
-        # Day5: the Operator's admission webhook injects the Python
+        # Day4: the Operator's admission webhook injects the Python
         # auto-instrumentation (init container + PYTHONPATH + env vars) at
         # Pod creation time — no `opentelemetry-instrument` wrapper needed
         # in the Dockerfile CMD anymore. Value is the Instrumentation CR's

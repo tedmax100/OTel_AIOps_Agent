@@ -1,8 +1,10 @@
-# Day4 — 安裝 OTel Operator，拆解真實的 CRD 實作
+# Day3 — 安裝 OTel Operator，拆解真實的 CRD 實作
 
-對應文章：Day4（2026 鐵人賽《AIOps with OpenTelemetry》）
+對應文章：Day3（2026 鐵人賽《AIOps with OpenTelemetry》）
 
-這個資料夾是這個系列 Day4 當下整組 demo stack 的完整快照，不是後續變動的 diff。完整跑法／架構說明見 [STACK-README.md](./STACK-README.md)。
+> 資料夾的日號沿用文章重編之前的編號。這是文章合併前的原 Day4（裝 Operator、拆 CRD 那半）。
+
+這個資料夾是這個系列 Day3 當下整組 demo stack 的完整快照，不是後續變動的 diff。完整跑法／架構說明見 [STACK-README.md](./STACK-README.md)。
 
 ## 這天的變動（相對 [`../day01/`](../day01/)）
 
