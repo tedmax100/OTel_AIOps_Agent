@@ -1,0 +1,11 @@
+groups:
+  - id: event.checkout.completed
+    type: event
+    name: checkout.completed
+    stability: development
+    brief: "結帳完成"
+    attributes:
+      - ref: payment.id          # base 0.2.0 已經把它改名成 payment.transaction_id
+        requirement_level: required
+      - ref: payment.gateway     # base 0.2.0 已經標成 obsoleted
+        requirement_level: recommended

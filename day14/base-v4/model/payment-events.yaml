@@ -1,0 +1,43 @@
+groups:
+  - id: registry.payment
+    type: attribute_group
+    stability: development
+    brief: "支付領域的共用屬性"
+    attributes:
+      - id: payment.id
+        type: string
+        stability: development
+        brief: "支付交易識別碼"
+        examples: ["pay-1001"]
+      - id: payment.outcome
+        type:
+          members:
+            - id: authorized
+              value: authorized
+              brief: "授權成功"
+              stability: development
+        stability: development
+        brief: "支付的終態結果"
+      - id: payment.gateway
+        type: string
+        stability: development
+        brief: "處理這筆交易的金流商代號"
+        examples: ["stripe"]
+      - id: payment.retry_count
+        type: int
+        stability: development
+        brief: "這筆交易重試了幾次"
+        examples: [0]
+
+  - id: event.payment.authorized
+    type: event
+    name: payment.authorized
+    stability: development
+    brief: "支付授權成功"
+    attributes:
+      - ref: payment.id
+        requirement_level: required
+      - ref: payment.outcome
+        requirement_level: required
+      - ref: payment.gateway
+        requirement_level: recommended

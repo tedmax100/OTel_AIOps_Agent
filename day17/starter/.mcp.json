@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "semconv": {
+      "command": "weaver",
+      "args": [
+        "registry", "mcp",
+        "-r", "day17/services/<service>/registry",
+        "--include-unreferenced", "true"
+      ]
+    }
+  }
+}

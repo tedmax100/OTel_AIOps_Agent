@@ -1,0 +1,23 @@
+groups:
+  - id: registry.future_demo
+    type: attribute_group
+    stability: development
+    brief: "三個違規各一個 attribute"
+    attributes:
+      # 1. deprecated 寫成字串（舊格式）
+      - id: demo.renamed_old_style
+        type: string
+        stability: development
+        deprecated: "use demo.new_name instead"
+        brief: "用舊的字串式 deprecated"
+        examples: ["x"]
+      # 2. 缺 stability
+      - id: demo.no_stability
+        type: string
+        brief: "沒有 stability 欄位"
+        examples: ["x"]
+      # 3. string 但沒有 examples
+      - id: demo.no_examples
+        type: string
+        stability: development
+        brief: "string 型別卻沒給 examples"

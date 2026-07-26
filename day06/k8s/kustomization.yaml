@@ -1,8 +1,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# Day6: this file is new. Everything below it (00-*.yaml ... 24-*.yaml) is
-# unchanged from Day5 — GitOps didn't touch what gets applied, only how.
+# Day3: this file is new. Everything below it (00-*.yaml ... 24-*.yaml) is
+# unchanged from Day4 — GitOps didn't touch what gets applied, only how.
 #
 # Before today: scripts/up.sh looped over k8s/[0-9]*-*.yaml and ran
 # `kubectl apply -f` on each file, in numeric-prefix order, straight from a

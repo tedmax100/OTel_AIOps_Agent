@@ -1,3 +1,3 @@
 name: day7-combined
-description: Day7 文章「groups 是 list」段落——order.yaml 的 ref 靠 common.yaml 解析成功
+description: Day5 文章「groups 是 list」段落——order.yaml 的 ref 靠 common.yaml 解析成功
 schema_url: https://example.com/schemas/day7-combined/0.1.0

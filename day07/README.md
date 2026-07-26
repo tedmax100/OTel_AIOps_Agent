@@ -1,6 +1,8 @@
-# Day7 — Weaver 基礎知識：`group` 的五種 `type`，實際跑給你看
+# Day5 — Weaver 基礎知識：`group` 的五種 `type`，實際跑給你看
 
-對應文章：Day7（2026 鐵人賽《AIOps with OpenTelemetry》）
+對應文章：Day5（2026 鐵人賽《AIOps with OpenTelemetry》）
+
+> 資料夾的日號沿用文章重編之前的編號。這是文章合併前的原 Day7（Weaver 基礎知識那半）。Day5 現在把概念、第一次 check、infer 合成一篇。
 
 這天原本規劃是純概念日、不碰程式碼，但文章裡示範 `group` 的五種 `type`（`span`/`metric`/`attribute_group`/`event`/`entity`）時，把每個範例都真的丟給 `weaver registry check` 跑過一次，抓到兩個原本沒發現的真實坑（`stability` 缺了只警告、`brief` 缺了直接判失敗）。這些範例因此值得留下來，不是「無程式碼異動」。
 
@@ -73,7 +75,7 @@ Diagnostic report:
 - **漏 `stability`**：只印警告（`Invalid stability on group ... does not contain a stability field`），離開碼還是 `0`。
 - **漏 attribute 的 `brief`**：直接判失敗（`This attribute is not deprecated and does not contain a brief field`），離開碼 `1`。
 
-這兩條都是 weaver 內建的驗證規則，不需要額外寫 Rego policy 就會生效——跟 Day8 的自訂 policy（`biz_policies.rego`）是兩層不同的檢查。目前 repo 裡的七份範例都已經是修正過、乾淨通過的版本。
+這兩條都是 weaver 內建的驗證規則，不需要額外寫 Rego policy 就會生效——跟 Day5 的自訂 policy（`biz_policies.rego`）是兩層不同的檢查。目前 repo 裡的七份範例都已經是修正過、乾淨通過的版本。
 
 ## 三種嚴格度（用 `attr-types/` 實測）
 
@@ -85,4 +87,4 @@ Diagnostic report:
 | attribute 缺 `brief` | `× Invalid attribute definition ...` | 1 |
 | attribute 缺 `examples` | 完全不吭聲 | 0 |
 
-第三級是重點：**內建規則不管命名風格**，`userId` 當 attribute id 一樣給綠燈。要攔命名慣例、要攔「高基數欄位不准當 metric label」，得自己寫 Rego policy（Day8 第一次用到，Day10-11 展開講）。
+第三級是重點：**內建規則不管命名風格**，`userId` 當 attribute id 一樣給綠燈。要攔命名慣例、要攔「高基數欄位不准當 metric label」，得自己寫 Rego policy（Day5 第一次用到，Day6-7 展開講）。

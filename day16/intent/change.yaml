@@ -1,0 +1,34 @@
+# 變更意圖：這次部署「打算改變什麼」跟「打算不改變什麼」。
+# 後者才是重點——它讓 agent 有辦法判斷一個指標的變化是預期的還是意外的。
+apiVersion: intent.o11y/v1
+kind: ChangeIntent
+metadata:
+  service: payment
+  owner: payments-team
+  registry: day16/registry
+  change_id: PAY-4471
+spec:
+  summary: "把金流商的 HTTP timeout 從 3s 降到 1s，逾時改為重試一次"
+  rationale: >-
+    金流商的 p99 是 600ms，3 秒的 timeout 實際上只是讓失敗變慢。
+    縮短之後失敗會更快被看見，重試一次能吃掉偶發的網路抖動。
+  expected:
+    - id: latency-drops
+      statement: "p99 應該下降"
+      signal:
+        metric: payment.duration
+        dimension: payment.outcome
+      direction: down
+      window: 30m
+  unchanged:
+    - id: decline-rate-flat
+      statement: "被拒率不應該改變——如果變了，代表重試把不該重試的請求重試了"
+      signal:
+        metric: payment.attempts
+        dimension: payment.outcome
+        values: [declined]
+      tolerance_ratio: 0.10
+      window: 30m
+  rollback_if:
+    - "decline-rate-flat 超出容忍範圍"
+    - "payment-success-rate 這條穩定狀態意圖被打破"

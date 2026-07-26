@@ -1,8 +1,10 @@
-# Day8 — Weaver 上手：第一次 `weaver registry check`
+# Day5 — Weaver 上手：第一次 `weaver registry check`
 
-對應文章：Day8（2026 鐵人賽《AIOps with OpenTelemetry》）
+對應文章：Day5（2026 鐵人賽《AIOps with OpenTelemetry》）
 
-沿用 [`../day06/`](../day06/) 的狀態，不修改任何 stack 檔案（唯一新增的是本目錄的 `policies/biz_policies.rego`，見下文「修正版 policy」）——`../day06/weaver/` 底下的 registry（`registry/model/*.yaml`）跟自訂 policy（`policies/biz_policies.rego`）在 Day6 就已經建好，今天要做的事只有一件：第一次真的對它跑 `weaver registry check`，貼真實輸出。
+> 資料夾的日號沿用文章重編之前的編號。這是文章合併前的原 Day8（第一次 registry check 那半）。
+
+沿用 [`../day06/`](../day06/) 的狀態，不修改任何 stack 檔案（唯一新增的是本目錄的 `policies/biz_policies.rego`，見下文「修正版 policy」）——`../day06/weaver/` 底下的 registry（`registry/model/*.yaml`）跟自訂 policy（`policies/biz_policies.rego`）在 Day3 就已經建好，今天要做的事只有一件：第一次真的對它跑 `weaver registry check`，貼真實輸出。
 
 ## 跑法
 
@@ -29,7 +31,7 @@ Checking registry `weaver/registry`
 Total execution time: 0.021600395s
 ```
 
-`--policy` 加自訂的 `biz_policies.rego`（禁止 `biz.*` 高基數屬性被拿去當 metric label）結果一樣乾淨。這不是因為今天沒認真找碴，而是這份 registry 本來就是照著「目標命名」設計的（`app.*`/`biz.*` 這種 idiomatic、namespaced 的寫法），不是照搬 `demo-services` 現在實際送出的 flat key（`user_id`/`status`/`reason`…）。這個落差本身，`../day06/weaver/README.md` 的「Current flat key → Registry attribute」對照表已經整理過——`weaver registry check` 檢查的是 registry 定義本身自洽不自洽，不是拿它去對照真實服務的輸出；那是 Day12 `live-check` 要做的事。
+`--policy` 加自訂的 `biz_policies.rego`（禁止 `biz.*` 高基數屬性被拿去當 metric label）結果一樣乾淨。這不是因為今天沒認真找碴，而是這份 registry 本來就是照著「目標命名」設計的（`app.*`/`biz.*` 這種 idiomatic、namespaced 的寫法），不是照搬 `demo-services` 現在實際送出的 flat key（`user_id`/`status`/`reason`…）。這個落差本身，`../day06/weaver/README.md` 的「Current flat key → Registry attribute」對照表已經整理過——`weaver registry check` 檢查的是 registry 定義本身自洽不自洽，不是拿它去對照真實服務的輸出；那是 Day7 `live-check` 要做的事。
 
 ## 兩個示範性的失敗（不會提交進 repo）
 
@@ -137,10 +139,10 @@ weaver registry check -r ../day06/weaver/registry -p policies
 | 示範三的 `app.order.tracking_id` | `id=unbounded_metric_label, attr=app.order.tracking_id` | 1 |
 | 示範二的 `biz.order.id` | `id=high_cardinality_metric_label, attr=biz.order.id` | 1 |
 
-**意外收穫**：把白名單拿掉再跑乾淨的 registry，新規則抓到兩個真的——`gen_ai.request.model`（`type: string`）掛在兩個 GenAI metric 上，是 Day6 寫下來就存在、舊規則永遠看不到的。這裡選擇把它列入白名單並寫上理由（model id 會隨供應商更新而變，寫死成 enum 會讓每次換模型都變成一次 registry 改版），而不是改成 enum。白名單本身就成了「這份 registry 目前承擔的所有 cardinality 風險」的完整清單。
+**意外收穫**：把白名單拿掉再跑乾淨的 registry，新規則抓到兩個真的——`gen_ai.request.model`（`type: string`）掛在兩個 GenAI metric 上，是 Day3 寫下來就存在、舊規則永遠看不到的。這裡選擇把它列入白名單並寫上理由（model id 會隨供應商更新而變，寫死成 enum 會讓每次換模型都變成一次 registry 改版），而不是改成 enum。白名單本身就成了「這份 registry 目前承擔的所有 cardinality 風險」的完整清單。
 
-## 對照 Day7 的 crate 分工
+## 對照 Day5 的 crate 分工
 
 - 示範一的錯誤來自 `weaver_resolver`：`ref`/`extends` 展開失敗，管線走不到後面。
 - 示範二的 Finding 來自 `weaver_checker`：resolved schema 進了 Rego runtime，`after_resolution` package 裡的規則判斷出違規。
-- 兩種錯誤的資料結構完全不同（一個是純文字診斷，一個有 `id`/`level`/`context`），這也是為什麼 Day10-11 要花兩天，把 Finding 的完整結構跟「怎麼把離開碼接進 CI Gate」分開講。
+- 兩種錯誤的資料結構完全不同（一個是純文字診斷，一個有 `id`/`level`/`context`），這也是為什麼 Day6-7 要花兩天，把 Finding 的完整結構跟「怎麼把離開碼接進 CI Gate」分開講。

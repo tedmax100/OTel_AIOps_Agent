@@ -1,0 +1,373 @@
+{
+  "groups": [
+    {
+      "attributes": [
+        {
+          "brief": "支付方式",
+          "examples": [
+            "credit_card"
+          ],
+          "name": "payment.method",
+          "requirement_level": "recommended",
+          "stability": "development",
+          "type": "string"
+        },
+        {
+          "brief": "支付的終態結果",
+          "name": "payment.outcome",
+          "requirement_level": "required",
+          "stability": "development",
+          "type": {
+            "members": [
+              {
+                "brief": "授權成功",
+                "id": "authorized",
+                "stability": "development",
+                "value": "authorized"
+              },
+              {
+                "brief": "被拒絕",
+                "id": "declined",
+                "stability": "development",
+                "value": "declined"
+              },
+              {
+                "brief": "轉人工審核",
+                "id": "pending_review",
+                "stability": "development",
+                "value": "pending_review"
+              }
+            ]
+          }
+        },
+        {
+          "brief": "支付交易識別碼（改名後的正式欄位）",
+          "examples": [
+            "pay-1001"
+          ],
+          "name": "payment.transaction_id",
+          "requirement_level": "required",
+          "stability": "development",
+          "type": "string"
+        }
+      ],
+      "brief": "支付授權成功",
+      "id": "event.payment.authorized",
+      "lineage": {
+        "attributes": {
+          "payment.method": {
+            "inherited_fields": [
+              "brief",
+              "examples",
+              "note",
+              "stability"
+            ],
+            "locally_overridden_fields": [
+              "requirement_level"
+            ],
+            "source_group": "registry.payment"
+          },
+          "payment.outcome": {
+            "inherited_fields": [
+              "brief",
+              "note",
+              "stability"
+            ],
+            "locally_overridden_fields": [
+              "requirement_level"
+            ],
+            "source_group": "registry.payment"
+          },
+          "payment.transaction_id": {
+            "inherited_fields": [
+              "brief",
+              "examples",
+              "note",
+              "stability"
+            ],
+            "locally_overridden_fields": [
+              "requirement_level"
+            ],
+            "source_group": "registry.payment"
+          }
+        },
+        "provenance": {
+          "path": "day14/base-v2/model/payment-events.yaml",
+          "schema_url": "https://example.com/schemas/payments-base/0.2.0"
+        }
+      },
+      "name": "payment.authorized",
+      "stability": "development",
+      "type": "event"
+    },
+    {
+      "attributes": [
+        {
+          "brief": "支付交易識別碼（改名後的正式欄位）",
+          "examples": [
+            "pay-1001"
+          ],
+          "name": "payment.transaction_id",
+          "requirement_level": "required",
+          "stability": "development",
+          "type": "string"
+        }
+      ],
+      "brief": "退款完成",
+      "id": "event.payment.refunded",
+      "lineage": {
+        "attributes": {
+          "payment.transaction_id": {
+            "inherited_fields": [
+              "brief",
+              "examples",
+              "note",
+              "stability"
+            ],
+            "locally_overridden_fields": [
+              "requirement_level"
+            ],
+            "source_group": "registry.payment"
+          }
+        },
+        "provenance": {
+          "path": "day14/base-v2/model/payment-events.yaml",
+          "schema_url": "https://example.com/schemas/payments-base/0.2.0"
+        }
+      },
+      "name": "payment.refunded",
+      "stability": "development",
+      "type": "event"
+    },
+    {
+      "attributes": [
+        {
+          "brief": "支付方式",
+          "examples": [
+            "credit_card"
+          ],
+          "name": "payment.method",
+          "requirement_level": "recommended",
+          "stability": "development",
+          "type": "string"
+        },
+        {
+          "brief": "支付的終態結果",
+          "name": "payment.outcome",
+          "requirement_level": "required",
+          "stability": "development",
+          "type": {
+            "members": [
+              {
+                "brief": "授權成功",
+                "id": "authorized",
+                "stability": "development",
+                "value": "authorized"
+              },
+              {
+                "brief": "被拒絕",
+                "id": "declined",
+                "stability": "development",
+                "value": "declined"
+              },
+              {
+                "brief": "轉人工審核",
+                "id": "pending_review",
+                "stability": "development",
+                "value": "pending_review"
+              }
+            ]
+          }
+        }
+      ],
+      "brief": "支付嘗試次數，依終態結果分維度",
+      "id": "metric.payment.attempts",
+      "instrument": "counter",
+      "lineage": {
+        "attributes": {
+          "payment.method": {
+            "inherited_fields": [
+              "brief",
+              "examples",
+              "note",
+              "stability"
+            ],
+            "locally_overridden_fields": [
+              "requirement_level"
+            ],
+            "source_group": "registry.payment"
+          },
+          "payment.outcome": {
+            "inherited_fields": [
+              "brief",
+              "note",
+              "stability"
+            ],
+            "locally_overridden_fields": [
+              "requirement_level"
+            ],
+            "source_group": "registry.payment"
+          }
+        },
+        "provenance": {
+          "path": "day16/registry/model/metrics.yaml",
+          "schema_url": "https://example.com/schemas/payments-metrics/0.1.0"
+        }
+      },
+      "metric_name": "payment.attempts",
+      "stability": "development",
+      "type": "metric",
+      "unit": "{attempt}"
+    },
+    {
+      "attributes": [
+        {
+          "brief": "支付的終態結果",
+          "name": "payment.outcome",
+          "requirement_level": "required",
+          "stability": "development",
+          "type": {
+            "members": [
+              {
+                "brief": "授權成功",
+                "id": "authorized",
+                "stability": "development",
+                "value": "authorized"
+              },
+              {
+                "brief": "被拒絕",
+                "id": "declined",
+                "stability": "development",
+                "value": "declined"
+              },
+              {
+                "brief": "轉人工審核",
+                "id": "pending_review",
+                "stability": "development",
+                "value": "pending_review"
+              }
+            ]
+          }
+        }
+      ],
+      "brief": "支付請求耗時",
+      "id": "metric.payment.duration",
+      "instrument": "histogram",
+      "lineage": {
+        "attributes": {
+          "payment.outcome": {
+            "inherited_fields": [
+              "brief",
+              "note",
+              "stability"
+            ],
+            "locally_overridden_fields": [
+              "requirement_level"
+            ],
+            "source_group": "registry.payment"
+          }
+        },
+        "provenance": {
+          "path": "day16/registry/model/metrics.yaml",
+          "schema_url": "https://example.com/schemas/payments-metrics/0.1.0"
+        }
+      },
+      "metric_name": "payment.duration",
+      "stability": "development",
+      "type": "metric",
+      "unit": "s"
+    },
+    {
+      "attributes": [
+        {
+          "brief": "處理這筆交易的金流商代號",
+          "deprecated": {
+            "note": "金流商改由 server.address 表達，不再需要獨立欄位",
+            "reason": "obsoleted"
+          },
+          "examples": [
+            "stripe"
+          ],
+          "name": "payment.gateway",
+          "requirement_level": "recommended",
+          "stability": "development",
+          "type": "string"
+        },
+        {
+          "brief": "支付交易識別碼",
+          "deprecated": {
+            "note": "Replaced by `payment.transaction_id`.",
+            "reason": "renamed",
+            "renamed_to": "payment.transaction_id"
+          },
+          "examples": [
+            "pay-1001"
+          ],
+          "name": "payment.id",
+          "requirement_level": "recommended",
+          "stability": "development",
+          "type": "string"
+        },
+        {
+          "brief": "支付方式",
+          "examples": [
+            "credit_card"
+          ],
+          "name": "payment.method",
+          "requirement_level": "recommended",
+          "stability": "development",
+          "type": "string"
+        },
+        {
+          "brief": "支付的終態結果",
+          "name": "payment.outcome",
+          "requirement_level": "recommended",
+          "stability": "development",
+          "type": {
+            "members": [
+              {
+                "brief": "授權成功",
+                "id": "authorized",
+                "stability": "development",
+                "value": "authorized"
+              },
+              {
+                "brief": "被拒絕",
+                "id": "declined",
+                "stability": "development",
+                "value": "declined"
+              },
+              {
+                "brief": "轉人工審核",
+                "id": "pending_review",
+                "stability": "development",
+                "value": "pending_review"
+              }
+            ]
+          }
+        },
+        {
+          "brief": "支付交易識別碼（改名後的正式欄位）",
+          "examples": [
+            "pay-1001"
+          ],
+          "name": "payment.transaction_id",
+          "requirement_level": "recommended",
+          "stability": "development",
+          "type": "string"
+        }
+      ],
+      "brief": "支付領域的共用屬性",
+      "id": "registry.payment",
+      "lineage": {
+        "provenance": {
+          "path": "day14/base-v2/model/payment-events.yaml",
+          "schema_url": "https://example.com/schemas/payments-base/0.2.0"
+        }
+      },
+      "stability": "development",
+      "type": "attribute_group"
+    }
+  ],
+  "registry_url": "day16/registry"
+}

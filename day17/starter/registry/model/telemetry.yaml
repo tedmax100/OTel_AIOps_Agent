@@ -1,0 +1,36 @@
+# 骨架照 Day8 的規律：attribute_group 當屬性池，signal group 只用 ref。
+groups:
+  - id: registry.<service>
+    type: attribute_group
+    stability: development
+    brief: "<service> 的共用屬性"
+    attributes:
+      - id: <service>.id
+        type: string
+        stability: development        # 缺這個 --future 會紅（Day9 第二層）
+        brief: "<service> 的主要識別碼"
+        examples: ["<svc>-1001"]      # string 缺 examples 也會紅，而且 agent 少一個線索
+      - id: <service>.outcome
+        type:
+          members:                    # enum 一定要展開 members：LLM 唯一的值域來源（Day5/Day10）
+            - id: ok
+              value: ok
+              brief: "成功"
+              stability: development
+            - id: failed
+              value: failed
+              brief: "失敗"
+              stability: development
+        stability: development
+        brief: "<service> 操作的終態結果"
+
+  - id: event.<service>.completed
+    type: event
+    name: <service>.completed
+    stability: development
+    brief: "<service> 操作完成"
+    attributes:
+      - ref: <service>.id
+        requirement_level: required
+      - ref: <service>.outcome
+        requirement_level: required

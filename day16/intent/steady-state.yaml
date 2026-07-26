@@ -1,0 +1,40 @@
+# 穩定狀態意圖：這個系統「正常」的定義，寫成機器可以消費的形式。
+# 每一條都要能回答「誰在意」跟「不符合的時候會怎樣」，否則它只是一個門檻。
+apiVersion: intent.o11y/v1
+kind: SteadyStateIntent
+metadata:
+  service: payment
+  owner: payments-team
+  registry: day16/registry            # 這份意圖的欄位名以哪一份 registry 為準
+spec:
+  objectives:
+    - id: payment-success-rate
+      statement: "結帳付款的成功率不得低於 99.5%"
+      why: >-
+        低於這條線代表有一批使用者付不了錢而且會直接離站，是營收損失而不是效能問題。
+        99.5% 是從去年的 decline 分佈推回來的：正常的 declined 幾乎都是額度不足與風控攔截。
+      signal:
+        metric: payment.attempts
+        dimension: payment.outcome
+        good_values: [authorized, pending_review]
+      objective:
+        ratio_min: 0.995
+        window: 5m
+      on_violation:
+        severity: page
+        first_check: "看 declined 是不是集中在單一 payment.method 或單一金流商"
+
+    - id: payment-latency
+      statement: "付款請求的 p99 不得超過 2 秒"
+      why: >-
+        超過 2 秒之後結帳頁的放棄率會開始上升；這條線是產品端給的，不是從系統容量推的。
+      signal:
+        metric: payment.duration
+        dimension: payment.outcome
+      objective:
+        quantile: 0.99
+        max_seconds: 2
+        window: 5m
+      on_violation:
+        severity: ticket
+        first_check: "先確認是所有 outcome 都變慢，還是只有 declined 變慢"

@@ -8,7 +8,7 @@ import rego.v1
 # 分不出「這個 attribute 是 inline 寫的」還是「ref 進來的」。
 #
 # 為什麼要擋：inline 定義會在依賴分層裡造出一個跟 base 同名、但沒有人 ref 得到的
-# 孤兒定義（見 Day13 的示範）。強制走 ref，同名這件事就會在 resolve 階段
+# 孤兒定義（見 Day8 的示範）。強制走 ref，同名這件事就會在 resolve 階段
 # 變成「解不到」的硬錯誤，而不是安靜地並存。
 signal_group_types := {"event", "span", "metric"}
 

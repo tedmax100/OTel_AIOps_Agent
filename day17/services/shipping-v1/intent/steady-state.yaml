@@ -1,0 +1,24 @@
+apiVersion: intent.o11y/v1
+kind: SteadyStateIntent
+metadata:
+  service: shipping
+  owner: shipping-team
+  registry: day17/services/shipping-v1/registry
+spec:
+  objectives:
+    - id: shipping-handover-rate
+      statement: "建立出貨單之後，交運成功率不得低於 99.9%"
+      why: >-
+        returned 代表包裹已經送出去又被退回來，成本是雙倍運費加一次客服接觸，
+        而且退回的原因幾乎都是地址資料在上游就錯了——所以這條線在保護的其實是訂單資料品質。
+        99.9% 是從去年物流商的退回率推回來的，正常水位是 0.03%。
+      signal:
+        metric: shipping.attempts
+        dimension: shipping.status
+        good_values: [created, shipped, delivered]
+      objective:
+        ratio_min: 0.999
+        window: 30m
+      on_violation:
+        severity: ticket
+        first_check: "先看 returned 有沒有集中在單一 shipping.carrier；有的話是物流商端的問題，沒有的話往上游訂單資料查"

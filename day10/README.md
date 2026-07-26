@@ -1,6 +1,6 @@
-# Day10 — 命名漂移：用 Rego policy 把它攔下來
+# Day6 — 命名漂移：用 Rego policy 把它攔下來
 
-對應文章：Day10（2026 鐵人賽《AIOps with OpenTelemetry》）
+對應文章：Day6（2026 鐵人賽《AIOps with OpenTelemetry》）
 
 不動 demo stack。這裡是一份**獨立的最小 registry**，刻意保留 Day1 那個命名漂移（`userId` / `user_id` 並存），外加幾個常見的命名壞味道，用來示範 naming policy 怎麼把它們攔下來。跟 `demo-services` 的正式 registry（`../day06/weaver/`）無關。
 
@@ -20,7 +20,7 @@ cd day10
 
 # 基準：不帶 policy，內建規則對 userId 完全沒意見
 weaver registry check -r registry
-weaver registry stats -r registry        #   - 2 groups（不是 0，見 Day7 的假綠燈）
+weaver registry stats -r registry        #   - 2 groups（不是 0，見 Day5 的假綠燈）
 
 # 帶上三條 naming policy
 weaver registry check -r registry -p policies

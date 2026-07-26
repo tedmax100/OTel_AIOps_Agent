@@ -1,6 +1,8 @@
-# Day11 — 把 `weaver check` 接進 CI Gate
+# Day7 — 把 `weaver check` 接進 CI Gate
 
-對應文章：Day11（2026 鐵人賽《AIOps with OpenTelemetry》）
+對應文章：Day7（2026 鐵人賽《AIOps with OpenTelemetry》）
+
+> 資料夾的日號沿用文章重編之前的編號。這是文章合併前的原 Day11（CI gate 那半）。Day7 現在把 CI gate 跟 live-check 合成一篇。
 
 不新增 registry 或 policy——沿用 [`../day10/`](../day10/) 那份刻意留著命名漂移的 registry 跟三條 naming policy，今天要做的是把它接成一道繞不過去的閘門。
 
@@ -11,10 +13,10 @@
 | 步驟 | 為什麼 |
 |---|---|
 | `on.pull_request.paths` | 只在動到 `day10/registry`、`day10/policies` 或 workflow 自己時才跑。治理閘門在無關 PR 上花時間，很快就會有人要求關掉 |
-| 釘 `WEAVER_VERSION` | weaver 還在 0.x，內建規則會隨版本變嚴（見 Day14 的 0.23.0 踩坑）。浮動版本＝CI 隨時可能因為上游發版而在無關的地方變紅 |
+| 釘 `WEAVER_VERSION` | weaver 還在 0.x，內建規則會隨版本變嚴（見 Day9 的 0.23.0 踩坑）。浮動版本＝CI 隨時可能因為上游發版而在無關的地方變紅 |
 | 用 musl 而非 gnu | gnu 版需要 GLIBC 2.38/2.39，舊一點的環境直接跑不起來 |
 | `sha256sum -c` | 從 release 抓執行檔進 CI，官方有附校驗檔就順手驗。下載要用 `-O` 保持原檔名，校驗檔裡寫的是檔名 |
-| **Probe：group 數 > 0** | Day7 那個 `-r .` 假綠燈的直接產物。路徑打錯時 weaver 會回報 0 groups 然後給綠燈——症狀是「一直都很順利」，沒有人會發現 |
+| **Probe：group 數 > 0** | Day5 那個 `-r .` 假綠燈的直接產物。路徑打錯時 weaver 會回報 0 groups 然後給綠燈——症狀是「一直都很順利」，沒有人會發現 |
 | `--diagnostic-stdout true` | **不能省**，見下方陷阱一 |
 | `if: failure()` 補跑 ansi | 見下方陷阱三 |
 
@@ -48,7 +50,7 @@ weaver registry check -r day10/registry -p day10/policies \
 
 - `file=registry` 是 `-r` 傳進去的**目錄名**，不是實際出問題的 `model/drift.yaml`
 - 完全沒有 `line=`
-- `title` 永遠是 `semconv_attribute`（Day10 講的欄位錯位：Rego 裡的 `type` 變成 Finding 的頂層 `id`）
+- `title` 永遠是 `semconv_attribute`（Day6 講的欄位錯位：Rego 裡的 `type` 變成 Finding 的頂層 `id`）
 
 所以 annotation 不會內嵌在 PR diff 的那一行旁邊，只會出現在 PR 上方的摘要區，而且九條標題長得一模一樣。別指望它取代 log。
 

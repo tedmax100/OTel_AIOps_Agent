@@ -1,6 +1,8 @@
-# Day9 — `weaver registry infer`：從 Day1 服務的真實 OTLP 流量反推 schema 草稿
+# Day5 — `weaver registry infer`：從 Day1 服務的真實 OTLP 流量反推 schema 草稿
 
-對應文章：Day9（2026 鐵人賽《AIOps with OpenTelemetry》）
+對應文章：Day5（2026 鐵人賽《AIOps with OpenTelemetry》）
+
+> 資料夾的日號沿用文章重編之前的編號。這是文章合併前的原 Day9（infer 那半）。
 
 不新增/修改任何 stack 檔案——沿用 [`../day01/`](../day01/) 的服務程式碼（`services/api-gateway`、`services/order`、`services/user`、`services/payment`）。今天的內容全部來自「真的把這些服務跑起來、送真實流量、用 `weaver registry infer` 接住 OTLP」，不是看程式碼腦補。
 
@@ -12,7 +14,7 @@
 cd ../day01
 uv sync --all-packages
 
-# 1) 啟動 infer 的 OTLP 接收器（避開預設 4317，Day12 會講為什麼要避開）
+# 1) 啟動 infer 的 OTLP 接收器（避開預設 4317，Day7 會講為什麼要避開）
 weaver registry infer -o /tmp/day9-infer --grpc-port 14317 --admin-port 18080 --inactivity-timeout 90 &
 
 # 2) 本機跑四個服務（不經過 k3d/collector，直接指向 infer）
@@ -91,6 +93,6 @@ Generated registry file: "/tmp/d9probe/registry.yaml"
 | `enum` 的 `members` | ❌ 退化成 `type: string`（`app.outcome` 原本有 13 個成員）|
 | group id | ❌ 被加上重複前綴（`span.app.order.create` → `span.span.app.order.create`）|
 
-另外多出一個沒人定義過的 `span.otel.weaver.emit`——那是 `emit` 自己送資料產生的 span，`infer` 一視同仁學了進去，是 Day12 那個 4317 撞 port 問題的縮小版。
+另外多出一個沒人定義過的 `span.otel.weaver.emit`——那是 `emit` 自己送資料產生的 span，`infer` 一視同仁學了進去，是 Day7 那個 4317 撞 port 問題的縮小版。
 
 結論：`brief`、`requirement_level`、`enum` 這三樣**從來就沒被送上線路**，所以 `infer` 再怎麼樣都還原不出來。它們是團隊的決定，不是資料的屬性。

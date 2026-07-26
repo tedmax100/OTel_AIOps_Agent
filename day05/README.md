@@ -1,8 +1,8 @@
-# Day5 — annotation 做 auto-instrumentation
+# Day4 — annotation 做 auto-instrumentation
 
-對應文章：Day5（2026 鐵人賽《AIOps with OpenTelemetry》）
+對應文章：Day4（2026 鐵人賽《AIOps with OpenTelemetry》）
 
-這個資料夾是這個系列 Day5 當下整組 demo stack 的完整快照，不是後續變動的 diff。完整跑法／架構說明見 [STACK-README.md](./STACK-README.md)。
+這個資料夾是這個系列 Day4 當下整組 demo stack 的完整快照，不是後續變動的 diff。完整跑法／架構說明見 [STACK-README.md](./STACK-README.md)。
 
 ## 這天的變動（相對 [`../day04/`](../day04/)）
 
@@ -14,4 +14,4 @@
 
 ## 前置需求
 
-同 Day4（需要先裝好 OTel Operator）。
+同 Day3（需要先裝好 OTel Operator）。

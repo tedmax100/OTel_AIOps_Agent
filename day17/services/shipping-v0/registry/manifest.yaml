@@ -1,0 +1,3 @@
+name: shipping-telemetry
+description: shipping 服務的 semantic convention
+schema_url: https://example.com/schemas/shipping-telemetry

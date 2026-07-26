@@ -1,0 +1,65 @@
+groups:
+  - id: registry.shipping
+    type: attribute_group
+    stability: development
+    brief: "shipping 的共用屬性"
+    attributes:
+      - id: shipping.id
+        type: string
+        stability: development
+        brief: "出貨識別碼"
+        examples: ["ship-1001"]
+      - id: shipping.status
+        type:
+          members:
+            - id: created
+              value: created
+              brief: "已建立、尚未交運"
+              stability: development
+            - id: shipped
+              value: shipped
+              brief: "已交運"
+              stability: development
+            - id: delivered
+              value: delivered
+              brief: "已送達"
+              stability: development
+            - id: returned
+              value: returned
+              brief: "退回"
+              stability: development
+        stability: development
+        brief: "出貨的目前狀態"
+      - id: shipping.carrier
+        type: string
+        stability: development
+        brief: "物流商代號"
+        examples: ["black-cat"]
+
+  - id: event.shipping.completed
+    type: event
+    name: shipping.completed
+    stability: development
+    brief: "出貨完成"
+    attributes:
+      - ref: shipping.id
+        requirement_level: required
+      - ref: shipping.status
+        requirement_level: required
+      - ref: shipping.carrier
+        requirement_level: recommended
+      - ref: payment.transaction_id      # 跨層引用平台團隊的欄位，不自己造一個
+        requirement_level: recommended
+
+  - id: metric.shipping.attempts
+    type: metric
+    metric_name: shipping.attempts
+    instrument: counter
+    unit: "{attempt}"
+    stability: development
+    brief: "出貨嘗試次數，依狀態分維度"
+    attributes:
+      - ref: shipping.status
+        requirement_level: required
+      - ref: shipping.carrier
+        requirement_level: recommended
