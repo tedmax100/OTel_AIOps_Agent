@@ -40,7 +40,7 @@ python3 day15/mcp_probe.py day14/base-v2 '[{"name":"search","arguments":{"query"
 
 ```bash
 python3 day15/mcp_probe.py day13/team '[{"name":"get_attribute","arguments":{"key":"payment.outcome"}}]' \
-  --include-unreferenced true
+  --include-unreferenced=true
 ```
 
 ## 文章裡每一段的重現指令
@@ -132,7 +132,7 @@ echo $?    # 1
 ```bash
 weaver registry check -r day15/team-retry
 python3 day15/run_and_extract.py after --samples \
-  | weaver registry live-check -r day15/team-retry --input-source stdin --include-unreferenced true
+  | weaver registry live-check -r day15/team-retry --input-source stdin --include-unreferenced=true
 echo $?    # 0
 ```
 
@@ -156,7 +156,7 @@ python3 day15/mcp_probe.py day13/team '[
 
 python3 day15/mcp_probe.py day13/team '[
   {"name":"browse_namespace","arguments":{}},
-  {"name":"get_attribute","arguments":{"key":"payment.outcome"}}]' --include-unreferenced true
+  {"name":"get_attribute","arguments":{"key":"payment.outcome"}}]' --include-unreferenced=true
 ```
 
 版本盲點：同一個 query 對 v1／v2 兩份 registry 得到不同答案，而 agent 無從得知自己讀的是哪一版：

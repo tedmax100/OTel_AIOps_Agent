@@ -89,7 +89,7 @@ def check_policies() -> bool:
 
 
 def check_group_count() -> bool:
-    code, out = run(WEAVER, "registry", "stats", "-r", REGISTRY, "--include-unreferenced", "true")
+    code, out = run(WEAVER, "registry", "stats", "-r", REGISTRY, "--include-unreferenced=true")
     count = 0
     for line in out.splitlines():
         if "groups" in line:
@@ -104,7 +104,7 @@ def check_enum_members() -> bool:
     with tempfile.TemporaryDirectory() as tmp:
         code, out = run(WEAVER, "registry", "generate", "-r", REGISTRY,
                         "--templates", "day16/templates", "python", tmp,
-                        "--include-unreferenced", "true")
+                        "--include-unreferenced=true")
         if code != 0:
             return record(False, "Day11", "生成物產得出來", f"exit={code}", fix=out.strip()[-200:])
         data = json.load(open(f"{tmp}/registry.json"))
@@ -135,7 +135,7 @@ def check_intent() -> bool:
                       fix="複製 day17/starter/intent/ 過去；why 跟 first_check 不要留空")
     with tempfile.TemporaryDirectory() as tmp:
         run(WEAVER, "registry", "generate", "-r", REGISTRY, "--templates", "day16/templates",
-            "python", tmp, "--include-unreferenced", "true")
+            "python", tmp, "--include-unreferenced=true")
         code, out = run(sys.executable, "day16/compile_intent.py", path, f"{tmp}/registry.json")
     detail = next((ln for ln in out.splitlines() if ln.startswith("✗")), f"exit={code}")
     return record(code == 0, "Day11", "意圖編譯得過（欄位名對得上 registry）", detail,
@@ -162,12 +162,12 @@ def check_mcp_config() -> bool:
                       fix="複製 day17/starter/.mcp.json 過去")
     conf = json.load(open(path))
     args = conf.get("mcpServers", {}).get("semconv", {}).get("args", [])
-    has_flag = "--include-unreferenced" in args and "true" in args
+    has_flag = any(a.startswith("--include-unreferenced") for a in args)
     points_here = REGISTRY in args
     return record(
         has_flag and points_here, "Day10", "有 .mcp.json 且設定正確",
         f"registry={'✔' if points_here else '✗'} include-unreferenced={'✔' if has_flag else '✗'}",
-        fix="漏了 --include-unreferenced true 的話，agent 查繼承來的欄位會得到「不存在」",
+        fix="漏了 --include-unreferenced=true 的話，agent 查繼承來的欄位會得到「不存在」",
     )
 
 
@@ -177,7 +177,7 @@ def check_mcp_answers() -> bool:
         return record(False, "Day10", "MCP 真的答得出來", "找不到 python3")
     query = '[{"name":"browse_namespace","arguments":{}}]'
     code, out = run(sys.executable, "day15/mcp_probe.py", REGISTRY, query,
-                    "--include-unreferenced", "true")
+                    "--include-unreferenced=true")
     total = 0
     for line in out.splitlines():
         if "total_attribute_count" in line:
@@ -185,7 +185,7 @@ def check_mcp_answers() -> bool:
             break
     return record(total > 0, "Day10", "MCP 真的答得出來（browse 有東西）",
                   f"total_attribute_count={total}",
-                  fix="0 個的話先確認 --include-unreferenced true 有沒有帶上")
+                  fix="0 個的話先確認 --include-unreferenced=true 有沒有帶上")
 
 
 def check_ci_workflow() -> bool:

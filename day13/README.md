@@ -26,7 +26,7 @@ weaver registry check -r day13/team
 weaver registry check -r day13/team-collision -p day13/policies   # exit 1
 weaver registry check -r day13/squad
 weaver registry stats -r day13/team                               # 1 groups
-weaver registry stats -r day13/team --include-unreferenced true   # 3 groups
+weaver registry stats -r day13/team --include-unreferenced=true   # 3 groups
 ```
 
 | registry | groups | check + policy |
@@ -94,14 +94,14 @@ exit=1
 ### 4. 但全部列出來，`--include-unreferenced` 會撞重複載入
 
 ```
-$ weaver registry stats -r day13/squad --include-unreferenced true
+$ weaver registry stats -r day13/squad --include-unreferenced=true
   × The attribute id `payment.id` is declared multiple times in the following
   │ groups: ["registry.payment", "registry.payment"]
 ```
 
 base 被載入兩次（squad 直接列一次、透過 division 一次）。
 
-| 做法 | 一般 `check` | `--include-unreferenced true` |
+| 做法 | 一般 `check` | `--include-unreferenced=true` |
 |---|---|---|
 | 只列直接依賴 | ❌ 隔層 `ref` 解不到 | — |
 | 所有層都列 | ✅ | ❌ 重複載入硬錯誤 |

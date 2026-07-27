@@ -8,7 +8,7 @@
 用法（從這個 repo 的根目錄跑）：
 
     weaver registry generate -r day16/registry --templates day16/templates \\
-      python day16/generated --include-unreferenced true
+      python day16/generated --include-unreferenced=true
     python3 day16/compile_intent.py day16/intent/steady-state.yaml
     python3 day16/compile_intent.py day16/intent/change.yaml
     python3 day16/compile_intent.py day16/intent/steady-state-broken.yaml   # exit 1

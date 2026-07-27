@@ -119,7 +119,7 @@ jobs:
             exit 1
           fi
 
-      # --diagnostic-stdout true 不能省：預設輸出走 stderr，
+      # --diagnostic-stdout=true 不能省：預設輸出走 stderr，
       # 而 GitHub Actions 只解析 stdout 上的 workflow command，
       # 少了它 ::error:: 只會變成紅色的純文字 log，不會變成 annotation。
       #
@@ -131,7 +131,7 @@ jobs:
           weaver registry check \
             -r "$REGISTRY" -p "$POLICIES" \
             --diagnostic-format gh_workflow_command \
-            --diagnostic-stdout true
+            --diagnostic-stdout=true
           code=$?
           set -e
           echo "exit=${code}, expect=${EXPECT}"

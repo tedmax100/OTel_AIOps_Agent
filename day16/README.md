@@ -33,10 +33,10 @@ day16/
 ```bash
 weaver registry check -r day16/registry
 weaver registry generate -r day16/registry --templates day16/templates \
-  python day16/generated --include-unreferenced true
+  python day16/generated --include-unreferenced=true
 ```
 
-漏掉 `--include-unreferenced true` 的話，繼承自 `base-v2` 的 attribute 不會進生成物
+漏掉 `--include-unreferenced=true` 的話，繼承自 `base-v2` 的 attribute 不會進生成物
 （這個預設值在 Day8 咬過 `stats`、Day10 咬過 MCP，這裡是第三次）。
 
 ### 2. 生成物真的能用

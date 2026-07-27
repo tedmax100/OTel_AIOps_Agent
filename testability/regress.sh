@@ -61,9 +61,9 @@ run_case 1 "下游還在用 deprecated 欄位" \
 echo
 echo "── 消費端：agent 查得到、意圖編得過（Day10-11）"
 run_case 0 "MCP 對分層 registry 答得出東西（total_attribute_count > 0）" \
-  "$PY day15/mcp_probe.py day13/team '[{\"name\":\"browse_namespace\",\"arguments\":{}}]' --include-unreferenced true | grep -qE 'total_attribute_count[^0-9]+[1-9]'"
+  "$PY day15/mcp_probe.py day13/team '[{\"name\":\"browse_namespace\",\"arguments\":{}}]' --include-unreferenced=true | grep -qE 'total_attribute_count[^0-9]+[1-9]'"
 run_case 0 "生成物產得出來（含繼承的定義）" \
-  "$WEAVER registry generate -r day16/registry --templates day16/templates python day16/generated --include-unreferenced true"
+  "$WEAVER registry generate -r day16/registry --templates day16/templates python day16/generated --include-unreferenced=true"
 run_case 0 "穩定狀態意圖編得過" \
   "$PY day16/compile_intent.py day16/intent/steady-state.yaml"
 run_case 0 "變更意圖編得過" \
@@ -80,7 +80,7 @@ run_case 1 "before 的四個欄位有 violation" \
 run_case 1 "after 仍有 violation：retry.count 是新增，不是搬移" \
   "$PY day15/run_and_extract.py after --samples | $WEAVER registry live-check -r day14/base-v2 --input-source stdin"
 run_case 0 "把 retry.count 定義出來之後才乾淨" \
-  "$PY day15/run_and_extract.py after --samples | $WEAVER registry live-check -r day15/team-retry --input-source stdin --include-unreferenced true"
+  "$PY day15/run_and_extract.py after --samples | $WEAVER registry live-check -r day15/team-retry --input-source stdin --include-unreferenced=true"
 
 echo
 echo "── checklist 自己（Day13）"

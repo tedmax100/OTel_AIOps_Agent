@@ -5,7 +5,7 @@
       "args": [
         "registry", "mcp",
         "-r", "day17/services/shipping-v1/registry",
-        "--include-unreferenced", "true"
+        "--include-unreferenced=true"
       ]
     }
   }

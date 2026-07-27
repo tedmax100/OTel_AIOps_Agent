@@ -5,7 +5,7 @@
 
     python3 day15/mcp_probe.py day14/base-v2
     python3 day15/mcp_probe.py day14/base-v2 '[{"name":"search","arguments":{"query":"payment"}}]'
-    python3 day15/mcp_probe.py day13/team '[...]' --include-unreferenced true
+    python3 day15/mcp_probe.py day13/team '[...]' --include-unreferenced=true
 
 第一個參數是 registry、第二個是 tools/call 的清單（JSON）、之後的參數原封不動
 傳給 weaver。initialize / notifications/initialized / tools/list 會自動先跑一輪。

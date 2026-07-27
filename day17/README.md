@@ -15,7 +15,7 @@ day17/
     registry/manifest.yaml      schema_url 帶版本、dependencies 路徑相對 repo 根目錄
     registry/model/telemetry.yaml  屬性池 + ref + enum members
     intent/steady-state.yaml    why / first_check 用「寫清楚：」當佔位字
-    .mcp.json                   帶 --include-unreferenced true
+    .mcp.json                   帶 --include-unreferenced=true
     ci/semconv-gate.yml         五個必要元素（版本釘死／sha256／diagnostic-stdout／探針／failure 補印）
   services/shipping-v0/         照抄一半的真實樣子：9/13 未通過
   services/shipping-v1/         補完版：13/13 通過
@@ -52,7 +52,7 @@ for d in day17/services/*/; do python3 day17/verify_onboarding.py "$d"; echo; do
 | 8 | 狀態類欄位有 enum members | Day5/10 | `members` 是 LLM 唯一的值域來源 |
 | 9 | 有穩定狀態意圖且編得過 | Day11 | 欄位名對得上 registry |
 | 10 | 意圖的 `why`／`first_check` 有填 | Day11 | 抓「完全沒動過範本」 |
-| 11 | `.mcp.json` 設定正確 | Day10 | 漏 `--include-unreferenced true` 會讓 agent 查不到繼承欄位 |
+| 11 | `.mcp.json` 設定正確 | Day10 | 漏 `--include-unreferenced=true` 會讓 agent 查不到繼承欄位 |
 | 12 | MCP 真的答得出來 | Day10 | 設定對 ≠ 答得出來，所以真的叫起來問一次 |
 | 13 | CI gate 五個必要元素齊全 | Day7 | 每一項都是踩過的坑，刪掉就安靜失效 |
 

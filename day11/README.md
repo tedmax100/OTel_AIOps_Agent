@@ -17,7 +17,7 @@
 | 用 musl 而非 gnu | gnu 版需要 GLIBC 2.38/2.39，舊一點的環境直接跑不起來 |
 | `sha256sum -c` | 從 release 抓執行檔進 CI，官方有附校驗檔就順手驗。下載要用 `-O` 保持原檔名，校驗檔裡寫的是檔名 |
 | **Probe：group 數 > 0** | Day5 那個 `-r .` 假綠燈的直接產物。路徑打錯時 weaver 會回報 0 groups 然後給綠燈——症狀是「一直都很順利」，沒有人會發現 |
-| `--diagnostic-stdout true` | **不能省**，見下方陷阱一 |
+| `--diagnostic-stdout=true` | **不能省**，見下方陷阱一 |
 | `if: failure()` 補跑 ansi | 見下方陷阱三 |
 
 ## 三個實測出來的陷阱（weaver 0.24.1）
@@ -40,7 +40,7 @@ weaver registry check -r day10/registry -p day10/policies \
 
 九行 `::error::` 全部走 stderr，而 Actions runner 只解析 stdout 上的 workflow command。預設設定下 annotation 完全不會出現，只會變成 log 裡看起來很像註解的紅字。job 仍然是紅的，所以這個失效很難察覺。
 
-加上 `--diagnostic-stdout true` 才會走 stdout（→ 9）。這兩個選項要一起用，`--diagnostic-format` 的說明裡沒提。
+加上 `--diagnostic-stdout=true` 才會走 stdout（→ 9）。這兩個選項要一起用，`--diagnostic-format` 的說明裡沒提。
 
 ### 2. annotation 落不到程式碼的行上
 
@@ -93,5 +93,5 @@ echo "resolved ${groups} groups"     # → 2
 
 # 檢查（會失敗，exit 1，9 個違規）
 weaver registry check -r day10/registry -p day10/policies \
-  --diagnostic-format gh_workflow_command --diagnostic-stdout true
+  --diagnostic-format gh_workflow_command --diagnostic-stdout=true
 ```
