@@ -1,0 +1,177 @@
+# Nine RCA questions: three metrics, three logs, three traces.
+#
+# Each task has a ground truth that is COMPUTED AT GRADING TIME by running
+# `truth.query` against the live stack — never a hardcoded number. The telemetry
+# is regenerated every time the cluster boots, so a baked-in expected value would
+# be wrong within minutes, and a grader that is wrong is worse than no grader.
+#
+# checks:
+#   number   the answer must contain a number within `tol` (relative) of the truth
+#   contains the answer must mention one of `any_of` (case-insensitive)
+#   queried  the agent must have executed at least `min` successful tool calls
+#   grounded every trace ID in the answer must appear in some tool output
+#
+# A task scores 1.0 only if every check passes; `partial_checks` lists the checks
+# that still earn 0.5 when the rest fail — the "right shape, wrong number" case,
+# which is exactly the shape of a confidently wrong agent.
+
+- id: promql-error-rate
+  signal: metrics
+  # 6h, not 1h: the generator's error traffic does not reach into the most recent
+  # hour, so a 1h window has a ground truth of exactly 0 — a question whose right
+  # answer is "nothing happened" grades nobody. Checked before writing the task,
+  # which is the point of resolving truth against the live stack.
+  question: |
+    Over the last 6 hours, what overall share of HTTP requests returned 5xx across user-service,
+    order-service, and payment-service? In Prometheus those names are the `job` label values on
+    `http_requests_total` for API traffic here — ignore webapp and api-gateway. Report the share for
+    the whole window aggregated together, not a conclusion from a single short slice.
+  truth:
+    backend: prometheus
+    query: |
+      sum(increase(http_requests_total{status=~"5..",job=~"user-service|order-service|payment-service"}[6h]))
+      / sum(increase(http_requests_total{job=~"user-service|order-service|payment-service"}[6h]))
+    scale: 100      # the answer is expected as a percentage
+  checks:
+    - { type: queried, min: 1 }
+    - { type: contains, any_of: ["5xx", "server error"] }
+    - { type: number, tol: 0.15, unit: "%" }
+  partial_checks: [queried, contains]
+
+- id: promql-highest-backend-error-ratio
+  signal: metrics
+  question: |
+    Over the last 6 hours, which backend had the highest 5xx share? Give the backend and its share.
+  truth:
+    backend: prometheus
+    query: |
+      topk(1,
+        (sum by (job) (increase(http_requests_total{status=~"5..",job=~"user-service|order-service|payment-service"}[6h])))
+        / (sum by (job) (increase(http_requests_total{job=~"user-service|order-service|payment-service"}[6h]))))
+    scale: 100
+    label: job     # the winning label value is part of the truth
+  checks:
+    - { type: queried, min: 1 }
+    - { type: contains, from_label: true }   # must name the winning backend
+    - { type: number, tol: 0.15, unit: "%" }
+  partial_checks: [queried, contains]
+
+- id: promql-discover-http-metric
+  signal: metrics
+  question: |
+    I'm writing a traffic-by-service chart for user-service, order-service and payment-service.
+    What metric and label should I use to break request volume down by service here? Then run an
+    aggregate requests-per-second query for HTTP traffic on that metric over the last 15 minutes,
+    scoped to those three backends, and include the numeric total (req/s) so I can sanity-check the
+    chart scale.
+  # [15m], not the conventional [5m]: this stack's samples are sparse enough that
+  # a 5m window is regularly empty, which makes the ground truth unresolvable —
+  # and an unresolvable truth grades every answer as wrong, including right ones.
+  truth:
+    backend: prometheus
+    query: sum(rate(http_requests_total{job=~"user-service|order-service|payment-service"}[15m]))
+  checks:
+    - { type: queried, min: 1 }
+    - { type: contains, any_of: ["http_requests_total"] }
+    - { type: contains, any_of: ["job"] }     # the label that actually exists here
+    - { type: number, tol: 0.20, unit: "req/s" }
+  partial_checks: [queried, contains]
+
+- id: logql-payment-warning-volume
+  signal: logs
+  question: |
+    Over roughly the last six hours, how noisy were warning logs from payment-service? Give me an
+    approximate warning count and tell me whether these look like payment-service warnings rather
+    than a fleet-wide mixed bag.
+  truth:
+    backend: loki
+    query: sum(count_over_time({job="payment-service",level="warn"}[6h]))
+  checks:
+    - { type: queried, min: 1 }
+    - { type: contains, any_of: ["payment-service"] }
+    - { type: number, tol: 0.20 }
+  partial_checks: [queried, contains]
+
+- id: logql-retry-vs-real-errors
+  signal: logs
+  question: |
+    Order flow has been flaky lately. Does that sound like mostly harmless retry chatter, or real
+    backend failures underneath — which narrative is louder in the logs? Give rough counts from the
+    last ~6 hours (retry-style warnings vs error-level failures) for order-service and
+    payment-service so the comparison is grounded, not just vibes.
+  truth:
+    backend: loki
+    query: sum(count_over_time({job=~"order-service|payment-service", level="error"}[6h]))
+    also:
+      retries: sum(count_over_time({job=~"order-service|payment-service", level="warn"} |~ "(?i)retry" [6h]))
+  checks:
+    - { type: queried, min: 2 }
+    - { type: contains, any_of: ["retry", "retries"] }
+    - { type: number, tol: 0.20 }
+    - { type: number, of: retries, tol: 0.20 }
+  partial_checks: [queried, contains]
+
+- id: logql-top-5xx-endpoint
+  signal: logs
+  question: |
+    From Loki request logs (JSON lines with an HTTP path and a numeric status), which API path had
+    the most true 5xx responses in the last six hours? Name that path and give an approximate count
+    for it, plus roughly how many 5xx request log lines fall in the same window across all paths.
+  truth:
+    backend: loki
+    query: 'topk(1, sum by (path) (count_over_time({job=~".+"} | json | path=~".+" | __error__="" | status >= 500 [6h])))'
+    label: path
+    also:
+      total: 'sum(count_over_time({job=~".+"} | json | __error__="" | status >= 500 [6h]))'
+  checks:
+    - { type: queried, min: 1 }
+    - { type: contains, from_label: true }   # must name the worst path
+    - { type: number, tol: 0.20 }
+    - { type: number, of: total, tol: 0.20 }
+  partial_checks: [queried, contains]
+
+- id: traceql-find-service-traces
+  signal: traces
+  question: |
+    What do recent order-service requests look like in tracing? A trace id would be great if you
+    find one, plus whatever quick read you get from it.
+  truth:
+    backend: tempo
+    query: '{ resource.service.name = "order-service" }'
+  checks:
+    - { type: queried, min: 1 }
+    - { type: contains, any_of: ["order-service"] }
+    - { type: grounded }                     # every cited trace ID must be real
+    - { type: cites_trace }
+  partial_checks: [queried, contains]
+
+- id: traceql-error-chain-orders
+  signal: traces
+  question: |
+    Can you pull a failing POST /api/orders trace from roughly the last day? I'd love a trace id if
+    you have one, how the request moved through services, and where it first looks wrong.
+  truth:
+    backend: tempo
+    query: '{ status = error && span.http.route = "/api/orders" }'
+  checks:
+    - { type: queried, min: 1 }
+    - { type: contains, any_of: ["/api/orders", "order"] }
+    - { type: grounded }
+    - { type: cites_trace }
+  partial_checks: [queried, contains]
+
+- id: traceql-error-span-analysis
+  signal: traces
+  question: |
+    Where are we seeing error spans in distributed traces over roughly the last day? Which services
+    show up and what operations are failing? If you can point to a specific trace — pasting an id is
+    perfect — I can follow up on it myself.
+  truth:
+    backend: tempo
+    query: '{ status = error }'
+  checks:
+    - { type: queried, min: 1 }
+    - { type: contains, any_of: ["span", "error"] }
+    - { type: grounded }
+    - { type: cites_trace }
+  partial_checks: [queried, contains]

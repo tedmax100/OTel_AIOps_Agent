@@ -1,0 +1,40 @@
+# k3d cluster for Day1 — the "failure scene" bench environment.
+#
+# One node, one workload: the prebuilt o11y stack image (Prometheus + Loki +
+# Tempo + Grafana + a telemetry generator). The agent runs on the HOST and
+# talks to the cluster through these NodePorts, so nothing about the agent
+# needs to know it is talking to Kubernetes.
+#
+#   host 9090  → Prometheus  NodePort 30090
+#   host 3100  → Loki        NodePort 30100
+#   host 3200  → Tempo       NodePort 30200
+#   host 3000  → Grafana     NodePort 30300
+#   host 8080  → stack readiness gateway / MCP  NodePort 30800
+#
+# Traefik is disabled: NodePort is enough and there is no hostname routing.
+
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+metadata:
+  name: aiops-day01
+
+servers: 1
+agents: 0
+
+ports:
+  - port: "9090:30090"
+    nodeFilters: [loadbalancer]
+  - port: "3100:30100"
+    nodeFilters: [loadbalancer]
+  - port: "3200:30200"
+    nodeFilters: [loadbalancer]
+  - port: "3000:30300"
+    nodeFilters: [loadbalancer]
+  - port: "8080:30800"
+    nodeFilters: [loadbalancer]
+
+options:
+  k3s:
+    extraArgs:
+      - arg: "--disable=traefik"
+        nodeFilters: ["server:*"]

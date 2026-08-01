@@ -1,0 +1,72 @@
+# The observability stack under investigation.
+#
+# One pod, one container: the prebuilt image bundles Prometheus, Loki, Tempo and
+# Grafana, and on boot generates ~24h of telemetry ending at "now" (or at
+# O11Y_SCENARIO_TIME_ISO if you pin it). Generation takes 1-3 minutes; the pod
+# is only Ready once / on :8080 answers, which the entrypoint does last.
+#
+# Why one pod instead of four: this stack is the *subject* of the investigation,
+# not the thing we are teaching. Splitting it into four Deployments would add
+# four sets of config to the article without changing a single query the agent
+# issues. Day10 revisits collector deployment properly.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: o11y-stack
+  namespace: o11y
+  labels: { app: o11y-stack }
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: { app: o11y-stack }
+  template:
+    metadata:
+      labels: { app: o11y-stack }
+    spec:
+      containers:
+        - name: stack
+          image: o11y-bench-o11y-stack:latest
+          # The image is imported into the cluster by scripts/up.sh, never pulled.
+          imagePullPolicy: IfNotPresent
+          env:
+            # Leave unset to generate data ending at wall-clock now. Pin it to an
+            # ISO-8601 UTC time to freeze the scenario clock across reruns.
+            - name: O11Y_SCENARIO_TIME_ISO
+              value: ""
+          ports:
+            - { name: grafana, containerPort: 3000 }
+            - { name: loki, containerPort: 3100 }
+            - { name: tempo, containerPort: 3200 }
+            - { name: gateway, containerPort: 8080 }
+            - { name: prometheus, containerPort: 9090 }
+          readinessProbe:
+            # tcpSocket, not httpGet: :8080 is mcp-grafana, which serves on /mcp
+            # and answers 404 on /. The upstream docker-compose healthcheck uses
+            # `curl -o /dev/null`, which is happy with a 404 — a Kubernetes
+            # httpGet probe is NOT, it fails anything outside 200-399. Same
+            # container, same port, opposite verdict.
+            tcpSocket: { port: 8080 }
+            # Data generation runs before the gateway comes up, so the first
+            # probe must not fire for a couple of minutes.
+            initialDelaySeconds: 60
+            periodSeconds: 5
+            failureThreshold: 60
+          resources:
+            requests: { cpu: "500m", memory: "1Gi" }
+            limits: { memory: "3Gi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: o11y-stack
+  namespace: o11y
+spec:
+  type: NodePort
+  selector: { app: o11y-stack }
+  ports:
+    - { name: prometheus, port: 9090, targetPort: 9090, nodePort: 30090 }
+    - { name: loki, port: 3100, targetPort: 3100, nodePort: 30100 }
+    - { name: tempo, port: 3200, targetPort: 3200, nodePort: 30200 }
+    - { name: grafana, port: 3000, targetPort: 3000, nodePort: 30300 }
+    - { name: gateway, port: 8080, targetPort: 8080, nodePort: 30800 }
