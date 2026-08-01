@@ -14,6 +14,98 @@
 
 ---
 
+## 系統組成
+
+四個角色，兩邊：**被調查的系統**跑在 cluster 裡，**調查的人跟打分的人**跑在 host 上。這條分界線是刻意的——agent 用的是任何人從外面都連得到的原生 HTTP API，它完全不知道自己在跟 Kubernetes 講話，所以今天量到的東西不會被「我幫 agent 開了後門」污染。
+
+```mermaid
+flowchart TB
+    subgraph host["host（你的機器）"]
+        RB["bench/run_bench.py<br/>讀 tasks.yaml、逐題執行、印分數表"]
+        GR["bench/grade.py<br/>現算真值 + 四種檢查"]
+        AG["agent/baseline_agent.py<br/>LangGraph ReAct<br/>budget 4"]
+        PR["agent/prompt.md<br/>寫死的 schema 知識<br/>（故意是錯的）"]
+        RP["report.json<br/>每一句查詢 + 每一條檢查"]
+    end
+
+    subgraph cluster["k3d cluster: aiops-day01（ns o11y）"]
+        subgraph pod["pod o11y-stack（單一容器）"]
+            GEN["telemetry generator<br/>開機時生成 24h 歷史"]
+            PROM["Prometheus :9090"]
+            LOKI["Loki :3100"]
+            TEMPO["Tempo :3200"]
+            MCP["mcp-grafana :8080<br/>（只當 readiness 訊號）"]
+        end
+        SVC["Service (NodePort)<br/>30090 / 30100 / 30200 / 30300 / 30800"]
+    end
+
+    RB -->|"1 resolve_truth"| GR
+    GR -->|"2 真值查詢"| SVC
+    RB -->|"3 investigate(題目)"| AG
+    PR -.->|"system prompt"| AG
+    AG -->|"4 查詢"| SVC
+    AG -->|"5 RunTrace<br/>(答案 + 讀過的工具輸出)"| RB
+    RB -->|"6 grade"| GR
+    GR --> RP
+
+    SVC --- PROM
+    SVC --- LOKI
+    SVC --- TEMPO
+    SVC --- MCP
+    GEN -.-> PROM
+    GEN -.-> LOKI
+    GEN -.-> TEMPO
+```
+
+**agent 跟評分器打的是同一組端點**，這點很重要：真值不是另一套資料算出來的，是評分當下拿一句正規查詢去問同一個 Prometheus/Loki/Tempo。agent 沒有藉口說它看到的是別的世界。
+
+### 一題的生命週期
+
+```mermaid
+sequenceDiagram
+    participant R as run_bench
+    participant G as grade
+    participant S as o11y stack
+    participant A as baseline agent
+    participant M as Gemini
+
+    R->>G: resolve_truth(task)
+    G->>S: truth.query（instant query）
+    S-->>G: 3.43 / "payment-service"
+    Note over G: 真值現算，不寫死
+
+    R->>A: investigate(question)
+    loop 最多 4 次
+        A->>M: messages + tool schemas
+        M-->>A: tool_call(promql=...)
+        A->>S: GET /api/v1/query
+        S-->>A: {"status":"success","result":[]}
+        Note over A: 空結果也是 success，<br/>沒有任何訊號說「你問錯了」
+    end
+    A->>M: 預算用完，不給工具，逼它結論
+    M-->>A: 最終回答
+    A-->>R: RunTrace(answer, tool_calls[])
+
+    R->>G: grade(answer, tool_calls, truths)
+    G-->>R: 1.0 / 0.5 / 0.0 + 逐條檢查
+```
+
+`RunTrace` 同時帶著**回答**跟**它讀過的每一份工具輸出**，這是 `grounded` 檢查能成立的原因：要判斷一個 trace id 是不是編的，你必須手上同時有「它說了什麼」跟「它看過什麼」。
+
+### 為什麼 stack 是一個 pod 而不是四個
+
+這套 stack 是**被觀察的對象**，不是這系列要教的東西。拆成四個 Deployment 只會讓 README 多四份設定，而 agent 下的每一句查詢一個字都不會變。Collector 的部署形態怎麼影響資料完整性，是 Day10 的題目，那天才值得拆開。
+
+| host port | 對到 | 誰在用 |
+|---|---|---|
+| 9090 | Prometheus | agent 的 `prometheus_query`、評分器的真值查詢 |
+| 3100 | Loki | agent 的 `loki_query`、評分器的真值查詢 |
+| 3200 | Tempo | agent 的 `tempo_search`、評分器確認查詢有結果 |
+| 3000 | Grafana | 人工翻資料用，bench 不碰 |
+| 8080 | mcp-grafana | 只當 readiness 訊號（見下面第二個坑） |
+
+---
+
 ## 需要什麼
 
 - `docker`、`k3d`、`kubectl`
