@@ -1,0 +1,13 @@
+groups:
+  - id: metric.app.orders.count
+    type: metric
+    metric_name: app.orders.count
+    instrument: counter
+    unit: "{order}"
+    brief: "訂單建立總數"
+    stability: development
+    attributes:
+      # 故意的：app.outcome 沒有在這個 registry 裡任何地方定義。
+      # `weaver registry check` 會在 weaver_resolver 這一步就失敗，
+      # 不會有 policy Finding——這是今天要示範的重點。
+      - ref: app.outcome

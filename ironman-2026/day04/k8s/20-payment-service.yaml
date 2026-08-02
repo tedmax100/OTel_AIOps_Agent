@@ -1,0 +1,121 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: payment-flags
+  namespace: demo
+data:
+  flags.json: |
+    {"payment_use_new_validator": false}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+  namespace: demo
+  labels:
+    app: payment-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payment-service
+  template:
+    metadata:
+      labels:
+        app: payment-service
+        # Single source of truth for the deployed version. The GIT_VERSION env
+        # is derived from this label via the Downward API and the OTel resource
+        # attrs are composed from it. xk6-disruptor / kubectl also select pods
+        # by this label (e.g. inject latency only into v2.5.0), so a version
+        # bump — and the bad-deploy scenario — touches only this one line.
+        git_version: v2.4.1
+    spec:
+      containers:
+        - name: payment
+          image: demo-services/payment:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            # GIT_REPO + GIT_VERSION are also read by our stdout JSON log
+            # formatter (it doesn't parse OTEL_RESOURCE_ATTRIBUTES). GIT_REPO is
+            # the only literal; GIT_VERSION is pulled from the pod's git_version
+            # label via the Downward API, so the version lives in one place.
+            - name: GIT_REPO
+              value: tedmax100/o11y-bench
+            - name: GIT_VERSION
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['git_version']
+            - name: FEATURE_FLAGS_PATH
+              value: /etc/demo/flags.json
+            - name: LOG_LEVEL
+              value: INFO
+            # ── Zero-code OTel configuration (opentelemetry-distro reads all of these) ──
+            - name: OTEL_SERVICE_NAME
+              value: payment-service
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.namespace=demo,deployment.environment=demo,service.version=$(GIT_VERSION),git_repo=$(GIT_REPO),git_version=$(GIT_VERSION)"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://otel-collector.demo.svc:4318
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: http/protobuf
+            - name: OTEL_TRACES_EXPORTER
+              value: otlp
+            - name: OTEL_METRICS_EXPORTER
+              value: otlp
+            - name: OTEL_LOGS_EXPORTER
+              value: otlp
+            # Inject trace_id / span_id onto every stdlib LogRecord so our
+            # JSON formatter (and Loki) get them for free.
+            - name: OTEL_PYTHON_LOG_CORRELATION
+              value: "true"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          volumeMounts:
+            - name: flags
+              mountPath: /etc/demo
+              readOnly: true
+      volumes:
+        - name: flags
+          configMap:
+            name: payment-flags
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service
+  namespace: demo
+spec:
+  selector:
+    app: payment-service
+  ports:
+    - port: 8000
+      targetPort: 8000
+      name: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service-nodeport
+  namespace: demo
+spec:
+  type: NodePort
+  selector:
+    app: payment-service
+  ports:
+    - port: 8000
+      targetPort: 8000
+      nodePort: 30002
+      name: http

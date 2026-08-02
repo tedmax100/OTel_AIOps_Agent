@@ -1,0 +1,43 @@
+# k3d cluster config for the demo-services stack.
+#
+# Port mappings:
+#   host 3001 → Grafana NodePort 30001
+#   host 8001 → payment-service NodePort 30002 (direct access for debugging)
+#   host 14318 → OTel collector NodePort 30003 (so xk6 scripts on host can push)
+#   host 8002 → webapp NodePort 30004 (public entrypoint, load generator hits this)
+#   host 8000 → aiops-agent NodePort 30080 (browser plugin fetches /chat here)
+# (Avoiding host:4318 which is commonly held by another OTel collector.)
+#
+# Traefik is disabled — we expose via NodePort + k3d loadbalancer rather than
+# Ingress, since there's no hostname routing to worry about.
+
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+metadata:
+  name: demo-services
+servers: 1
+agents: 0
+
+ports:
+  - port: "3001:30001"
+    nodeFilters:
+      - loadbalancer
+  - port: "8001:30002"
+    nodeFilters:
+      - loadbalancer
+  - port: "14318:30003"
+    nodeFilters:
+      - loadbalancer
+  - port: "8002:30004"
+    nodeFilters:
+      - loadbalancer
+  - port: "8000:30080"
+    nodeFilters:
+      - loadbalancer
+
+options:
+  k3s:
+    extraArgs:
+      - arg: "--disable=traefik"
+        nodeFilters:
+          - "server:*"

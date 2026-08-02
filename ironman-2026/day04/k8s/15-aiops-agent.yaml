@@ -1,0 +1,250 @@
+# AIOps agent service, running INSIDE the cluster so it reaches
+# Prometheus/Loki/Tempo over internal DNS — no datasource NodePorts needed.
+# The agent itself is exposed via a NodePort (host 8000 -> 30080) because the
+# Grafana app plugin is frontend-only and the browser fetches /chat directly.
+#
+# Secrets (GOOGLE_API_KEY, GITHUB_TOKEN) are NOT in this manifest. Create them
+# from the dev .env before applying, e.g.:
+#   kubectl -n demo create secret generic aiops-agent-secrets \
+#     --from-literal=google-api-key="$GOOGLE_API_KEY" \
+#     --from-literal=github-token="$GITHUB_TOKEN"
+# (scripts/up.sh sources aiops-agent/service/.env and does this automatically.)
+# Read-only SA — k8s signal tools (get/list/watch only; no write verbs).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: aiops-agent
+  namespace: demo
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: aiops-agent-readonly
+  namespace: demo
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "events"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: aiops-agent-readonly
+  namespace: demo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: aiops-agent-readonly
+subjects:
+  - kind: ServiceAccount
+    name: aiops-agent
+    namespace: demo
+---
+# Write SA — remediation actions only. Deliberately separate from the read SA
+# so a bug in the read path cannot trigger a write. Verbs: get/list/watch
+# (needed to read current state before patching) + patch/update on deployments.
+# NO delete verb — enforced by RBAC and verified in deploy.sh.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: aiops-agent-write
+  namespace: demo
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: aiops-agent-write
+  namespace: demo
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: aiops-agent-write
+  namespace: demo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: aiops-agent-write
+subjects:
+  - kind: ServiceAccount
+    name: aiops-agent-write
+    namespace: demo
+---
+# Long-lived token for the write SA, mounted into the agent pod so k8s_write.py
+# can construct a write-SA-bound ApiClient without needing the pod's own SA to
+# have write permissions (principle of least privilege / separation).
+apiVersion: v1
+kind: Secret
+metadata:
+  name: aiops-agent-write-token
+  namespace: demo
+  annotations:
+    kubernetes.io/service-account.name: aiops-agent-write
+type: kubernetes.io/service-account-token
+---
+# Durable store for the CE harness + investigation log (7b-0). Without this the
+# data lives on the pod's ephemeral filesystem and is wiped on every rollout —
+# including the restarts the execution plane itself triggers, which would erase
+# the labeled-run history that gates earned autonomy. RWO is fine at replicas=1.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: aiops-agent-data
+  namespace: demo
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aiops-agent
+  namespace: demo
+  labels:
+    app: aiops-agent
+spec:
+  replicas: 1
+  # RWO volume can't be held by an old + new pod at once, so hand off cleanly.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: aiops-agent
+  template:
+    metadata:
+      labels:
+        app: aiops-agent
+        # Single source of truth for the deployed version, mirrored into
+        # GIT_VERSION via the Downward API (same pattern as the demo services).
+        git_version: v0.0.1
+    spec:
+      # Read-only SA above — lets the k8s_* tools reach pods/events/deployments
+      # in-cluster. Host-side dev uses the local kubeconfig instead.
+      serviceAccountName: aiops-agent
+      containers:
+        - name: aiops-agent
+          image: aiops-agent/service:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            # Direct native-API endpoints over internal cluster DNS.
+            - name: PROMETHEUS_URL
+              value: http://prometheus.demo.svc:9090
+            - name: LOKI_URL
+              value: http://loki.demo.svc:3100
+            - name: TEMPO_URL
+              value: http://tempo.demo.svc:3200
+            - name: GEMINI_MODEL
+              value: gemini-3.1-flash-lite
+            # Durable SQLite store on the PVC below (CE harness + investigations;
+            # 7b-0). Survives the rollout restarts the execution plane triggers.
+            - name: STORE_PATH
+              value: /data/aiops.db
+            # ---- Self-observability (zero-code OTel) -----------------------
+            # The agent runs under `opentelemetry-instrument`; these env vars
+            # configure the SDK + exporters the same way the demo services do,
+            # so its own GenAI spans/metrics/logs land in Tempo/Prom/Loki and
+            # are queryable alongside the services it investigates.
+            - name: GIT_REPO
+              value: tedmax100/o11y-bench
+            - name: GIT_VERSION
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['git_version']
+            - name: OTEL_SERVICE_NAME
+              value: aiops-agent
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.namespace=demo,deployment.environment=demo,service.version=$(GIT_VERSION),git_repo=$(GIT_REPO),git_version=$(GIT_VERSION)"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://otel-collector.demo.svc:4318
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: http/protobuf
+            - name: OTEL_TRACES_EXPORTER
+              value: otlp
+            - name: OTEL_METRICS_EXPORTER
+              value: otlp
+            - name: OTEL_LOGS_EXPORTER
+              value: otlp
+            - name: OTEL_PYTHON_LOG_CORRELATION
+              value: "true"
+            # Browser loads the plugin UI from Grafana (:3001) and fetches the
+            # agent NodePort (:8000) — so the page Origin is the Grafana one.
+            - name: CORS_ALLOW_ORIGINS
+              value: '["http://localhost:3000","http://localhost:3001"]'
+            - name: GOOGLE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aiops-agent-secrets
+                  key: google-api-key
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: aiops-agent-secrets
+                  key: github-token
+                  optional: true
+            # Enables the alert webhook (PUSH-mode RCA). fail-closed: if this key
+            # is absent the env var is unset and /webhook/alert returns 503. The
+            # caller must present the same value via X-Webhook-Secret or ?token=.
+            - name: WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: aiops-agent-secrets
+                  key: webhook-secret
+                  optional: true
+            # 7b-4: enable the execution plane for human-approved PROPOSE actions.
+            # All registered actions have requires_approval=True so AUTO is still
+            # withheld; humans must approve before anything mutates the cluster.
+            - name: ACTIONS_ENABLED
+              value: "true"
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: k8s-write-token
+              mountPath: /var/run/secrets/k8s-write
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: aiops-agent-data
+        - name: k8s-write-token
+          secret:
+            secretName: aiops-agent-write-token
+            defaultMode: 0400
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aiops-agent
+  namespace: demo
+spec:
+  type: NodePort
+  selector:
+    app: aiops-agent
+  ports:
+    - port: 8000
+      targetPort: 8000
+      nodePort: 30080
+      name: http

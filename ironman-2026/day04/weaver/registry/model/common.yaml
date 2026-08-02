@@ -1,0 +1,317 @@
+# Registry of shared attributes + resource conventions for demo-services.
+#
+# NAMING: this registry is the *target* standard — idiomatic, namespaced
+# (`app.*` for app-flow attributes, `biz.*` for business identifiers).
+# The current services still emit FLAT keys (status, reason, user_id, ...).
+# The flat -> namespaced mapping is recorded on each attribute below and
+# summarised in ../README.md. `weaver registry live-check` against the
+# running demo will therefore report these as gaps until the code migrates.
+groups:
+  # ---------------------------------------------------------------------------
+  # app.* — application-flow attributes (low cardinality, safe as labels)
+  # ---------------------------------------------------------------------------
+  - id: registry.app
+    type: attribute_group
+    display_name: Application-flow attributes
+    brief: >-
+      Low-cardinality attributes describing the *outcome* and *shape* of a
+      request. These are safe to use as metric / span labels.
+    attributes:
+      - id: app.event
+        stability: development
+        brief: >-
+          Low-cardinality business event label. Mirrors the `BizEvent` enum in
+          `o11y_shared.events`. Current code emits this as the `event` log
+          attribute; the idiomatic model carries it as the OTel *event name*
+          (see model/events.yaml) instead.
+        note: "Flat key in current code: `event`."
+        type:
+          members:
+            - id: payment_requested
+              value: payment.requested
+              brief: A charge was requested.
+              stability: development
+            - id: payment_authorized
+              value: payment.authorized
+              brief: A charge succeeded.
+              stability: development
+            - id: payment_declined
+              value: payment.declined
+              brief: A charge was declined by validation.
+              stability: development
+            - id: payment_refunded
+              value: payment.refunded
+              brief: A previously authorized charge was refunded.
+              stability: development
+            - id: payment_gateway_error
+              value: payment.gateway_error
+              brief: Upstream payment gateway failed.
+              stability: development
+            - id: order_created
+              value: order.created
+              brief: An order was accepted and persisted.
+              stability: development
+            - id: order_updated
+              value: order.updated
+              brief: An existing order changed state.
+              stability: development
+            - id: order_cancelled
+              value: order.cancelled
+              brief: An order attempt was rejected/cancelled.
+              stability: development
+            - id: user_logged_in
+              value: user.logged_in
+              brief: An auth check passed.
+              stability: development
+            - id: user_registered
+              value: user.registered
+              brief: A new user was registered.
+              stability: development
+            - id: user_auth_failed
+              value: user.auth_failed
+              brief: An auth check failed.
+              stability: development
+            - id: http_request_received
+              value: http.request_received
+              brief: An inbound HTTP request was accepted by an edge/proxy service.
+              stability: development
+            - id: http_request_failed
+              value: http.request_failed
+              brief: An upstream HTTP call failed or returned 5xx.
+              stability: development
+            - id: cache_miss
+              value: cache.miss
+              brief: A cache lookup missed.
+              stability: development
+            - id: deployment_started
+              value: deployment.started
+              brief: A deployment of a service began.
+              stability: development
+
+      - id: app.outcome
+        stability: development
+        brief: >-
+          Terminal outcome of a business operation. Used as a metric/span
+          label. Distinct from the HTTP status code.
+        note: "Flat key in current code: `status` (on metrics)."
+        type:
+          members:
+            - id: created
+              value: created
+              brief: Order created.
+              stability: development
+            - id: authorized
+              value: authorized
+              brief: Payment authorized.
+              stability: development
+            - id: declined
+              value: declined
+              brief: Payment declined by validation.
+              stability: development
+            - id: cancelled
+              value: cancelled
+              brief: Operation cancelled (e.g. auth/payment/product rejected).
+              stability: development
+            - id: error
+              value: error
+              brief: Operation failed due to an upstream/internal error.
+              stability: development
+
+      - id: app.fail_reason
+        stability: development
+        brief: >-
+          Low-cardinality machine reason a request did not succeed. Pairs with
+          `app.outcome` ∈ {cancelled, error, declined}.
+        note: "Flat key in current code: `reason`."
+        type:
+          members:
+            - id: unknown_product
+              value: unknown_product
+              brief: Requested product id does not exist.
+              stability: development
+            - id: auth
+              value: auth
+              brief: Auth check returned a 4xx.
+              stability: development
+            - id: auth_failed
+              value: auth_failed
+              brief: Auth check failed (log-side reason).
+              stability: development
+            - id: payment
+              value: payment
+              brief: Payment was declined.
+              stability: development
+            - id: payment_declined
+              value: payment_declined
+              brief: Payment declined (log-side reason).
+              stability: development
+            - id: user_upstream
+              value: user_upstream
+              brief: user-service was unreachable.
+              stability: development
+            - id: payment_upstream
+              value: payment_upstream
+              brief: payment-service was unreachable.
+              stability: development
+            - id: new_validator
+              value: new_validator
+              brief: Declined by the new validator feature flag.
+              stability: development
+            - id: new_validator_odd_cents
+              value: new_validator_odd_cents
+              brief: New validator rejected odd cent amounts (log-side reason).
+              stability: development
+            - id: gateway
+              value: gateway
+              brief: Simulated upstream gateway error.
+              stability: development
+            - id: network
+              value: network
+              brief: Transport-level failure reaching an upstream.
+              stability: development
+            - id: not_found
+              value: not_found
+              brief: Subject (user) not found.
+              stability: development
+            - id: transient
+              value: transient
+              brief: Simulated transient failure.
+              stability: development
+
+      - id: app.user.operation
+        stability: development
+        brief: The user-service lookup operation.
+        note: "Flat key in current code: `op` (on user_lookups_total)."
+        type:
+          members:
+            - id: list
+              value: list
+              brief: List all users.
+              stability: development
+            - id: get
+              value: get
+              brief: Get a single user by id.
+              stability: development
+
+      - id: app.http.method
+        stability: development
+        brief: HTTP request method seen at an edge/proxy service.
+        note: "Flat key in current code: `method`. Maps to semconv `http.request.method`."
+        type:
+          members:
+            - id: get
+              value: GET
+              stability: development
+              brief: GET
+            - id: post
+              value: POST
+              stability: development
+              brief: POST
+            - id: put
+              value: PUT
+              stability: development
+              brief: PUT
+            - id: delete
+              value: DELETE
+              stability: development
+              brief: DELETE
+
+      - id: app.http.route
+        type: string
+        stability: development
+        brief: >-
+          Templated request path (low cardinality — ids replaced with
+          placeholders, e.g. `/api/users/{id}`).
+        note: "Flat key in current code: `path`. Maps to semconv `http.route`."
+        examples: ["/api/orders", "/api/users/{id}"]
+
+      - id: app.upstream.service
+        type: string
+        stability: development
+        brief: >-
+          The upstream the current service called when an error occurred —
+          a logical service name or URL.
+        note: "Flat key in current code: `upstream`."
+        examples: ["user-service", "http://payment-service.demo.svc:8000/charge"]
+
+      - id: app.upstream.status_code
+        type: int
+        stability: development
+        brief: HTTP status code returned by the failing upstream call.
+        note: "Flat keys in current code: `upstream_status` (order) and `status` (gateway/webapp). Maps to semconv `http.response.status_code`."
+        examples: [401, 402, 502]
+
+  # ---------------------------------------------------------------------------
+  # biz.* — business identifiers (HIGH cardinality, logs/spans only)
+  # ---------------------------------------------------------------------------
+  - id: registry.biz
+    type: attribute_group
+    display_name: Business identifiers
+    brief: >-
+      High-cardinality business identifiers. MUST NOT be used as metric or
+      span *labels* — only as log attributes or span attributes on individual
+      records. Enforced by policies/biz_policies.rego.
+    attributes:
+      - id: biz.user.id
+        type: string
+        stability: development
+        brief: The user identifier.
+        note: "Flat key in current code: `user_id`."
+        examples: ["u-1", "u-17"]
+      - id: biz.order.id
+        type: string
+        stability: development
+        brief: The order identifier.
+        note: "Flat key in current code: `order_id`."
+        examples: ["o-1a2b3c4d"]
+      - id: biz.product.id
+        type: string
+        stability: development
+        brief: The product identifier.
+        note: "Flat key in current code: `product_id`."
+        examples: ["p-3"]
+      - id: biz.payment.id
+        type: string
+        stability: development
+        brief: The payment identifier.
+        note: "Flat key in current code: `payment_id`."
+        examples: ["b1e9f0c2-..."]
+      - id: biz.amount_cents
+        type: int
+        stability: development
+        brief: Charge/order amount in integer cents.
+        note: "Flat key in current code: `amount_cents`."
+        examples: [100, 1500]
+
+  # ---------------------------------------------------------------------------
+  # Resource attributes every demo-service stamps (deploy provenance)
+  # ---------------------------------------------------------------------------
+  - id: registry.deploy_provenance
+    type: attribute_group
+    display_name: Deploy provenance
+    brief: Resource attributes identifying which build emitted the telemetry.
+    attributes:
+      - id: vcs.repository.url.full
+        type: string
+        stability: development
+        brief: >-
+          The complete URL of the source repository the running build came
+          from (canonical, browser-accessible form).
+        note: "Flat key in current code: `git_repo` (resource attr). This is the OTel semconv attribute `vcs.repository.url.full`; current code emits an `owner/name` slug rather than a full URL."
+        examples: ["https://github.com/tedmax100/o11y-bench"]
+      - id: service.version
+        type: string
+        stability: development
+        brief: The deployed version of the service.
+        note: "Flat key in current code: `git_version` (resource attr). Aligns with semconv `service.version`."
+        examples: ["v1.4.2"]
+
+  - id: resource.demo_service
+    type: resource
+    stability: development
+    brief: Resource conventions for every demo-service process.
+    attributes:
+      - ref: vcs.repository.url.full
+        requirement_level: required
+      - ref: service.version
+        requirement_level: required

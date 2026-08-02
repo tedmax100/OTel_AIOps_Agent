@@ -1,0 +1,13 @@
+groups:
+  - id: span.order.create
+    type: span
+    span_kind: server
+    brief: "建立訂單的 Span"
+    stability: development
+    attributes:
+      - id: user_id
+        type: string
+        brief: "下單使用者的識別碼"
+        examples: ["u-5"]
+        requirement_level: required
+        stability: development

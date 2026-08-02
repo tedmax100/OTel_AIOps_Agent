@@ -1,0 +1,80 @@
+# Metric conventions.
+#
+# NOTE: `metric_name` here uses the idiomatic dotted form. The current code
+# emits Prometheus-style names (orders_total, order_create_duration_seconds,
+# ...) — the mapping is in the `note:` on each metric and in ../README.md.
+groups:
+  - id: metric.app.orders.count
+    type: metric
+    metric_name: app.orders.count
+    stability: development
+    brief: Total order attempts, by terminal outcome.
+    note: "Current code metric: `orders_total`."
+    instrument: counter
+    unit: "{order}"
+    attributes:
+      - ref: app.outcome
+        requirement_level: required
+      - ref: app.fail_reason
+        requirement_level:
+          conditionally_required: when `app.outcome` is not `created`.
+
+  - id: metric.app.order.create.duration
+    type: metric
+    metric_name: app.order.create.duration
+    stability: development
+    brief: Order creation handler duration.
+    note: "Current code metric: `order_create_duration_seconds`."
+    instrument: histogram
+    unit: s
+    attributes:
+      - ref: app.outcome
+        requirement_level: required
+
+  - id: metric.app.payment.charges.count
+    type: metric
+    metric_name: app.payment.charges.count
+    stability: development
+    brief: Total payment charge attempts, by terminal outcome.
+    note: "Current code metric: `payment_charges_total`."
+    instrument: counter
+    unit: "{charge}"
+    attributes:
+      - ref: app.outcome
+        requirement_level: required
+      - ref: app.fail_reason
+        requirement_level:
+          conditionally_required: when `app.outcome` is `declined` or `error`.
+
+  - id: metric.app.payment.charge.duration
+    type: metric
+    metric_name: app.payment.charge.duration
+    stability: development
+    brief: Charge handler duration.
+    note: "Current code metric: `payment_charge_duration_seconds`."
+    instrument: histogram
+    unit: s
+    attributes:
+      - ref: app.outcome
+        requirement_level: required
+
+  - id: metric.app.user.lookups.count
+    type: metric
+    metric_name: app.user.lookups.count
+    stability: development
+    brief: Total user lookup attempts, by operation.
+    note: "Current code metric: `user_lookups_total`."
+    instrument: counter
+    unit: "{lookup}"
+    attributes:
+      - ref: app.user.operation
+        requirement_level: required
+
+  - id: metric.app.user.auth_checks.count
+    type: metric
+    metric_name: app.user.auth_checks.count
+    stability: development
+    brief: Total auth checks performed by user-service.
+    note: "Current code metric: `user_auth_checks_total`. Carries no attributes."
+    instrument: counter
+    unit: "{check}"

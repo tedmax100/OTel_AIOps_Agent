@@ -1,0 +1,13 @@
+groups:
+  - id: entity.k8s.pod
+    type: entity
+    name: k8s.pod
+    brief: "Kubernetes Pod 實體"
+    stability: development
+    attributes:
+      - id: k8s.pod.name
+        type: string
+        brief: "Pod 名稱"
+        examples: ["payment-7d9f-abc"]
+        requirement_level: required
+        stability: development

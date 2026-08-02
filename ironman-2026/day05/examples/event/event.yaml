@@ -1,0 +1,13 @@
+groups:
+  - id: event.payment.audit
+    type: event
+    name: payment.audit
+    brief: "支付狀態變更的稽核 log event"
+    stability: development
+    attributes:
+      - id: payment.audit.action
+        type: string
+        brief: "稽核的支付動作"
+        examples: ["authorize", "capture", "refund"]
+        requirement_level: required
+        stability: development

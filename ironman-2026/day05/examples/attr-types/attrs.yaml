@@ -1,0 +1,83 @@
+groups:
+  - id: span.order.submit
+    type: span
+    span_kind: server
+    brief: "送出訂單的 Span，示範各種 attribute type"
+    stability: development
+    attributes:
+      # 1) 純量：字串
+      - id: biz.order.id
+        type: string
+        brief: "訂單識別碼"
+        examples: ["ord-1001"]
+        requirement_level: required
+        stability: development
+
+      # 2) 純量：整數
+      - id: app.order.item_count
+        type: int
+        brief: "訂單內的品項數量"
+        examples: [1, 3, 7]
+        requirement_level: recommended
+        stability: development
+
+      # 3) 純量：浮點數
+      - id: app.order.amount
+        type: double
+        brief: "訂單金額（以主要貨幣單位計）"
+        examples: [99.5, 1200.0]
+        requirement_level: recommended
+        stability: development
+
+      # 4) 純量：布林
+      - id: app.order.is_gift
+        type: boolean
+        brief: "是否為禮物訂單"
+        examples: [true, false]
+        requirement_level: opt_in
+        stability: development
+
+      # 5) 陣列：字串陣列
+      - id: app.order.sku_list
+        type: string[]
+        brief: "訂單內所有 SKU 的清單"
+        examples: [["sku-1", "sku-2"]]
+        requirement_level: opt_in
+        stability: development
+
+      # 6) enum：把合法值本身寫進 schema
+      - id: app.outcome
+        type:
+          members:
+            - id: created
+              value: "created"
+              brief: "訂單成功建立"
+              stability: development
+            - id: declined
+              value: "declined"
+              brief: "支付被拒絕"
+              stability: development
+            - id: timeout
+              value: "timeout"
+              brief: "下游逾時"
+              stability: development
+        brief: "業務操作的終態結果"
+        requirement_level: required
+        stability: development
+
+      # 7) template：一整族動態 key，共用同一個型別定義
+      - id: app.order.tag
+        type: template[string]
+        brief: "訂單上的自訂標籤，實際 key 形如 app.order.tag.<name>"
+        examples: ["vip"]
+        requirement_level: opt_in
+        stability: development
+
+      # 8) conditionally_required：條件式必填，條件寫成人看得懂的句子
+      - id: app.fail_reason
+        type: string
+        brief: "失敗原因"
+        examples: ["insufficient_funds"]
+        requirement_level:
+          conditionally_required: "當 app.outcome 不是 created 時必填"
+        stability: development

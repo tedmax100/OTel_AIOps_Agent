@@ -1,0 +1,11 @@
+groups:
+  - id: common.resource
+    type: attribute_group
+    brief: "跨服務通用的資源屬性"
+    stability: development
+    attributes:
+      - id: deployment.environment
+        type: string
+        brief: "服務部署環境"
+        examples: ["production", "staging"]
+        stability: development
