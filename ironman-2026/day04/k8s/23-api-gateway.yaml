@@ -23,7 +23,7 @@ spec:
         # auto-instrumentation (init container + PYTHONPATH + env vars) at
         # Pod creation time — no `opentelemetry-instrument` wrapper needed
         # in the Dockerfile CMD anymore. Value is the Instrumentation CR's
-        # name (demo-services/k8s/16-instrumentation.yaml), same namespace.
+        # name (k8s/16-instrumentation.yaml), same namespace.
         instrumentation.opentelemetry.io/inject-python: "python-instrumentation"
     spec:
       containers:

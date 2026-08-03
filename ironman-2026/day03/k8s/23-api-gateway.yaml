@@ -18,13 +18,12 @@ spec:
         # is derived from this label via the Downward API, and the OTel resource
         # attrs are composed from it — so a version bump touches only this line.
         git_version: v4.0.0
-      annotations:
-        # Day4: the Operator's admission webhook injects the Python
-        # auto-instrumentation (init container + PYTHONPATH + env vars) at
-        # Pod creation time — no `opentelemetry-instrument` wrapper needed
-        # in the Dockerfile CMD anymore. Value is the Instrumentation CR's
-        # name (demo-services/k8s/16-instrumentation.yaml), same namespace.
-        instrumentation.opentelemetry.io/inject-python: "python-instrumentation"
+      # No `instrumentation.opentelemetry.io/inject-python` annotation yet on
+      # purpose: the Instrumentation CR (16-instrumentation.yaml) is declared
+      # but not wired up, because this image still runs the
+      # `opentelemetry-instrument` wrapper itself. Turning the webhook on here
+      # too would put two injection mechanisms on the same Pod. That handover
+      # is the next day's change — see day04/.
     spec:
       containers:
         - name: gateway

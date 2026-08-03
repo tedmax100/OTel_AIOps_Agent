@@ -13,8 +13,8 @@ ENV PATH="/app/.venv/bin:${PATH}"
 
 EXPOSE 8000
 
-# No `opentelemetry-instrument` wrapper here on purpose — the OTel Operator's
-# webhook injects instrumentation via PYTHONPATH + an init container instead
-# (see demo-services/k8s/23-api-gateway.yaml's
-# instrumentation.opentelemetry.io/inject-python annotation). Day5.
-CMD ["uvicorn", "api_gateway.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Zero-code OTel is still baked into the image at this point: the
+# `opentelemetry-instrument` wrapper sets up tracer / meter / propagators
+# before uvicorn starts. Handing that job over to the Operator's webhook is
+# the next day's change — see day04/.
+CMD ["opentelemetry-instrument", "uvicorn", "api_gateway.main:app", "--host", "0.0.0.0", "--port", "8000"]
