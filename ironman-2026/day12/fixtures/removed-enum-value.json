@@ -1,0 +1,11 @@
+[
+  {
+    "span": {
+      "name": "order.create",
+      "kind": "server",
+      "attributes": [
+        { "name": "app.outcome", "value": "gateway_error" }
+      ]
+    }
+  }
+]
