@@ -1,0 +1,3 @@
+name: shipping
+description: "出貨服務的 registry（新服務上線第一版）"
+schema_url: https://example.com/schemas/shipping/0.1.0

@@ -1,0 +1,35 @@
+groups:
+  - id: registry.shipping
+    type: attribute_group
+    stability: development
+    brief: "出貨相關屬性"
+    attributes:
+      # 照抄來的：名字沿用前端的寫法，值域沒寫下來
+      - id: shippingStatus
+        type: string
+        stability: development
+        brief: "出貨狀態"
+        examples: ["shipped"]
+
+      # 平台團隊 base 裡已經有 biz.user.id，這裡又定義了一次
+      - id: biz.user.id
+        type: string
+        stability: development
+        brief: "收件人的識別碼"
+        examples: ["u-5"]
+
+      - id: shipping.carrier
+        type: string
+        stability: development
+        brief: "物流商"
+        examples: ["black-cat"]
+
+  - id: metric.shipping.dispatched
+    type: metric
+    metric_name: shipping.dispatched
+    instrument: counter
+    unit: "1"
+    stability: development
+    brief: "出貨筆數"
+    attributes:
+      - ref: shippingStatus

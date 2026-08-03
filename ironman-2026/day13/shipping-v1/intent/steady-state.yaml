@@ -1,0 +1,23 @@
+apiVersion: intent.o11y/v1
+kind: SteadyStateIntent
+metadata:
+  service: shipping
+  owner: shipping-team
+  registry: ironman-2026/day13/shipping-v1/registry
+spec:
+  objectives:
+    - id: delivery-success-rate
+      statement: "送達率不得低於 98%"
+      why: >-
+        遺失的包裹每一件都會變成客服工單跟一次賠償，
+        而且使用者不會因為第二次送達就忘記第一次。
+      first_check: >-
+        先看 shipping.carrier 的分佈：如果 lost 集中在某一家物流商，
+        那是合作方的問題，不是我們的出貨流程有錯。
+      signal:
+        metric: shipping.dispatched
+        dimension: shipping.status
+        good_values: [delivered]
+      threshold:
+        ratio_min: 0.98
+        window: 1h

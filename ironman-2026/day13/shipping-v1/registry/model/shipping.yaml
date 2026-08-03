@@ -1,0 +1,55 @@
+groups:
+  - id: registry.shipping
+    type: attribute_group
+    stability: development
+    brief: "出貨相關屬性"
+    attributes:
+      # 值域寫進 schema，這是 agent 唯一能事先知道有哪幾種狀態的來源
+      - id: shipping.status
+        stability: development
+        brief: "出貨狀態"
+        annotations:
+          intent:
+            role: outcome_dimension
+            good_values: [delivered]
+        type:
+          members:
+            - id: pending
+              value: pending
+              brief: "已建立，還沒交給物流商"
+              stability: development
+            - id: dispatched
+              value: dispatched
+              brief: "已交給物流商"
+              stability: development
+            - id: delivered
+              value: delivered
+              brief: "已送達"
+              stability: development
+            - id: lost
+              value: lost
+              brief: "物流商回報遺失"
+              stability: development
+
+      - id: shipping.carrier
+        type: string
+        stability: development
+        brief: "物流商代號"
+        examples: ["black-cat"]
+
+  - id: metric.shipping.dispatched
+    type: metric
+    metric_name: shipping.dispatched
+    instrument: counter
+    unit: "{shipment}"
+    stability: development
+    brief: "出貨筆數"
+    annotations:
+      intent:
+        owner: shipping-team
+        slo: delivery-success
+    attributes:
+      - ref: shipping.status
+        requirement_level: required
+      - ref: biz.user.id          # 用 base 的，不自己再定義一次
+      - ref: shipping.carrier

@@ -1,0 +1,6 @@
+name: shipping
+description: "出貨服務的 registry（照 checklist 補完之後）"
+schema_url: https://example.com/schemas/shipping/0.2.0
+dependencies:
+  - schema_url: https://example.com/schemas/acme-base/0.1.0
+    registry_path: ironman-2026/day08/base
