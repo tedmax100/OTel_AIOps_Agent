@@ -141,11 +141,12 @@ def compile_objective(objective: dict[str, Any], metrics: dict[str, dict[str, An
     else:
         raise ValueError(f"{objective['id']}: threshold 看不懂，要有 ratio_min 或 max_seconds")
 
+    owner = metric["annotations"].get("intent", {}).get("owner", "unknown")
     return {
         "alert": objective["id"],
         "expr": condition,
         "for": window,
-        "labels": {"severity": "page", "owner": metric["annotations"].get("intent", {}).get("owner", "unknown")},
+        "labels": {"severity": "page", "owner": owner},
         "annotations": {
             "summary": objective["statement"],
             # 這兩段是這支腳本存在的理由：意圖裡的散文直接變成告警上的欄位，
