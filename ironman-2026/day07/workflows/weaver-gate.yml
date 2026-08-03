@@ -1,0 +1,66 @@
+# Day7 的 CI gate。這份是快照，要用的話複製到 repo 根目錄的
+# `.github/workflows/` 底下（放在 dayNN/ 裡 GitHub 不會執行它）。
+#
+# 這道 gate 做三件事：只在動到治理資產時跑、先確認自己真的讀到了 registry、
+# 把違規以 annotation 的形式貼回 PR 的 diff 上。
+name: weaver gate
+
+on:
+  pull_request:
+    paths:
+      - "ironman-2026/day07/registry/**"
+      - "ironman-2026/day07/policies/**"
+      - ".github/workflows/weaver-gate.yml"
+
+permissions:
+  contents: read
+
+env:
+  # 釘死版本。weaver 還在 0.x，內建驗證規則會隨版本變嚴，用浮動版本等於讓 CI
+  # 隨時可能因為上游發新版而在一個跟這次 PR 無關的地方變紅。
+  WEAVER_VERSION: "0.25.1"
+  # 從 release 的 sha256.sum 抄過來（musl x86_64）
+  WEAVER_SHA256: "3f28ba9378578c99fcff51c7e489721ecdcc7329c688f8b106c8aac9e5de6443"
+  REGISTRY: ironman-2026/day07/registry
+  POLICIES: ironman-2026/day07/policies
+
+jobs:
+  registry-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install weaver (pinned + checksum verified)
+        run: |
+          set -euo pipefail
+          # musl 版是靜態連結的，不吃 runner 上的 glibc 版本
+          asset="weaver-x86_64-unknown-linux-musl.tar.xz"
+          url="https://github.com/open-telemetry/weaver/releases/download/v${WEAVER_VERSION}/${asset}"
+          curl -sSfL -o "$asset" "$url"
+          echo "${WEAVER_SHA256}  ${asset}" | sha256sum -c -
+          tar xf "$asset"
+          sudo mv weaver /usr/local/bin/weaver
+          weaver --version
+
+      # 沒有這一步，`-r` 指錯路徑的時候 weaver 會讀到 0 個 group，然後開心地
+      # 告訴你沒有違規、離開碼 0。這道探針是這整份 workflow 裡最便宜、也最容易
+      # 被省略的一步。
+      - name: Probe — the gate must actually be reading the registry
+        run: |
+          set -euo pipefail
+          groups=$(weaver registry stats -r "$REGISTRY" \
+                   | grep -oE '[0-9]+ groups' | head -1 | cut -d' ' -f1)
+          echo "resolved ${groups} group(s) from ${REGISTRY}"
+          if [ "${groups:-0}" -lt 1 ]; then
+            echo "::error title=weaver gate::registry ${REGISTRY} resolved to 0 groups — the gate is not checking anything"
+            exit 1
+          fi
+
+      # `--diagnostic-stdout` 是必要的：weaver 預設把診斷寫到 stderr，而
+      # GitHub 的 workflow command 是從 stdout 讀的。
+      - name: weaver registry check
+        run: |
+          weaver registry check \
+            -r "$REGISTRY" -p "$POLICIES" \
+            --diagnostic-format gh_workflow_command \
+            --diagnostic-stdout

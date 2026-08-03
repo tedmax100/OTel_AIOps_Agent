@@ -1,0 +1,60 @@
+groups:
+  - id: registry.order
+    type: attribute_group
+    stability: development
+    brief: "訂單相關屬性，Day6 那份漂移收斂之後的樣子"
+    attributes:
+      # Day6 的 userId / user_id 併成這一個
+      - id: biz.user.id
+        type: string
+        stability: development
+        brief: "下單使用者的識別碼"
+        examples: ["u-5"]
+
+      - id: biz.order.id
+        type: string
+        stability: development
+        brief: "訂單識別碼"
+        examples: ["ord-1001"]
+
+      # Day6 那個裸名字 `status` 不只補了 namespace，還把值域寫下來。
+      # 值域是 agent 唯一能事先知道 label 有哪幾種值的來源。
+      - id: app.outcome
+        stability: development
+        brief: "這次業務操作的結果"
+        type:
+          members:
+            - id: authorized
+              value: authorized
+              brief: "成功"
+              stability: development
+            - id: declined
+              value: declined
+              brief: "被業務規則拒絕，不是系統故障"
+              stability: development
+            - id: gateway_error
+              value: gateway_error
+              brief: "下游支付閘道回錯"
+              stability: development
+
+      - id: app.fail_reason
+        type: string
+        stability: development
+        brief: "失敗原因，只在 app.outcome 不是 authorized 時出現"
+        examples: ["insufficient_funds"]
+        requirement_level:
+          conditionally_required: "當 `app.outcome` 不是 `authorized` 時"
+
+  - id: span.order.create
+    type: span
+    span_kind: server
+    stability: development
+    brief: "建立訂單的 Span"
+    attributes:
+      - ref: biz.user.id
+        requirement_level: required
+      - ref: biz.order.id
+        requirement_level: required
+      - ref: app.outcome
+        requirement_level: required
+      - ref: app.fail_reason

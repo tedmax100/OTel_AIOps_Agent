@@ -1,0 +1,6 @@
+name: day07-order-gate
+description: >-
+  Day7 用的 registry：Day6 那份刻意保留命名漂移的 registry 收斂之後的版本。
+  `userId` / `user_id` 併成 `biz.user.id`，裸名字 `status` 變成有值域的
+  `app.outcome`。這份是 CI gate 的綠燈基準，也是 live-check 比對真實流量的基準。
+schema_url: https://example.com/schemas/day07-order-gate/0.1.0

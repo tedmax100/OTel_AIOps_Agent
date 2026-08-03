@@ -1,0 +1,59 @@
+[
+  {
+    "span": {
+      "name": "POST /api/orders",
+      "kind": "server",
+      "attributes": [
+        { "name": "userId", "value": "u-5" }
+      ]
+    }
+  },
+  {
+    "span": {
+      "name": "order.create",
+      "kind": "server",
+      "attributes": [
+        { "name": "user_id", "value": "u-5" },
+        { "name": "order_id", "value": "ord-1001" }
+      ]
+    }
+  },
+  {
+    "span": {
+      "name": "order.create",
+      "kind": "server",
+      "attributes": [
+        { "name": "biz.user.id", "value": "u-5" },
+        { "name": "biz.order.id", "value": "ord-1001" },
+        { "name": "app.outcome", "value": "OK" }
+      ]
+    }
+  },
+  {
+    "log": {
+      "event_name": "payment.declined",
+      "body": "payment declined for ord-1001",
+      "severity_text": "WARN",
+      "attributes": [
+        { "name": "event", "value": "payment.declined" }
+      ]
+    }
+  },
+  {
+    "metric": {
+      "name": "orders_total",
+      "instrument": "counter",
+      "unit": "{order}",
+      "data_points": []
+    }
+  },
+  {
+    "resource": {
+      "attributes": [
+        { "name": "service.name", "value": "api-gateway" },
+        { "name": "service", "value": "api-gateway" },
+        { "name": "git_version", "value": "v4.0.0" }
+      ]
+    }
+  }
+]
