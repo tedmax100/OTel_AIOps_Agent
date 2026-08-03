@@ -1,0 +1,33 @@
+groups:
+  - id: registry.acme.biz
+    type: attribute_group
+    stability: development
+    brief: "全公司共用的業務識別碼"
+    attributes:
+      - id: biz.user.id
+        type: string
+        stability: development
+        brief: "使用者識別碼"
+        examples: ["u-5"]
+      - id: biz.order.id
+        type: string
+        stability: development
+        brief: "訂單識別碼"
+        examples: ["ord-1001"]
+      - id: app.outcome
+        stability: development
+        brief: "這次業務操作的結果"
+        type:
+          members:
+            - id: authorized
+              value: authorized
+              brief: "成功"
+              stability: development
+            - id: declined
+              value: declined
+              brief: "被業務規則拒絕"
+              stability: development
+            - id: gateway_error
+              value: gateway_error
+              brief: "下游回錯"
+              stability: development

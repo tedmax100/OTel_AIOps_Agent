@@ -1,0 +1,6 @@
+name: team-orders
+description: "訂單團隊自己的 registry，疊在平台團隊的 base 之上。"
+schema_url: https://example.com/schemas/team-orders/0.1.0
+dependencies:
+  - schema_url: https://example.com/schemas/acme-base/0.1.0
+    registry_path: ironman-2026/day08/base

@@ -1,0 +1,45 @@
+groups:
+  - id: registry.orders
+    type: attribute_group
+    stability: development
+    brief: "只有訂單團隊在用的屬性"
+    attributes:
+      - id: biz.order.channel
+        stability: development
+        brief: "下單來源"
+        type:
+          members:
+            - id: web
+              value: web
+              brief: "網頁"
+              stability: development
+            - id: mobile
+              value: mobile
+              brief: "App"
+              stability: development
+
+  - id: span.orders.create
+    type: span
+    span_kind: server
+    stability: development
+    brief: "建立訂單"
+    attributes:
+      - ref: biz.user.id      # 來自 base
+        requirement_level: required
+      - ref: biz.order.id     # 來自 base
+        requirement_level: required
+      - ref: app.outcome      # 來自 base
+        requirement_level: required
+      - ref: biz.order.channel
+
+  # 訂單團隊自己「補」了一份 biz.user.id 的定義（base 已經有了）
+  - id: registry.orders.local
+    type: attribute_group
+    stability: development
+    brief: "團隊自己重新定義的屬性"
+    attributes:
+      - id: biz.user.id
+        type: string
+        stability: development
+        brief: "使用者識別碼（訂單團隊版本：這裡其實放的是 email）"
+        examples: ["nathan@example.com"]
