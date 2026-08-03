@@ -1,0 +1,34 @@
+# 故意寫壞的版本：兩個錯誤各對應 Day1 那隻 agent 犯過的一種錯。
+apiVersion: intent.o11y/v1
+kind: SteadyStateIntent
+metadata:
+  service: orders
+  owner: orders-team
+  registry: ironman-2026/day11/registry
+spec:
+  objectives:
+    # 錯誤一：值的大小寫不符（registry 裡是小寫的 authorized）
+    - id: checkout-success-rate
+      statement: "結帳的成功率不得低於 99.5%"
+      why: "同上"
+      first_check: "同上"
+      signal:
+        metric: orders.attempts
+        dimension: app.outcome
+        good_values: [AUTHORIZED]
+      threshold:
+        ratio_min: 0.995
+        window: 30m
+
+    # 錯誤二：metric 跟 dimension 都不存在，但名字聽起來都很合理
+    - id: checkout-error-budget
+      statement: "錯誤預算一個月不得燒完"
+      why: "聽起來很專業，但這條指向的東西一個都不存在"
+      first_check: "無"
+      signal:
+        metric: orders.errors
+        dimension: app.error_type
+        good_values: [none]
+      threshold:
+        ratio_min: 0.99
+        window: 30m

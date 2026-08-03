@@ -1,0 +1,34 @@
+# 變更意圖：這次部署「打算改變什麼」跟「打算不改變什麼」。
+# 後者才是重點，它讓 agent 有辦法判斷一個指標的變化是預期的還是意外的。
+apiVersion: intent.o11y/v1
+kind: ChangeIntent
+metadata:
+  service: orders
+  owner: orders-team
+  registry: ironman-2026/day11/registry
+  change_id: ORD-2291
+spec:
+  summary: "把下游支付的 timeout 從 3s 降到 1s，逾時改為重試一次"
+  rationale: >-
+    支付的 p99 是 600ms，3 秒的 timeout 實際上只是讓失敗變慢。
+    縮短之後失敗會更快被看見，重試一次能吃掉偶發的網路抖動。
+  expected:
+    - id: latency-drops
+      statement: "p99 應該下降"
+      signal:
+        metric: orders.duration
+        dimension: app.outcome
+      direction: down
+      window: 30m
+  unchanged:
+    - id: declined-flat
+      statement: "被拒的比例不應該改變。如果變了，代表重試把不該重試的請求重試了"
+      signal:
+        metric: orders.attempts
+        dimension: app.outcome
+        values: [declined]
+      tolerance_ratio: 0.10
+      window: 30m
+  rollback_if:
+    - "declined-flat 超出容忍範圍"
+    - "checkout-success-rate 這條穩定狀態意圖被打破"

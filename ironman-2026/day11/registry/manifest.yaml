@@ -1,0 +1,5 @@
+name: day11-orders
+description: >-
+  Day11 用的 registry：在 Day9 那組屬性上加了兩個 metric，
+  並用 `annotations` 掛上機器可讀的意圖（誰擁有、哪個值算成功）。
+schema_url: https://example.com/schemas/day11-orders/0.1.0

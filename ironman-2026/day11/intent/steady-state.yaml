@@ -1,0 +1,41 @@
+# 穩定狀態意圖：這個服務「正常」的定義是什麼。
+# 每一條 objective 都要能指回 registry 裡真實存在的 metric 與值域。
+apiVersion: intent.o11y/v1
+kind: SteadyStateIntent
+metadata:
+  service: orders
+  owner: orders-team
+  registry: ironman-2026/day11/registry
+spec:
+  objectives:
+    - id: checkout-success-rate
+      statement: "結帳的成功率不得低於 99.5%"
+      why: >-
+        下單失敗直接等於營收損失，而且使用者不會重試第二次。
+        這條是這個服務唯一一條會叫醒人的規則。
+      first_check: >-
+        先看 app.outcome 的分佈：declined 變多是業務規則的問題（例如風控改了門檻），
+        gateway_error 變多是下游的問題，兩者的處理方式完全不同。
+      signal:
+        metric: orders.attempts
+        dimension: app.outcome
+        good_values: [authorized]
+      threshold:
+        ratio_min: 0.995
+        window: 30m
+
+    - id: checkout-latency
+      statement: "結帳的 p99 不得超過 2 秒"
+      why: >-
+        超過兩秒使用者會重按送出鍵，而重按會製造重複訂單，
+        所以這條慢的代價不只是體感，是資料會變髒。
+      first_check: >-
+        比對 orders.duration 跟下游 payment 的耗時：如果只有這裡慢，
+        問題在訂單服務自己；如果兩邊一起慢，往下游找。
+      signal:
+        metric: orders.duration
+        dimension: app.outcome
+      threshold:
+        quantile: 0.99
+        max_seconds: 2
+        window: 30m
