@@ -1,0 +1,33 @@
+groups:
+  - id: registry.orders
+    type: attribute_group
+    stability: development
+    brief: "只有訂單團隊在用的屬性"
+    attributes:
+      - id: biz.order.channel
+        stability: development
+        brief: "下單來源"
+        type:
+          members:
+            - id: web
+              value: web
+              brief: "網頁"
+              stability: development
+            - id: mobile
+              value: mobile
+              brief: "App"
+              stability: development
+
+  - id: span.orders.create
+    type: span
+    span_kind: server
+    stability: development
+    brief: "建立訂單"
+    attributes:
+      - ref: biz.user.id      # 來自 base
+        requirement_level: required
+      - ref: biz.order.id     # 來自 base
+        requirement_level: required
+      - ref: app.outcome      # 來自 base
+        requirement_level: required
+      - ref: biz.order.channel

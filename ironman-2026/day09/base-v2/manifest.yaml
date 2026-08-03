@@ -1,0 +1,8 @@
+name: acme-base
+description: >-
+  平台團隊擁有的 base registry。這一層只放「跨團隊都必須一致」的東西：
+  官方 semconv 的依賴，加上全公司共用的業務識別碼與結果分類。
+schema_url: https://example.com/schemas/acme-base/0.2.0
+dependencies:
+  - schema_url: https://opentelemetry.io/schemas/1.43.0
+    registry_path: https://github.com/open-telemetry/semantic-conventions@v1.43.0[model]

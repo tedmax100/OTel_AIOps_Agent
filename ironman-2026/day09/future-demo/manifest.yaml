@@ -1,0 +1,3 @@
+name: future-demo
+description: "示範 --future：同一份 registry，同一句診斷，⚠ 跟 × 只差一個 flag。"
+schema_url: https://example.com/schemas/future-demo/0.1.0

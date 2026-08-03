@@ -1,0 +1,13 @@
+[
+  {
+    "span": {
+      "name": "order.create",
+      "kind": "server",
+      "attributes": [
+        { "name": "biz.user.id", "value": "u-5" },
+        { "name": "biz.order.id", "value": "ord-1001" },
+        { "name": "app.outcome", "value": "gateway_error" }
+      ]
+    }
+  }
+]

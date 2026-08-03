@@ -1,0 +1,47 @@
+groups:
+  - id: registry.acme.biz
+    type: attribute_group
+    stability: development
+    brief: "全公司共用的業務識別碼"
+    attributes:
+      - id: biz.user.id
+        type: string
+        stability: development
+        brief: "使用者的 email，登入用"
+        examples: ["u-5"]
+      - id: biz.order.id
+        type: int
+        stability: development
+        brief: "訂單識別碼"
+        examples: [1001]
+      - id: app.outcome
+        stability: development
+        brief: "這次業務操作的結果"
+        type:
+          members:
+            - id: authorized
+              value: authorized
+              brief: "成功"
+              stability: development
+            - id: declined
+              value: declined
+              brief: "被業務規則拒絕"
+              stability: development
+      - id: biz.tenant.id
+        type: string
+        stability: development
+        brief: "租戶識別碼"
+        examples: ["t-1"]
+      - id: biz.cart.id
+        type: string
+        stability: development
+        brief: "購物車識別碼"
+        examples: ["cart-9"]
+        deprecated:
+          reason: renamed
+          renamed_to: biz.basket.id
+      - id: biz.basket.id
+        type: string
+        stability: development
+        brief: "購物車識別碼"
+        examples: ["cart-9"]

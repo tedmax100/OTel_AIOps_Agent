@@ -1,0 +1,14 @@
+groups:
+  - id: registry.future_demo
+    type: attribute_group
+    stability: development
+    brief: "一個用舊寫法標 deprecated 的屬性"
+    attributes:
+      - id: demo.old_field
+        type: string
+        stability: development
+        brief: "已經不再使用的欄位"
+        examples: ["x"]
+        # 舊寫法：deprecated 直接給一句話。
+        # 新寫法要求結構化物件（reason / renamed_to / note）。
+        deprecated: "use demo.new_field instead"
