@@ -1,0 +1,123 @@
+# Day25：工具回什麼，決定 agent 能想什麼
+
+`tools/query.py` 直接打 Prometheus / Loki / Tempo 的原生 API。這一天把三個 store
+真正的怪癖量一次，然後把「空結果」跟「錯誤訊息」改成可以動作的東西。
+
+| 檔案 | 內容 |
+| --- | --- |
+| `probe_apis.py` | 逐一重現三個 store 的怪癖：天真的呼叫跟會動的呼叫並排。零 token，也不經過 agent |
+| `show_transcript.py` | 跑一個 eval fixture，印出每次工具呼叫拿回什麼，包含工具自己補的 `note` / `hint` |
+
+同時改的是 agent 服務自己的原始碼：
+
+| 檔案 | 改了什麼 |
+| --- | --- |
+| `app/tools/query.py` | 空結果補 `note`/`hint`（Prom 比對 `__name__`、Loki 比對可索引標籤）；Tempo 的錯誤提示改成指名要改哪個字；Loki 回應丟掉 `stats` 區塊 |
+| `tests/test_query.py` | 九條新測試，涵蓋兩種空結果、兩種 Tempo 錯誤、fail-open 與 `stats` |
+
+## 量三個 store
+
+從 `aiops-agent/service/` 底下跑，stack 要 port-forward 好：
+
+```bash
+uv run python ../../otel-aiops-agent/ironman-2026/day25/probe_apis.py
+```
+
+```
+========================================================================
+Prometheus — 'what metrics does this service have?'
+========================================================================
+GET /api/v1/metadata           -> 200 {"status":"success","data":{}}
+GET /api/v1/targets            -> 200 {"status":"success","data":{"activeTargets":[],…}}
+GET /api/v1/series?match[]=…   -> 200, 25 distinct metric name(s)
+
+========================================================================
+Loki — the selector key
+========================================================================
+{service="payment-service"}              -> 200, 0 stream(s)
+{service_name="payment-service"}         -> 200, 5 stream(s)
+
+========================================================================
+Tempo — three ways to get it wrong, all of them loud
+========================================================================
+start/end in nanoseconds   -> 400 invalid start: strconv.ParseInt: parsing "1786019415980873984": value out of range
+Loki's label name          -> 400 invalid TraceQL query: parse error at line 1, col 2: syntax error: unexpected IDENTIFIER
+status as a string         -> 500 binary operations must operate on the same type: status = `error`
+the one that works         -> 200, 20 trace(s)
+
+========================================================================
+How big the answer is before anyone reads it
+========================================================================
+now-6h step=60s: 13 series x 55 points   19224B ->  5446B after summarizing
+now-1h step=15s: 13 series x 218 points   72763B ->  5239B after summarizing
+```
+
+`query.py` 的 docstring 原本寫「Loki 的 `start`/`end` 不給奈秒會靜默回空」。
+這一版的 Loki（3.2.0）兩種單位都吃，同一個 window 回同一組欄位，所以那句話已經
+不是現在的行為了。真正會靜默的是 selector 鍵：`{service=...}` 回 200 加零筆。
+
+## 空結果現在會自己解釋
+
+```console
+$ uv run python -c "
+import asyncio; from app.tools.query import _query_prometheus, _query_loki_logs
+async def m():
+    print(await _query_prometheus('sum(rate(payment_declines_total[5m]))'))
+    print(await _query_loki_logs('{service=\"payment-service\"} | level=\"ERROR\"'))
+asyncio.run(m())"
+
+{'resultType': 'matrix_summary', 'result': [],
+ 'note': 'No such metric in Prometheus: payment_declines_total.',
+ 'hint': 'Call discover_metrics(service) for the names this service really emits — '
+         'rewording this query will return empty again.'}
+
+{'resultType': 'streams', 'result': [],
+ 'note': 'Not an indexable stream label: service. Indexable labels here: '
+         'deployment_environment, git_repo, git_version, service_name, service_namespace.',
+ 'hint': 'Everything else (event, trace_id, business fields) is structured metadata — '
+         'filter it AFTER the selector with `| field="..."`. discover_log_fields(service) …'}
+```
+
+兩條都是 fail-open：多打那一次 metadata 查詢如果失敗，空結果照原樣回去，不會因為
+補不到提示就讓整個工具呼叫失敗。
+
+`stats` 那一段值得單獨講。Loki 每一則回應都附一包查詢統計（快取計數、chunk bytes），
+空結果也附。同一則 `{service="payment-service"}` 的空回應，帶 `stats` 是 2,892 B，
+拿掉之後剩 39 B。補上 `note` / `hint` 之後是 404 B，而這 404 B 每個字都在講事情。
+
+## Tempo 的錯誤訊息指名要改哪個字
+
+```console
+$ uv run python -c "
+from langchain_core.tools import ToolException
+from app.tools.query import _tempo_query_hint
+print(_tempo_query_hint('{service_name=\"payment-service\" && status=\"error\"}',
+      ToolException('returned 400: parse error at line 1, col 2: unexpected IDENTIFIER')))"
+
+returned 400: parse error at line 1, col 2: unexpected IDENTIFIER
+HINT: TraceQL predicates go inside braces, … attribute names are dotted and scoped …
+This query uses the name it has in Prometheus/Loki, not in Tempo:
+  `service_name` -> `resource.service.name`.
+`status` is an intrinsic enum, not a string: write `status=error` (no quotes).
+```
+
+改之前只有第一段，而第一段沒有回答「我這一句要改哪裡」。順帶修掉一個守衛：
+`status="error"` 是 500 不是 400，舊的條件（訊息裡要有 `400` 或 `parse`）會讓它
+整段跳過提示。
+
+## 看一次逐字稿
+
+```bash
+uv run python ../../otel-aiops-agent/ironman-2026/day25/show_transcript.py \
+    order-service-discover-before-query
+```
+
+貼在文章裡那次的輸出，四次呼叫裡沒有任何一次拿到空結果，所以新的 `note` 一次都
+沒有觸發。**分數從 0/2 變成 2/2，但那一次不是這個改動造成的**，當時 order-service
+有活的流量，昨天沒有。要證明因果得把兩邊的資料條件固定下來，那件事留給後面。
+
+## 測試
+
+```bash
+uv run pytest tests/test_query.py -q      # 54 passed
+```
