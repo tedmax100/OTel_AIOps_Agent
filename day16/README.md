@@ -5,7 +5,7 @@
 不動 demo stack。這裡是四份意圖 YAML（兩份正確、兩份故意寫壞）、一支把意圖編譯成
 PromQL／alert rule 的腳本，以及一組把 registry 生成程式碼的 Jinja template。
 
-環境：weaver `0.24.1`，python 需要 `pyyaml`（`compile_intent.py`）。
+環境：weaver `0.25.1`，python 需要 `pyyaml`（`compile_intent.py`）。
 
 ```
 day16/

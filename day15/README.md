@@ -5,7 +5,7 @@
 不動 demo stack。這裡是一支**不需要 LLM** 就能驅動 MCP server 的探針腳本，加兩份 before/after
 的 instrumentation 範例。registry 直接用 `day14/base-v2`（Day9 那個改過名、標過 obsoleted 的版本）。
 
-環境：weaver `0.24.1`。
+環境：weaver `0.25.1`。
 
 ```
 day15/

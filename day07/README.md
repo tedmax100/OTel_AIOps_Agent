@@ -22,7 +22,7 @@ examples/
                         # 以及 requirement_level 四級（含 conditionally_required）
 ```
 
-跑法（本機需要 `weaver` CLI，實測版本 0.24.1）：
+跑法（本機需要 `weaver` CLI，實測版本 0.25.1）：
 
 ```bash
 cd examples
@@ -37,7 +37,7 @@ weaver registry check -r attr-types
 weaver registry check -r metric-dangling-ref
 ```
 
-> ⚠️ **不要用 `-r .`。** 在 weaver 0.24.1 上，`cd` 進 registry 目錄再跑 `weaver registry check -r .`（或 `-r ./`）會找到 `manifest.yaml`、印出綠燈，但實際上**一個 group 都沒載入**——連 `metric-dangling-ref` 這種故意寫錯的都會過。用目錄名（`-r span-only`）、`..` 開頭的相對路徑，或絕對路徑都正常。驗證方式是跑 `weaver registry stats`，看 group 數量是不是 0：
+> ⚠️ **不要用 `-r .`。** 在 weaver 0.25.1 上，`cd` 進 registry 目錄再跑 `weaver registry check -r .`（或 `-r ./`）會找到 `manifest.yaml`、印出綠燈，但實際上**一個 group 都沒載入**——連 `metric-dangling-ref` 這種故意寫錯的都會過。用目錄名（`-r span-only`）、`..` 開頭的相對路徑，或絕對路徑都正常。驗證方式是跑 `weaver registry stats`，看 group 數量是不是 0：
 >
 > ```bash
 > cd span-only && weaver registry stats -r .   #   - 0 groups   ← 假綠燈

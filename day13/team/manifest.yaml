@@ -2,5 +2,5 @@ name: checkout-team
 description: 結帳團隊在 payments-base 之上的擴充
 schema_url: https://example.com/schemas/checkout-team/0.1.0
 dependencies:
-  - name: payments-base
+  - schema_url: https://example.com/schemas/payments-base/0.1.0
     registry_path: day13/base

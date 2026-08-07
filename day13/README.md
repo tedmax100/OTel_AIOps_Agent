@@ -35,7 +35,7 @@ weaver registry stats -r day13/team --include-unreferenced=true   # 3 groups
 | `team` | 1 | ✅ exit 0 |
 | `team-collision` | 2 | ❌ exit 1（`conflicting_attribute_definition`）|
 
-## 四個實測陷阱（weaver 0.24.1）
+## 四個實測陷阱（weaver 0.25.1）
 
 ### 1. `registry_path` 相對於「你在哪裡跑」，不是相對於 manifest
 

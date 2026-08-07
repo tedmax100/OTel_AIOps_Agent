@@ -195,7 +195,7 @@
             "locally_overridden_fields": [
               "requirement_level"
             ],
-            "source_group": "registry.payment"
+            "source_group": "v2_dependency.example.com/schemas/payments-base"
           },
           "payment.outcome": {
             "inherited_fields": [
@@ -206,7 +206,7 @@
             "locally_overridden_fields": [
               "requirement_level"
             ],
-            "source_group": "registry.payment"
+            "source_group": "v2_dependency.example.com/schemas/payments-base"
           }
         },
         "provenance": {
@@ -264,7 +264,7 @@
             "locally_overridden_fields": [
               "requirement_level"
             ],
-            "source_group": "registry.payment"
+            "source_group": "v2_dependency.example.com/schemas/payments-base"
           }
         },
         "provenance": {

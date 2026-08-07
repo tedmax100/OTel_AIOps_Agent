@@ -137,7 +137,7 @@ exit=0
 
 所以驗證方式是：**coverage 報告裡有沒有列出你的 `.rego` 檔**——這是 policy 層的探針，地位等同用 `registry stats` 的 group 數當 registry 層的探針。
 
-## 三個實測出來的行為（weaver 0.24.1，文件沒寫）
+## 三個實測出來的行為（weaver 0.25.1，文件沒寫）
 
 ### 1. `level` 寫了沒用，`registry check` 只有一種嚴重度
 

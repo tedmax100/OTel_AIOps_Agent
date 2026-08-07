@@ -4,5 +4,5 @@ description: >-
   維度的 counter，讓「意圖」有一個真的可以查的 metric 可以指。
 schema_url: https://example.com/schemas/payments-metrics/0.1.0
 dependencies:
-  - name: payments-base
+  - schema_url: https://example.com/schemas/payments-base/0.2.0
     registry_path: day14/base-v2

@@ -12,7 +12,7 @@
 #   WEAVER_IMAGE=otel/weaver:v0.18.2 ./weaver.sh check
 set -euo pipefail
 
-WEAVER_IMAGE="${WEAVER_IMAGE:-otel/weaver:v0.24.0}"
+WEAVER_IMAGE="${WEAVER_IMAGE:-otel/weaver:v0.25.1}"
 WEAVER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../weaver" && pwd)"
 REGISTRY="/home/weaver/registry"
 POLICIES="/home/weaver/policies"

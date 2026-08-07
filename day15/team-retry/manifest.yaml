@@ -5,5 +5,5 @@ description: >-
   而不是重新定義一個 base 已經拿掉的名字（見 Day8 第二個陷阱）。
 schema_url: https://example.com/schemas/payment-team/0.1.0
 dependencies:
-  - name: payments-base
+  - schema_url: https://example.com/schemas/payments-base/0.2.0
     registry_path: day14/base-v2

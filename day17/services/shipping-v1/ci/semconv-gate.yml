@@ -11,7 +11,7 @@ on:
       - 'day17/services/shipping-v1/intent/**'
 
 env:
-  WEAVER_VERSION: 0.24.1                     # ①
+  WEAVER_VERSION: 0.25.1                     # ①
   WEAVER_SHA256: <sha256-of-musl-tarball>    # ① musl，不要用 gnu（GLIBC 2.38+ 才跑得動）
 
 jobs:

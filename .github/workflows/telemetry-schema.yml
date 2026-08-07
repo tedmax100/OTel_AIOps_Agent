@@ -2,20 +2,32 @@ name: telemetry-schema
 
 # 這個 repo 裡有兩種 registry：照規範寫的，跟**故意寫壞當教材**的。
 # 所以 CI 不能只問「check 有沒有過」——那樣故意寫壞的那幾份會讓 gate 永遠紅燈。
-# 要問的是「每一份的結果，跟它應該有的結果一不一樣」，那正是 regress.sh 在做的事：
-# 21 條斷言、每條寫死預期離開碼，其中 12 條預期 exit 1。
+# 要問的是「每一份的結果，跟它應該有的結果一不一樣」，那正是兩支 regress.sh
+# 在做的事：每條斷言寫死預期離開碼，其中一半以上預期非 0。
+#
+#   Series 1（根目錄的 dayNN/）        testability/regress.sh          21 條
+#   Series 2（ironman-2026/dayNN/）    ironman-2026/day12/regress.sh   29 條
+#
+# 兩套資產跑同一個 weaver 版本。這件事在 0.25.1 之前是不成立的：Series 1 的九份
+# manifest 用的是舊的 `dependencies: - name:` 寫法，0.25.x 起改為要求 `schema_url`，
+# 那九份在新版下全部被判為 invalid manifest，連帶讓 21 條裡的 5 條變紅。改寫成
+# schema_url 之後兩套都在 0.25.1 上全綠，所以這裡只需要釘一個版本。
 on:
   pull_request:
     paths:
       - "day*/**"
       - "testability/**"
+      - "ironman-2026/**"
       - ".github/workflows/telemetry-schema.yml"
+      - ".github/actions/setup-weaver/**"
   push:
     branches: [main]
     paths:
       - "day*/**"
       - "testability/**"
+      - "ironman-2026/**"
       - ".github/workflows/telemetry-schema.yml"
+      - ".github/actions/setup-weaver/**"
 
   # 手動觸發：單獨看一份 registry 的 check 輸出長什麼樣子（含 annotation）。
   workflow_dispatch:
@@ -25,24 +37,33 @@ on:
         type: choice
         default: day10-drift
         options:
-          # 刻意留著命名漂移的那份 —— 預期紅燈，9 個違規（Day6 的教材）
+          # 刻意留著命名漂移的那份 —— 預期紅燈，9 個違規（Series 1 Day6 的教材）
           - day10-drift
           # 照目標命名寫的那份 —— 預期綠燈
           - day06-demo-services
+          # Series 2 的同一組對照：同一份 naming policy，漂移的 vs 收斂的
+          - ironman-day06-drift
+          - ironman-day07-converged
 
 permissions:
   contents: read
 
 env:
-  # 釘版本。weaver 還在 0.x，內建驗證規則會隨版本變嚴（Day9 重現過一次
-  # 0.23.0 對合法欄位 hard error，以及對多層依賴直接 panic），浮動版本
-  # 等於讓 CI 隨時可能因為別人發版而變紅。
-  WEAVER_VERSION: v0.24.1
-  WEAVER_TARGET: weaver-x86_64-unknown-linux-musl
+  # 釘版本。weaver 還在 0.x，內建驗證規則會隨版本變嚴（0.23.0 對合法欄位 hard
+  # error、對多層依賴直接 panic；0.25.0 開始要求 dependency 帶 schema_url），
+  # 浮動版本等於讓 CI 隨時可能因為別人發版而變紅。要升版就改這一行，然後把兩支
+  # regress.sh 在本機跑過再送 PR——它們就是為了讓升版有明確結論而存在的。
+  WEAVER_VERSION: v0.25.1
 
 jobs:
-  # 真正的閘門：所有治理資產的回歸測試。
+  # ── Series 1 的閘門。
+  #
+  # 注意 path filter 是 workflow 級的，不是 job 級的，所以動到 ironman-2026/
+  # 也會把這個 job 一起帶起來。這裡刻意不裝 dorny/paths-filter 之類的東西去做
+  # 更精細的分流：兩支腳本加起來一分鐘出頭，而「只跑被改到的那一套」換來的是
+  # 跨系列的破壞沒人看得到——升 weaver 版本正是那種會同時打到兩套的改動。
   regress:
+    name: Series 1 治理資產回歸測試
     if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
@@ -52,17 +73,12 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install weaver
-        run: |
-          set -euo pipefail
-          base="https://github.com/open-telemetry/weaver/releases/download/${WEAVER_VERSION}"
-          curl -sSLf -O "${base}/${WEAVER_TARGET}.tar.xz"
-          curl -sSLf -O "${base}/${WEAVER_TARGET}.tar.xz.sha256"
-          sha256sum -c "${WEAVER_TARGET}.tar.xz.sha256"
-          tar -xf "${WEAVER_TARGET}.tar.xz"
-          sudo install "${WEAVER_TARGET}/weaver" /usr/local/bin/weaver
-          weaver --version
+      - uses: ./.github/actions/setup-weaver
+        with:
+          version: ${{ env.WEAVER_VERSION }}
 
+      # day15 的 run_and_extract.py 會真的跑一段有埋 instrumentation 的程式碼
+      # 把 OTLP 樣本吐出來，所以這一套比 Series 2 多要 SDK。
       - name: Install python deps
         run: pip install --quiet pyyaml opentelemetry-api opentelemetry-sdk
 
@@ -71,10 +87,55 @@ jobs:
       - name: 治理資產回歸測試
         run: ./testability/regress.sh
 
+  # ── Series 2（ironman-2026）的閘門。
+  #
+  # 在此之前 ironman-2026/ 底下的 registry 完全沒有 CI 覆蓋：上面那組 path filter
+  # 原本只有 `day*/**`，而它 match 不到 `ironman-2026/day07/**`。day12/regress.sh
+  # 早就寫好了 29 條斷言，只是沒有任何東西會去跑它。
+  regress-ironman:
+    name: Series 2 治理資產回歸測試
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: ./.github/actions/setup-weaver
+        with:
+          version: ${{ env.WEAVER_VERSION }}
+
+      # day11/compile_intent.py 要 pyyaml，其餘（day10/day12 的 MCP probe、
+      # day13 的 checklist）只用標準函式庫。這一套不碰 opentelemetry SDK。
+      - name: Install python deps
+        run: pip install --quiet pyyaml
+
+      # day08/day09 的 base registry 依賴官方 semantic-conventions v1.43.0，
+      # weaver 會 clone 到 ~/.weaver/vdir_cache/。快取它有兩個理由：省掉每次
+      # 重抓的時間，以及讓這道 gate 不會因為 GitHub 抽風而變成假紅燈。
+      # key 掛在 manifest 上——依賴的版本改了才需要重抓。
+      - name: Cache weaver vdir
+        uses: actions/cache@v4
+        with:
+          path: ~/.weaver/vdir_cache
+          key: weaver-vdir-${{ env.WEAVER_VERSION }}-${{ hashFiles('ironman-2026/**/manifest.yaml') }}
+          restore-keys: |
+            weaver-vdir-${{ env.WEAVER_VERSION }}-
+
+      # 29 條斷言，8 條預期 exit 1，外加 6 條探針（確認每份 registry 真的被讀
+      # 進來，而不是 `-r` 指錯路徑拿到的 0 groups 假綠燈）與 4 條「已知的缺口」
+      # ——那幾條斷言的是「它現在就是不擋」，上游哪天補好了會變紅，而那個紅燈
+      # 的意思是可以把自己補的那層拆掉了。
+      - name: 治理資產回歸測試（ironman-2026）
+        run: bash ironman-2026/day12/regress.sh
+
   # 示範用：單獨對一份 registry 跑 check，看 annotation 長什麼樣子。
   # 只在手動觸發時跑——預設那個目標是故意寫壞的教材，讓它在每個 PR 上
   # 紅燈只會製造雜訊，而雜訊多的 gate 最後會被忽略。
   registry-check:
+    name: 單看一份 registry 的 check 輸出
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
@@ -85,26 +146,33 @@ jobs:
           TARGET: ${{ inputs.target }}
         run: |
           set -euo pipefail
-          if [ "${TARGET:-day10-drift}" = "day06-demo-services" ]; then
-            echo "REGISTRY=day06/weaver/registry" >> "$GITHUB_ENV"
-            echo "POLICIES=day06/weaver/policies" >> "$GITHUB_ENV"
-            echo "EXPECT=green" >> "$GITHUB_ENV"
-          else
-            echo "REGISTRY=day10/registry" >> "$GITHUB_ENV"
-            echo "POLICIES=day10/policies" >> "$GITHUB_ENV"
-            echo "EXPECT=red" >> "$GITHUB_ENV"
-          fi
+          case "${TARGET:-day10-drift}" in
+            day06-demo-services)
+              echo "REGISTRY=day06/weaver/registry" >> "$GITHUB_ENV"
+              echo "POLICIES=day06/weaver/policies" >> "$GITHUB_ENV"
+              echo "EXPECT=green" >> "$GITHUB_ENV"
+              ;;
+            ironman-day07-converged)
+              echo "REGISTRY=ironman-2026/day07/registry" >> "$GITHUB_ENV"
+              echo "POLICIES=ironman-2026/day07/policies" >> "$GITHUB_ENV"
+              echo "EXPECT=green" >> "$GITHUB_ENV"
+              ;;
+            ironman-day06-drift)
+              # 同一份 day07 的 naming policy，打在還沒收斂的 day06 registry 上
+              echo "REGISTRY=ironman-2026/day06/registry" >> "$GITHUB_ENV"
+              echo "POLICIES=ironman-2026/day07/policies" >> "$GITHUB_ENV"
+              echo "EXPECT=red" >> "$GITHUB_ENV"
+              ;;
+            *)
+              echo "REGISTRY=day10/registry" >> "$GITHUB_ENV"
+              echo "POLICIES=day10/policies" >> "$GITHUB_ENV"
+              echo "EXPECT=red" >> "$GITHUB_ENV"
+              ;;
+          esac
 
-      - name: Install weaver
-        run: |
-          set -euo pipefail
-          base="https://github.com/open-telemetry/weaver/releases/download/${WEAVER_VERSION}"
-          curl -sSLf -O "${base}/${WEAVER_TARGET}.tar.xz"
-          curl -sSLf -O "${base}/${WEAVER_TARGET}.tar.xz.sha256"
-          sha256sum -c "${WEAVER_TARGET}.tar.xz.sha256"
-          tar -xf "${WEAVER_TARGET}.tar.xz"
-          sudo install "${WEAVER_TARGET}/weaver" /usr/local/bin/weaver
-          weaver --version
+      - uses: ./.github/actions/setup-weaver
+        with:
+          version: ${{ env.WEAVER_VERSION }}
 
       # Day5 那個 `-r .` 假綠燈的教訓：先確認這個檢查真的有讀到東西。
       # 少了這一步，一個路徑打錯的 PR 會拿到綠燈而不是紅燈。
@@ -114,7 +182,7 @@ jobs:
           groups=$(weaver registry stats -r "$REGISTRY" \
                    | grep -oE '[0-9]+ groups' | head -1 | cut -d' ' -f1)
           echo "resolved ${groups} groups"
-          if [ "${groups}" -eq 0 ]; then
+          if [ "${groups:-0}" -eq 0 ]; then
             echo "::error::registry 解析出 0 個 group——檢查根本沒讀到檔案，這不是通過"
             exit 1
           fi

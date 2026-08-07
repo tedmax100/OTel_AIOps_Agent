@@ -1,0 +1,44 @@
+name: setup-weaver
+description: 裝一個指定版本的 weaver，並用 release 附的 sha256 驗過。
+
+# 版本是 input 而不是寫死的常數，因為這個 repo 裡有兩套資產、綁在兩個不同的
+# weaver 版本上（見 telemetry-schema.yml 的說明）。抽成 action 是為了不要讓
+# 同一段下載＋驗章的邏輯在 workflow 裡出現第三份。
+inputs:
+  version:
+    description: "weaver 版本，含 v 前綴，例如 v0.25.1"
+    required: true
+  target:
+    description: "release 的 asset 名稱"
+    required: false
+    # musl 是靜態連結的，不吃 runner 上的 glibc 版本
+    default: weaver-x86_64-unknown-linux-musl
+
+runs:
+  using: composite
+  steps:
+    - name: Install weaver ${{ inputs.version }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        base="https://github.com/open-telemetry/weaver/releases/download/${{ inputs.version }}"
+        target="${{ inputs.target }}"
+        tmp="$(mktemp -d)"
+        cd "$tmp"
+        curl -sSLf -O "${base}/${target}.tar.xz"
+        curl -sSLf -O "${base}/${target}.tar.xz.sha256"
+        # 沒有這一行，這個 action 就只是「從網路上抓一個檔案然後執行它」
+        sha256sum -c "${target}.tar.xz.sha256"
+        tar -xf "${target}.tar.xz"
+        sudo install "${target}/weaver" /usr/local/bin/weaver
+        cd - >/dev/null
+        rm -rf "$tmp"
+        installed="$(weaver --version)"
+        echo "$installed"
+        # 版本釘死的意義在於「跑的真的是釘的那個」。runner 的 image 自己帶了
+        # weaver、或 PATH 上先找到別的版本時，上面每一步都會成功，只有這裡會抓到。
+        want="$(printf '%s' "${{ inputs.version }}" | sed 's/^v//')"
+        if ! printf '%s' "$installed" | grep -qF "$want"; then
+          echo "::error title=setup-weaver::裝起來的是 '${installed}'，但要的是 ${want}"
+          exit 1
+        fi

@@ -4,7 +4,7 @@ description: >-
   依賴不會遞移，只列 division 的話 base 的 payment.id 會解不到。
 schema_url: https://example.com/schemas/checkout-squad/0.1.0
 dependencies:
-  - name: commerce-division
+  - schema_url: https://example.com/schemas/commerce-division/0.1.0
     registry_path: day13/division
-  - name: payments-base
+  - schema_url: https://example.com/schemas/payments-base/0.1.0
     registry_path: day13/base

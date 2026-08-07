@@ -2,5 +2,5 @@ name: shipping-telemetry
 description: shipping 服務的 semantic convention（shipping 團隊維護）
 schema_url: https://example.com/schemas/shipping-telemetry/0.1.0
 dependencies:
-  - name: payments-base
+  - schema_url: https://example.com/schemas/payments-base/0.2.0
     registry_path: day14/base-v2

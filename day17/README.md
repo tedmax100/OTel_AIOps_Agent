@@ -5,7 +5,7 @@
 不動 demo stack。這裡是第一階段（Day3–11）的收斂物：一組新服務範本、一支會自己跑的
 checklist，以及兩份 shipping 服務——一份故意只照抄一半（同時當 checklist 自己的測試資料）。
 
-環境：weaver `0.24.1`，python 需要 `pyyaml`。checklist 會呼叫 `day15/mcp_probe.py`
+環境：weaver `0.25.1`，python 需要 `pyyaml`。checklist 會呼叫 `day15/mcp_probe.py`
 跟 `day16/compile_intent.py`，所以那兩天的檔案要在。
 
 ```
