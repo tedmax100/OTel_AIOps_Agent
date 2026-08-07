@@ -1,6 +1,6 @@
 # Day4 — 注入了不代表送達
 
-對應文章：**Day4**（《賢者大叔的觀測結界》第四天）。
+對應文章：**Day4**（《AIOps with OpenTelemetry》第四天）。
 
 這個資料夾是 Day4 做完之後、整組 demo stack 的**完整快照**。架構說明見 [STACK-README.md](./STACK-README.md)。
 

@@ -1,6 +1,6 @@
 # Day3 — OTel Operator：把「持續維護」從人身上搬到迴圈裡
 
-對應文章：**Day3**（《賢者大叔的觀測結界》第三天）。
+對應文章：**Day3**（《AIOps with OpenTelemetry》第三天）。
 
 這個資料夾是 Day3 做完之後、整組 demo stack 的**完整快照**，不是 diff。完整的架構說明（五個服務、o11y stack、流量產生器）見 [STACK-README.md](./STACK-README.md)。
 

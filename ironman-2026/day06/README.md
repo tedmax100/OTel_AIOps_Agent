@@ -1,6 +1,6 @@
 # Day6 — 命名漂移：用 Rego policy 把它攔下來
 
-對應文章：**Day6**（《賢者大叔的觀測結界》第六天）。
+對應文章：**Day6**（《AIOps with OpenTelemetry》第六天）。
 
 不動 demo stack。這裡是一份**獨立的最小 registry**，刻意保留 Day1 那個命名漂移（`userId` / `user_id` 並存），外加幾個常見的命名壞味道，用來示範 naming policy 怎麼把它們攔下來。跟 Day5 那份 34 groups 的正式 registry（`../day05/registry/`）無關。
 

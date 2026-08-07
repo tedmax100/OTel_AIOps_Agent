@@ -1,6 +1,6 @@
 # Day5 — Weaver 上手：schema 是團隊共識
 
-對應文章：**Day5**（《賢者大叔的觀測結界》第五天）。
+對應文章：**Day5**（《AIOps with OpenTelemetry》第五天）。
 
 這一天不碰 k8s，所有東西都是純檔案加一支 CLI。內容是文章合併前的原 Day7＋Day8＋Day9 三篇的材料收在一起。
 
