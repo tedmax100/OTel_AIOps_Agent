@@ -7,8 +7,8 @@ Python receiver over a real answer so you can see which blocks would render as
 what, and which would come out as plain text the user has to copy by hand.
 
 Run from `aiops-agent/service/`:
-    uv run python ../../otel-aiops-agent/ironman-2026/day31/render_probe.py "幫我設一個告警"
-    cat answer.txt | uv run python ../../otel-aiops-agent/ironman-2026/day31/render_probe.py -
+    uv run python ../../otel-aiops-agent/ironman-2026/day30/render_probe.py "幫我設一個告警"
+    cat answer.txt | uv run python ../../otel-aiops-agent/ironman-2026/day30/render_probe.py -
 """
 
 from __future__ import annotations

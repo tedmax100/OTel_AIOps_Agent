@@ -6,8 +6,8 @@ a computed cost; everything else becomes `http` / `business`. This is the same
 payload the plugin renders, printed as an indented tree so it can go in a README.
 
 Run from `aiops-agent/service/` against a running agent (default :8091):
-    uv run python ../../otel-aiops-agent/ironman-2026/day32/trace_tree.py <trace_id>
-    uv run python ../../otel-aiops-agent/ironman-2026/day32/trace_tree.py   # latest investigation
+    uv run python ../../otel-aiops-agent/ironman-2026/day30/trace_tree.py <trace_id>
+    uv run python ../../otel-aiops-agent/ironman-2026/day30/trace_tree.py   # latest investigation
 """
 
 from __future__ import annotations

@@ -22,8 +22,8 @@ localhost:9090/3100/3200 and GOOGLE_API_KEY set:
         -p 8080:8080 o11y-bench-o11y-stack:latest
 
     AGENT_DIR=../o11y-bench/aiops-agent/service \
-      python3 ironman-2026/day33/rerun_bench.py --which today
-    AGENT_DIR=… python3 ironman-2026/day33/rerun_bench.py --which baseline
+      python3 ironman-2026/day31/rerun_bench.py --which today
+    AGENT_DIR=… python3 ironman-2026/day31/rerun_bench.py --which baseline
 """
 
 from __future__ import annotations

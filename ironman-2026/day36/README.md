@@ -1,54 +1,57 @@
-# Day36：狀態機撞牆測試
+# Day36：把第一批非自我標註接進治理平面
 
-沒有改產品程式碼，只有一支探測腳本，走現有 9 條單元測試沒走過的路徑。
+Day37 量到 `non-self=0`。那是 `aiops.db` 的實情，不是這個 repo 的實情：`app/eval/harness.py` 從六月起就把每一輪 fixture 的信心值插進 calibration 表、再用 ground truth 標上對錯，只是寫在它自己的 `app/eval/eval.db`。
 
-## `probe_lifecycle.py`
+```python
+DEFAULT_STORE = _HERE / "eval.db"  # separate from prod aiops.db unless overridden
+```
 
-用一個暫存 SQLite 檔加真的 `app.action_requests` / `app.store` 模組，沒有 mock、沒有叢集、沒有 LLM。
+分開存是對的（合成事故不該默默變成營運歷史），但沒有人做過那個 override，所以唯一產出外部判斷的流程，跟唯一需要外部判斷的關卡，中間沒有橋。
+
+## `promote_labels.py`
+
+把 `eval.db` 裡已標註的紀錄搬進治理平面讀的那個 store。
 
 ```bash
 # 從 o11y-bench 主 repo 的根目錄跑
-python3 ironman-2026/day36/probe_lifecycle.py
+python3 ironman-2026/day36/promote_labels.py           # 乾跑，只印會搬什麼
+python3 ironman-2026/day36/promote_labels.py --apply
 ```
 
-四個探測：
+刻意的設計：
 
-| # | 撞什麼 | 現有測試為什麼沒蓋到 |
-| --- | --- | --- |
-| 1 | 8 個執行緒同時 `approve()` | 現有的 double-approve 測試是單執行緒依序呼叫兩次 |
-| 2 | 同樣過期的請求，`approve()` vs `reject()` | 只測過 approve 那一側 |
-| 3 | 過期但沒有人碰的請求會出現在哪 | 沒有測試看過 `list_requests()` 的內容 |
-| 4 | `executing` 中途 pod 被砍 | 沒有測試進到 `executing` 之後又離開 |
+| 設計 | 為什麼 |
+| --- | --- |
+| 只搬 `correct IS NOT NULL` | 沒有標註的紀錄對治理沒有意義 |
+| `source` 原封不動保留 | 那 35 列在資料庫裡永遠標著 `eval-harness`，不會被洗成看起來像正式紀錄 |
+| `run_id` 已存在就跳過 | 可以重複跑，不會灌出重複紀錄（calibration 表沒有 unique 約束） |
+| 預設乾跑，`--apply` 才寫 | 會改變狀態的東西不當預設行為 |
 
 ## 實際輸出
 
 ```
-[1] 8 threads approve the same request simultaneously
-    approve() returned a request 1 time(s) out of 8
-    after                  status=approved   actor=human-2 outcome=''
+source .../app/eval/eval.db
+  35 labeled record(s) with source='eval-harness'
+  0 already present in the target, 35 to promote
 
-[2] the same stale request: approve() vs reject()
-    approve() -> None
-    approved path          status=expired    actor=None outcome='approval TTL elapsed before action'
-    reject()  -> a request
-    rejected path          status=rejected   actor=human outcome=''
+before
+  target     labeled=0   non-self=0   overconfidence=None
+  k8s.rollout_undo   -> propose  calibration unproven (0 labeled run(s) < 20); autonomy withheld
+  k8s.scale          -> propose  calibration unproven (0 labeled run(s) < 20); autonomy withheld
 
-[3] a stale request nobody touches
-    listed under status=proposed: 1
-    stored                 status=proposed   actor=None outcome=''
+promoted 35 record(s)
 
-[4] the pod dies between claim and outcome
-    executor claimed it: True
-    after the crash        status=executing  actor=human outcome=''
-    a restarted executor re-claims it: False
-    approve() on it now: None
+after
+  target     labeled=35  non-self=35  overconfidence=-0.0029
+  k8s.rollout_undo   -> propose  calibration ok (overconfidence -0.0029, 35 runs)
+  k8s.scale          -> propose  calibration ok (overconfidence -0.0029, 35 runs)
 ```
 
 ## 結論
 
-1. **CAS 在真的併發下是對的。** 8 個執行緒恰好一個贏，連跑三次贏家分別是 `human-2`／`human-1`／`human-0`，數量永遠是 1。
-2. **`reject()` 沒有 TTL 檢查，`approve()` 有。** 同樣過期的兩列，一列變成 `expired` 並留下原因，另一列變成 `rejected` 並記上那個人。稽核軌跡上這是兩個不同的故事。
-3. **過期是被動的。** `_expire_if_stale()` 全專案只有 `approve()` 一個呼叫點，所以沒人按的提案會用 `proposed` 的身分留在清單上。
-4. **`executing` 沒有回收機制。** 認領之後 pod 死掉，那列永遠停在 `executing`：executor 找 `approved` 找不到它，`approve()` 找 `proposed` 也找不到它。
+1. **兩道校準門都開了，判斷結果沒變。** `calibration unproven` → `calibration ok`，但兩個行動一樣是 PROPOSE，因為 `requires_approval` 排在校準之前（Day37 量到的順序）。三道鎖今天開了第二道。
+2. **35 筆只有 3 個 fixture。** `payment-decline-service` 15 次、`order-service-discover-before-query` 10 次、`user-service-no-incident` 10 次，兩個日子跑出來的。門檻 `governance_min_human_labeled_runs` 的單位是 run，而真正該問的是獨立事故數，這裡差了一個數量級。
+3. **`eval-harness` 算「非自我標註」是因為黑名單沒排除它。** `_SELF_LABEL_SOURCES` 只排除 `remediation-verified`／`remediation-failed`。harness 用 fixture 的 truth 評分，確實不是 agent 自己說了算，但錯誤訊息裡那個 `human` 沒有一筆對得上。今天沒改，理由寫在文章裡。
+4. **這是一次性複製，兩邊從今天起開始分岔。** eval harness 以後還是寫 `eval.db`，要對齊得有人記得再跑一次。
 
-三個洞今天都只量不補。腳本本身沒有斷言，不是測試。
+Day37 的 `probe_governance.py` 在這之後再跑，`[4]` 會變成 `non-self=35 / calibration ok`，但兩個行動的 autonomy 仍是 `propose`。
