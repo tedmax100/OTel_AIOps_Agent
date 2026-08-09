@@ -1,2 +1,6 @@
 __pycache__/
 *.pyc
+
+# SQLite sidecar files: transient, recreated on every read
+*.db-shm
+*.db-wal

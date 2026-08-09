@@ -1,114 +1,119 @@
-# Day34：五個旗艦 SLO，跟階梯上真正的位置
+# Day34：換一座只改了名字的環境，量「我的知識屬不屬於這裡」
 
-回顧日。不寫新機制，只把 ARE 3.6 那五個旗艦 SLO 對著**叢集自己的 store** 算一次，看哪幾個是量測、哪幾個是 0/0、哪幾個量到的其實是我的手。
+Series 1 最後一天量到「治理是環境的函數」，但那個比較是被混淆的：demo 叢集對上 Day1 那座 stack image，同時換掉了命名、Kubernetes API 的有無、以及資料形狀。這一天把變因收成一個。
 
-## 重現步驟
+## 孿生環境：同一批遙測，只有名字不一樣
 
-`cluster-snapshot.db` 是 2026-08-09 從 k3d `demo` namespace 裡那顆 agent pod 撈出來的 `/data/aiops.db`，已經放在這個資料夾裡，所以腳本不需要叢集也不需要 LLM：
+同一支 collector 多開三條 pipeline，改名之後送到 `demo-twin` 那套 Prometheus/Loki/Tempo。服務、流量、事故、拓撲全部相同。
+
+改名規則（模仿一個從來沒導入 semconv 的團隊）：
+
+| | 家裡 | 孿生 |
+| --- | --- | --- |
+| resource 屬性 | `service.name` | `svc.name`（`service.name` 被刪掉） |
+| metric 名字 | `payment_charges_total` | `acme_payment_charges_count_total` |
+| Loki 可索引標籤 | `service_name="payment-service"` | `service_name="unknown_service"` |
+| Tempo | `resource.service.name` 六個值 | 零個值 |
+
+改動在主 repo（`o11y-bench`）的 `demo-services/`：
+
+- `k8s/13-otel-collector.yaml` — `resource/twin` 與 `transform/twin` 兩個 processor，加三條 `*/twin` pipeline
+- `k8s/30-twin-stores.yaml` — `demo-twin` namespace 與三個 store，由那三份原始 manifest 換 namespace 產生
 
 ```bash
+kubectl apply -f demo-services/k8s/30-twin-stores.yaml
+kubectl apply -f demo-services/k8s/13-otel-collector.yaml
+kubectl -n demo rollout restart deploy/otel-collector
+./demo-services/scripts/load.sh 8 90        # 讓兩邊都有資料
+```
+
+## 契合度腳本
+
+```bash
+# 六個 port-forward（家裡 1xxxx、孿生 2xxxx）
+kubectl -n demo      port-forward svc/prometheus 19090:9090 &
+kubectl -n demo      port-forward svc/loki       13100:3100 &
+kubectl -n demo      port-forward svc/tempo      13200:3200 &
+kubectl -n demo-twin port-forward svc/prometheus 29090:9090 &
+kubectl -n demo-twin port-forward svc/loki       23100:3100 &
+kubectl -n demo-twin port-forward svc/tempo      23200:3200 &
+
 # 從 o11y-bench 主 repo 的根目錄跑
-python3 ironman-2026/day34/slo_report.py
+python3 ironman-2026/day34/probe_env_fit.py --env both
+python3 ironman-2026/day34/probe_env_fit.py --env twin -v   # 列出每一條沒對上的
 ```
 
-要自己重新取一份快照：
+```
+[home] prom=http://localhost:19090 loki=http://localhost:13100 tempo=http://localhost:13200
+  metrics   6/6  resolved   fit 1.00
+  logs      5/5  resolved   fit 1.00
+  traces    5/5  resolved   fit 1.00
+  -> {"proven_good": true, "score": 1.0, "note": "injected knowledge resolves here (16/16)"}
+  -> gate (environment dimension only): auto  high confidence, reversible, calibration + data-quality proven-good
+     composite dq_verdict(): topology not reconciled against live traces; DQ unproven
+
+[twin] prom=http://localhost:29090 loki=http://localhost:23100 tempo=http://localhost:23200
+  metrics   0/6  resolved   fit 0.00
+  logs      0/5  resolved   fit 0.00
+  traces    0/5  resolved   fit 0.00
+      ✗ metric order_create_duration_seconds (order-service)
+      ✗ metric orders_total (order-service)
+      ✗ (+14 more)
+  -> {"proven_good": false, "score": 0.0, "note": "only 0/16 of the injected knowledge resolves against these stores (metric order_create_duration_seconds (order-service)); the catalog may belong to another environment"}
+  -> gate (environment dimension only): propose  high confidence but data-quality (DQ) not proven-good
+     composite dq_verdict(): only 0/16 of the injected knowledge resolves against these stores (metric order_create_duration_seconds (order-service)); the catalog may belong to another environment
+
+home fit 1.0 -> auto   vs   twin fit 0.0 -> propose
+(same services, same traffic, same incident — only the names differ)
+```
+
+兩件事值得看：
+
+**孿生那邊的 Prometheus 一樣有 41 個指標名。** 它不是一座空環境，是一座名字不同的環境，所以 0.00 不是「沒資料」，是「我背的名字在這裡一個都叫不動」。
+
+**Loki 那格是只檢查 key 會漏掉的那一種。** `service_name` 在孿生上仍然是可索引標籤（Loki 在 resource 屬性缺席時會自己填 `unknown_service`），所以只問「這個 key 存在嗎」會拿到綠燈。要問到對的答案，key 跟 value 都得檢查。
+
+## 接進治理平面
+
+契合度不是一支獨立腳本就算完，它要走到會改變行為的地方。新的 `app/signals/envfit.py` 做三件事：
+
+- `compute_env_fit()` 對三個 store 各問一次，結果進 module 快取（跟 reconcile 的 drift 同一個模式）
+- `fit_verdict()` 收成 `{proven_good, score, note}`，也就是治理平面讀 DQ 的那個形狀
+- `dq_verdict()` 把它排在**最前面**問。理由很簡單：如果 catalog 屬於另一座環境，後面那些維度量的是另一個系統
+
+agent 那側在 `_refresh_env_fit()` 觸發，位置跟依賴健康度同一段（唯讀、不吃 agent 預算、best-effort），而且有 TTL，沒過期就不重量。
+
+`app/signals/contract.py` 的 `validate_against_live()` 早就在做這件事的三分之一（metric 那側），而它除了自己的 dev CLI 之外**沒有任何呼叫端**。這個形狀在這系列出現第四次了。
 
 ```bash
-POD=$(kubectl -n demo get pod -l app=aiops-agent -o name | head -1)
-kubectl -n demo cp "${POD#pod/}":/data/aiops.db ironman-2026/day34/cluster-snapshot.db
+# 直接跑那支模組（吃 PROMETHEUS_URL / LOKI_URL / TEMPO_URL）
+PROMETHEUS_URL=http://localhost:29090 LOKI_URL=http://localhost:23100 \
+  TEMPO_URL=http://localhost:23200 python -m app.signals.envfit
 ```
 
-## 五段輸出
+## 治理判決：同一組提案，兩個答案
 
-### [1] 同一份 schema，兩個 store，兩段不同的歷史
-
-```
-  table              dev (aiops.db)    cluster /data
-  calibration                    35               15
-  investigations                  0               15
-  action_requests                 0               13
-  executions                      0                1
-  audit                           0               28
-  cluster labels by source: ui=7
-  cluster non-self labels: 7   (Day31 measured this as 0 on the dev store)
-```
-
-Day31-38 三天量的都是 dev store。叢集那份從頭到尾有它自己的資料：**7 筆來源 `ui` 的人工標註**，以及 15 筆 `investigations`——也就是 Day31 說「不存在」的非自我標註，跟 Day32 說「空的」那張表。
-
-### [2] 叢集還沒看過的那個欄位
+`probe_env_fit.py` 最後會拿一個合成提案（可逆、不需核准、信心 0.95、校準紀錄乾淨）去問真的 `decide()`，只把環境這一維餵給它，其他維度不參與比較：
 
 ```
-  cluster calibration.grading_mode present: False
-  gate reads modes=('culprit',) (NULL never matches — fail-closed on unknowns)
-  after migration, grading_mode present: True
-  labeled rows: 7   eligible for the curve after: 0
+[home]  -> gate (environment dimension only): auto     high confidence, reversible,
+                                              calibration + data-quality proven-good
+[twin]  -> gate (environment dimension only): propose  high confidence but
+                                              data-quality (DQ) not proven-good
+
+home fit 1.0 -> auto   vs   twin fit 0.0 -> propose
+(same services, same traffic, same incident — only the names differ)
 ```
 
-`_MIGRATIONS` 是連線時自動跑的加欄位，所以新 image 上去的那一刻，那 7 筆的 `grading_mode` 會是 NULL，而 NULL 不匹配任何 mode 篩選（Day31 刻意設計成 fail-closed）。**唯一一批真人標註會在遷移完成的那一秒變成不算數。**
+那個合成提案把校準門檻歸零是**為了隔離變因**，不是建議這樣跑正式環境（真實 store 只有 7 筆標註，校準那道鎖本來就會先擋）。
 
-### 修法：`fix_grading_mode.py`
+## 測試
 
-加欄位的遷移寫了，填欄位的那半沒寫。那 7 筆的模式是知道的（plugin 上按對／錯，對象是指名兇手的 RCA，就是 `culprit`），所以回填它們，其餘真的不知道的留 NULL。
+`tests/test_envfit.py` 七條，全部是純的（三個 store 都是假的）：沒量過是 unproven、全對是 proven-good、全錯要指名第一個沒對上的東西、**某個 store 不回答要算「沒有證據」而不是 fit 0.0**、量測過期不算數，以及那條 key 存在但 value 對不上的。`tests/test_dq.py` 多三條，包含「環境這一維排在 schema 跟拓撲前面」。全套 393 條通過。
 
-```bash
-# 乾跑（對複製出來的一份做，預設）
-python3 ironman-2026/day34/fix_grading_mode.py
+## 還沒做
 
-# 對某一份 store 就地套用
-python3 ironman-2026/day34/fix_grading_mode.py --store /data/aiops.db --apply
-```
-
-```
-[1] before   labeled=0 non-self=0 ece=None
-             gate: propose  calibration unproven (0 labeled run(s) < 20)
-[2] backfill grading_mode='culprit' for labeled rows from ('ui',)  -> 7 rows
-[3] after    labeled=7 non-self=7 ece=0.5643 overconfidence=0.3929
-             gate: propose  calibration unproven (7 labeled run(s) < 20)
-
-  reliability diagram over the labels that now count
-    band        n    stated   actual   gap
-    [0.2,0.3)   2    0.2      0.5      0.3
-    [0.8,0.9)   3    0.8167   0.0      0.8167
-    [0.9,1.0)   2    0.95     0.5      0.45
-```
-
-兩句都是紅燈，但「7 筆，還差 13 筆」是可以靠做事解決的紅燈。而 `[0.8,0.9)` 那一格是三筆全錯，`0.8` 正是 `governance_conf_high`。
-
-已於 2026-08-09 套用到 k3d `demo` 那顆 pod 的 `/data/aiops.db`（套用前備份在同目錄的 `aiops.db.bak-day34`）。`cluster-snapshot.db` 保留的是**回填之前**的狀態，所以上面兩支腳本都還重現得出文章裡的輸出。
-
-### [3] 五個旗艦 SLO
-
-```
-  ARR     0 / 3 -> 0.0%          （真的 0：13 筆請求全是 propose）
-  DQ-SLO  0 / 0 -> undefined     （分母結構上是空的）
-  RL-SLO  n=11, max 979s         （其中 8 筆共用同一個 startsAt = 重放的告警內容）
-                                  3 個不同告警：10s / 12s / 16s
-  AE-SLO  0 / 1 -> 0.0%          （n=1，而那次失敗是 401）
-  CE      cluster: labeled=7  ece=0.5643  overconfidence=+0.3929
-          dev:     labeled=35 ece=0.1743  overconfidence=-0.0029
-```
-
-注意 `app/signals/dq.py` 的 docstring 把 data-quality 寫成「ARE flagship #2」，但書上的 flagship #2 是 Decision Quality。同一個縮寫，兩件不同的事。
-
-### [4] SAR：L2 的門檻指標
-
-```
-  proposed=10, aborted=2, rollback_failed=1
-  suggestions raised: 13   approved: 3   rejected: 0
-  SAR = 23.1%
-  actors: day33-live, day33-live-2, nathan-smoke-test
-  10 expired without anyone opening them
-```
-
-三個核准者都是我在測試。分母裡有 10 筆是「沒有人打開過」，而 SAR 把它跟「人看過之後說不要」算成同一件事。
-
-### [5] L3 的四個機制
-
-```
-  governance plane, runtime-evaluated    13 decisions, 全部 PROPOSE；ACTIONS_ENABLED 自 2026-06-22 為 true
-  action contracts                       2 個註冊動作；dry_run abort=1, ok=2
-  automatic reversal                     rollback fail=1
-  calibrated confidence                  7 labeled runs vs 門檻 20
-```
-
-ARE 4.9 的 Trust Ceiling 要求這四個**同時**到位。前三個有真實證據，第四個沒有。
+- **低契合度的時候，catalog 還是照樣注入。** 現在只有治理平面會因此收回自主權，agent 拿到的提示沒有變成「這裡的名字你不認識，先 discover」。
+- **沒有量 2×2 分數。** 家裡／孿生 × 帶 catalog／不帶 catalog 那四格還沒跑，那要花 LLM 呼叫。
+- **孿生沒有自己的告警規則。** 那邊的 alert rule 名字沒改，所以 runbook 比對那條路在孿生上還沒被測過。
+- **fit 沒有歷史。** 跟拓撲對帳一樣，只有「這一次量到什麼」，沒有「連續幾次掉下來」。

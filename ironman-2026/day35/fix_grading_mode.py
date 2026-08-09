@@ -15,10 +15,10 @@ Idempotent (only touches rows still NULL), and it prints the gate's verdict
 before and after so the change is visible as a decision, not just a row count.
 
     # dry run against the committed snapshot (default)
-    python3 ironman-2026/day34/fix_grading_mode.py
+    python3 ironman-2026/day35/fix_grading_mode.py
 
     # against the cluster's own store, in place
-    python3 ironman-2026/day34/fix_grading_mode.py --store /data/aiops.db --apply
+    python3 ironman-2026/day35/fix_grading_mode.py --store /data/aiops.db --apply
 """
 
 from __future__ import annotations

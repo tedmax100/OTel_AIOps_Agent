@@ -20,9 +20,9 @@ Five views:
 Read-only. No cluster, no LLM: it reads a snapshot copied out of the pod with
 
     kubectl -n demo cp <aiops-agent-pod>:/data/aiops.db \\
-        ironman-2026/day34/cluster-snapshot.db
+        ironman-2026/day35/cluster-snapshot.db
 
-    python3 ironman-2026/day34/slo_report.py
+    python3 ironman-2026/day35/slo_report.py
 """
 
 from __future__ import annotations
