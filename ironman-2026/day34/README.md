@@ -69,7 +69,7 @@ home fit 1.0 -> auto   vs   twin fit 0.0 -> propose
 
 兩件事值得看：
 
-**孿生那邊的 Prometheus 一樣有 41 個指標名。** 它不是一座空環境，是一座名字不同的環境，所以 0.00 不是「沒資料」，是「我背的名字在這裡一個都叫不動」。
+**孿生那邊的 Prometheus 一樣有 34 個指標名**（兩邊都用 `/api/v1/label/__name__/values` 數的）**。** 它不是一座空環境，是一座名字不同的環境，所以 0.00 不是「沒資料」，是「我背的名字在這裡一個都叫不動」。
 
 **Loki 那格是只檢查 key 會漏掉的那一種。** `service_name` 在孿生上仍然是可索引標籤（Loki 在 resource 屬性缺席時會自己填 `unknown_service`），所以只問「這個 key 存在嗎」會拿到綠燈。要問到對的答案，key 跟 value 都得檢查。
 
