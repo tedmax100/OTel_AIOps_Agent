@@ -1,68 +1,67 @@
-# Day16：讓拓撲對帳有資料源
+# Day16：把對帳的噪音降下來
 
-前一天的對帳是手動敲的，而且它只回答「邊對不對」。這一天處理的是前一個問題：**這張圖上該有哪些服務，誰說了算。**
+改的是 agent 服務自己的原始碼（`aiops-agent/service/app/signals/`），這裡只放重現步驟。
 
-## `topology_watch.py`
+| 檔案 | 改了什麼 |
+| --- | --- |
+| `signals/reconcile.py` | `TopologyDrift` 多一個 `caller_samples`（每個服務出現在幾筆取樣的 trace 裡）＋ `services_from_trace()` |
+| `signals/context.py` | ⚠ 只在「呼叫方真的被跑過」時才給；同一條邊只講一次；DQ 那行交代自己沒涵蓋什麼 |
+| `tests/test_reconcile.py` | 四條新斷言（有證據／沒證據／不重複／DQ 註解） |
 
-同時問 Loki、Prometheus、Tempo「現在有哪些服務」，跟宣告的拓撲比對，並且用離開碼把結果講清楚，好讓它進 cron 或 CI。
+## 看 before / after
+
+在 `aiops-agent/service/` 底下跑（要有一座在收 trace 的 stack）：
 
 ```bash
-python3 ironman-2026/day16/topology_watch.py \
-    --topology aiops-agent/service/app/signals/topology.yaml \
-    --loki  http://localhost:3100 \
-    --prom  http://localhost:9090 \
-    --tempo http://localhost:3200 \
-    --lookback 6h
+# 先灌一點流量
+(cd ../../demo-services && ./scripts/load.sh 8 60)
+
+uv run python -c "
+import asyncio
+from app.signals.reconcile import reconcile
+from app.signals.context import build_signal_context
+d = asyncio.run(reconcile(lookback='now-30m', max_traces=30))
+print('unobserved:', [(e.caller, e.callee) for e in d.unobserved_edges])
+print('caller_samples:', d.caller_samples)
+print()
+print(build_signal_context(['api-gateway', 'payment-service']))
+"
 ```
 
-三個資料源都問：
+改之前，同一條邊會在兩個服務的區塊各出現一次，而且標題那行說 100%：
 
 ```
-# topology watch — declared 5, lookback 6h
-  loki        sees  5: api-gateway, order-service, payment-service, user-service, webapp
-  prometheus  sees  6: aiops-agent, api-gateway, order-service, payment-service, user-service, webapp
-  tempo       sees  6: aiops-agent, api-gateway, order-service, payment-service, user-service, webapp
-  ~ 'aiops-agent' is missing from loki but present in others
-  ✗ live 'aiops-agent' is not declared (seen by prometheus, tempo)
-exit=1
+Topology data-quality (last reconcile, 30 traces): declared/observed agreement 100%.
+### api-gateway
+- downstream (...): order-service, payment-service (⚠ declared, not seen in recent traces), user-service
+### payment-service
+- upstream (...): api-gateway (⚠ declared, not seen in recent traces), order-service
 ```
 
-只問 Loki（也就是 `list_service_names()` 現在的行為）：
+改之後：
 
 ```
-# topology watch — declared 5, lookback 6h
-  loki        sees  5: api-gateway, order-service, payment-service, user-service, webapp
-  ✓ declared set matches the live set (5 services)
-exit=0
+Topology data-quality (last reconcile, 30 traces): declared/observed agreement 100%. That score
+only grades edges seen in traffic; 1 declared edge(s) were not exercised in this sample and are
+marked below.
+### api-gateway
+- downstream (...): order-service, payment-service (⚠ not seen in 30 sampled traces of api-gateway), user-service
+### payment-service
+- upstream (...): api-gateway, order-service
 ```
 
-同一個叢集、同一個時間、同一份拓撲，一個說有漂移，一個說完全對齊。
+## 沒有證據的時候
 
-沒有任何資料源答得出來的時候：
+呼叫方本身只出現在少數幾筆 trace 裡，那它沒走的那些邊什麼都不能證明。這種情況 ⚠ 會退成一句沒有警示符號的描述：
 
 ```
-  ! loki did not answer (Connection refused) — treating it as no evidence
-  no source answered; cannot tell alignment from silence
-exit=2
+- downstream (...): payment-service (not exercised in this sample)
 ```
 
-## 離開碼
+門檻是 `context.py` 裡的 `_MIN_CALLER_EVIDENCE`，目前是 5。
 
-| 碼 | 意思 | 排程上該怎麼反應 |
-| --- | --- | --- |
-| 0 | 宣告的服務集合跟活著的一致 | 什麼都不用做 |
-| 1 | 有漂移：宣告了但沒人看到，或活著但沒宣告 | 通知擁有那個服務的團隊 |
-| 2 | 問不到，所以什麼都不能斷定 | 通知平台團隊，這是監控自己壞了 |
+## 測試
 
-2 跟 1 一定要分開。把「查不到」算成「沒有漂移」，這個排程就變成一個永遠不會響的告警。
-
-## 排程
-
-```cron
-*/30 * * * * cd /path/to/repo && python3 ironman-2026/day16/topology_watch.py \
-    --topology aiops-agent/service/app/signals/topology.yaml \
-    --loki $LOKI_URL --prom $PROM_URL --tempo $TEMPO_URL --lookback 6h \
-    >> /var/log/topology_watch.log 2>&1
+```bash
+uv run pytest tests/test_reconcile.py -q
 ```
-
-`--lookback` 要比服務最長的閒置週期長。只在月底跑的服務用 6 小時的視窗看，每天都會被報成死掉的。

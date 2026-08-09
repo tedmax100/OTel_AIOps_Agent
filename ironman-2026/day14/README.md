@@ -1,56 +1,129 @@
-# Day14：讀現況
+# Day14：拓撲對帳
 
-這一天沒有新增功能，只有一支用來讀現況的工具。
+這一天跑的是 agent 服務裡本來就有的 `app/signals/reconcile.py`，沒有改它。這個資料夾放的是「跑之前該先確認什麼」的那支工具。
 
-## `importgraph.py`
+## `tempo_probe.py`
 
-把一個 package 的真實 import 關係從 AST 裡挖出來，印成「誰 import 誰、誰被誰 import、以及沒有任何人 import 的是哪幾個」。
-
-用 AST 而不是 grep，是因為函式內部的 `import`（延遲載入、`__main__` 底下的）也是一條真的邊，`grep "^from"` 會漏掉。這一天最重要的那個發現就藏在這種邊裡。
+對帳報告說「這六條邊都沒觀察到」的時候，有兩種完全不同的真相：圖錯了，或是那段時間根本沒有應用流量。這支工具先把後者排除掉。
 
 ```bash
-# 從 o11y-bench 主 repo 的根目錄跑
-python3 ironman-2026/day14/importgraph.py aiops-agent/service/app/signals
+python3 ironman-2026/day14/tempo_probe.py http://localhost:3210 120
 ```
 
-輸出：
+它印三件事：這個位址上的 Tempo 到底是哪一版（避免打到另一座）、視窗內有幾筆 trace、以及其中有幾筆撐得過 `{ trace:duration > 5ms }` 這個探針過濾器。
+
+沒有應用流量的時候：
 
 ```
-# aiops-agent/service/app/signals  (8 modules)
-
-module     imports                             imported by
----------------------------------------------------------------------
-compile    contract, topology                  —
-context    contract, reconcile, topology       —
-contract   —                                   compile, context, health, weaver
-dq         reconcile                           —
-health     contract, topology                  —
-reconcile  topology                            context, dq
-topology   —                                   compile, context, health, reconcile
-weaver     contract                            —
-
-nothing in this package imports: compile, context, dq, health, weaver
-  compile    runnable as a CLI: yes
-  context    runnable as a CLI: NO
-  dq         runnable as a CLI: NO
-  health     runnable as a CLI: NO
-  weaver     runnable as a CLI: yes
+http://localhost:3210 → Tempo 2.6.0 (rev e85bbc57d)
+  last 120s: 214 traces
+    slowest seen           : 1ms
+    survives the >5ms filter: 0
+    ⚠ reconcile would sample 0 traces here and report every declared
+      edge as unobserved. That is 'no traffic', not 'the graph is wrong'.
 ```
 
-它對任何 package 都能跑，不限這一個。
+灌了流量之後：
 
-## 文章裡另外三段輸出怎麼重現
+```
+http://localhost:3210 → Tempo 2.6.0 (rev e85bbc57d)
+  last 120s: ≥500 traces
+    slowest seen           : 28ms
+    survives the >5ms filter: 467
+    (limit=500 hit — counts are floors; shorten the window to compare them)
+```
 
-被讀的那個模組是 agent 服務自己的原始碼（`aiops-agent/service/app/signals/`），不在這個 repo 裡。下面的指令都在 `aiops-agent/service/` 底下跑：
+## 重現文章裡的對帳結果
+
+被跑的模組是 agent 服務自己的原始碼（`aiops-agent/service/app/signals/`），不在這個 repo 裡。下面在 `aiops-agent/service/` 底下跑，`3210` 換成你的 Tempo：
 
 ```bash
-# 契約引用的 metric 有沒有全部在 Weaver registry 裡宣告過
-uv run python -m app.signals.weaver
+# 先灌一點流量
+(cd ../../demo-services && ./scripts/load.sh 8 70)
 
-# 注入給 agent 的那段 Signal context 長什麼樣（純函式，不需要 live stack）
-uv run python -c "from app.signals.context import build_signal_context; \
-    print(build_signal_context(['order-service']))"
-
-# Data-Quality 判定（沒跑過 reconcile 時的預設狀態）
-uv run python -c "from app.signals.dq import dq_verdict; print(dq_verdict())"
+# 對帳，並掃不同的取樣數
+for n in 50 100 300; do
+  uv run python -c "
+import asyncio
+from app.config import settings
+settings.tempo_url='http://localhost:3210'
+from app.signals.reconcile import reconcile
+d=asyncio.run(reconcile(lookback='now-10m', max_traces=$n))
+print(f'max_traces=$n sampled={d.traces_sampled} observed={d.observed_count} dq={d.dq_score}'
+      f' unobserved={[(e.caller,e.callee) for e in d.unobserved_edges]}')
+"
+done
 ```
+
+`max_traces` 的預設值是 50，而 50 跟 300 會給出不一樣的答案。文章講的就是這件事。
+
+---
+
+## 讓拓撲對帳有資料源
+
+前一天的對帳是手動敲的，而且它只回答「邊對不對」。這一天處理的是前一個問題：**這張圖上該有哪些服務，誰說了算。**
+
+## `topology_watch.py`
+
+同時問 Loki、Prometheus、Tempo「現在有哪些服務」，跟宣告的拓撲比對，並且用離開碼把結果講清楚，好讓它進 cron 或 CI。
+
+```bash
+python3 ironman-2026/day14/topology_watch.py \
+    --topology aiops-agent/service/app/signals/topology.yaml \
+    --loki  http://localhost:3100 \
+    --prom  http://localhost:9090 \
+    --tempo http://localhost:3200 \
+    --lookback 6h
+```
+
+三個資料源都問：
+
+```
+# topology watch — declared 5, lookback 6h
+  loki        sees  5: api-gateway, order-service, payment-service, user-service, webapp
+  prometheus  sees  6: aiops-agent, api-gateway, order-service, payment-service, user-service, webapp
+  tempo       sees  6: aiops-agent, api-gateway, order-service, payment-service, user-service, webapp
+  ~ 'aiops-agent' is missing from loki but present in others
+  ✗ live 'aiops-agent' is not declared (seen by prometheus, tempo)
+exit=1
+```
+
+只問 Loki（也就是 `list_service_names()` 現在的行為）：
+
+```
+# topology watch — declared 5, lookback 6h
+  loki        sees  5: api-gateway, order-service, payment-service, user-service, webapp
+  ✓ declared set matches the live set (5 services)
+exit=0
+```
+
+同一個叢集、同一個時間、同一份拓撲，一個說有漂移，一個說完全對齊。
+
+沒有任何資料源答得出來的時候：
+
+```
+  ! loki did not answer (Connection refused) — treating it as no evidence
+  no source answered; cannot tell alignment from silence
+exit=2
+```
+
+## 離開碼
+
+| 碼 | 意思 | 排程上該怎麼反應 |
+| --- | --- | --- |
+| 0 | 宣告的服務集合跟活著的一致 | 什麼都不用做 |
+| 1 | 有漂移：宣告了但沒人看到，或活著但沒宣告 | 通知擁有那個服務的團隊 |
+| 2 | 問不到，所以什麼都不能斷定 | 通知平台團隊，這是監控自己壞了 |
+
+2 跟 1 一定要分開。把「查不到」算成「沒有漂移」，這個排程就變成一個永遠不會響的告警。
+
+## 排程
+
+```cron
+*/30 * * * * cd /path/to/repo && python3 ironman-2026/day14/topology_watch.py \
+    --topology aiops-agent/service/app/signals/topology.yaml \
+    --loki $LOKI_URL --prom $PROM_URL --tempo $TEMPO_URL --lookback 6h \
+    >> /var/log/topology_watch.log 2>&1
+```
+
+`--lookback` 要比服務最長的閒置週期長。只在月底跑的服務用 6 小時的視窗看，每天都會被報成死掉的。

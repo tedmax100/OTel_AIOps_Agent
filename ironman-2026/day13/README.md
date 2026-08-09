@@ -1,53 +1,56 @@
-# Day13：新服務上線 checklist
+# Day13：讀現況
 
-`verify_onboarding.py` 是這一階段的收尾：13 項檢查，每一項都真的執行一次工具，
-每一項失敗都印出下一步。它不問「你有沒有做」，它自己去看。
+這一天沒有新增功能，只有一支用來讀現況的工具。
 
-驗證環境：weaver 0.25.1。
+## `importgraph.py`
 
-```
-day13/
-├── verify_onboarding.py
-├── shipping-v0/     # 照抄一半的新服務：registry check 是綠的，但 7/13
-└── shipping-v1/     # 補完之後：13/13
-```
+把一個 package 的真實 import 關係從 AST 裡挖出來，印成「誰 import 誰、誰被誰 import、以及沒有任何人 import 的是哪幾個」。
 
-以下指令都從這個 repo 的根目錄跑（`registry_path` 綁 cwd，見 Day8）。
-
-## 跑
+用 AST 而不是 grep，是因為函式內部的 `import`（延遲載入、`__main__` 底下的）也是一條真的邊，`grep "^from"` 會漏掉。這一天最重要的那個發現就藏在這種邊裡。
 
 ```bash
-python3 ironman-2026/day13/verify_onboarding.py ironman-2026/day13/shipping-v0   # 7/13，exit 1
-python3 ironman-2026/day13/verify_onboarding.py ironman-2026/day13/shipping-v1   # 13/13，exit 0
+# 從 o11y-bench 主 repo 的根目錄跑
+python3 ironman-2026/day13/importgraph.py aiops-agent/service/app/signals
 ```
 
-13 項分三段：
+輸出：
 
-| 段落 | 項次 | 在問什麼 |
-| --- | --- | --- |
-| 基本 | 1-3 | manifest 在不在、registry 真的讀得到、check 過不過 |
-| 命名與分層 | 4-6 | 命名規則、有沒有接上 base、有沒有跟別人衝突的重複定義 |
-| 對 agent 的可用性 | 7-10 | 每個 attribute 有 brief、狀態欄位是 enum、metric 有語意單位跟 owner |
-| 意圖與產出 | 11-13 | 有沒有寫下什麼叫正常、編不編得出 alert rule、生不生得出常數 |
+```
+# aiops-agent/service/app/signals  (8 modules)
 
-## 這份 checklist 自己有兩個洞
+module     imports                             imported by
+---------------------------------------------------------------------
+compile    contract, topology                  —
+context    contract, reconcile, topology       —
+contract   —                                   compile, context, health, weaver
+dq         reconcile                           —
+health     contract, topology                  —
+reconcile  topology                            context, dq
+topology   —                                   compile, context, health, reconcile
+weaver     contract                            —
 
-跑 `shipping-v0` 的時候，有兩項是綠的，而它們**不該是綠的**。
+nothing in this package imports: compile, context, dq, health, weaver
+  compile    runnable as a CLI: yes
+  context    runnable as a CLI: NO
+  dq         runnable as a CLI: NO
+  health     runnable as a CLI: NO
+  weaver     runnable as a CLI: yes
+```
 
-**第 8 項（狀態欄位要有值域）放過了 `shippingStatus`。** 那個檢查看的是名字最後一段
-是不是 `status` / `outcome` / `state` / `result`，而 `shippingStatus` 沒有點、
-整個名字就是一段，所以匹配不到。它因為**同時違反了命名規則**，反而躲過了值域檢查。
+它對任何 package 都能跑，不限這一個。
 
-**第 6 項（不准跟 base 重複定義）也放過了 `biz.user.id`。** v0 沒有宣告 dependency，
-所以 base 的定義根本沒進到 resolved schema，沒有東西可以跟它衝突。手動補上 dependency
-之後它還是綠的，因為未被 `ref` 的屬性不會進 resolved schema（Day8、Day10 那個行為）。
-只有加上 `--include-unreferenced` 才抓得到：
+## 文章裡另外三段輸出怎麼重現
+
+被讀的那個模組是 agent 服務自己的原始碼（`aiops-agent/service/app/signals/`），不在這個 repo 裡。下面的指令都在 `aiops-agent/service/` 底下跑：
 
 ```bash
-weaver registry check -r ironman-2026/day13/shipping-v0/registry \
-  -p ironman-2026/day08/policies --include-unreferenced
-# × The attribute id `biz.user.id` is declared multiple times ...
-# 但同時也會噴出 aws.dynamodb.table_names、client.port 這些上游自己的同名定義
-```
+# 契約引用的 metric 有沒有全部在 Weaver registry 裡宣告過
+uv run python -m app.signals.weaver
 
-兩個洞都是跑壞掉的服務才顯現出來的。**壞掉的服務是測試資料，不是教材。**
+# 注入給 agent 的那段 Signal context 長什麼樣（純函式，不需要 live stack）
+uv run python -c "from app.signals.context import build_signal_context; \
+    print(build_signal_context(['order-service']))"
+
+# Data-Quality 判定（沒跑過 reconcile 時的預設狀態）
+uv run python -c "from app.signals.dq import dq_verdict; print(dq_verdict())"
+```

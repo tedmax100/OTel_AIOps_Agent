@@ -4,7 +4,7 @@ Two reasons the judge is a plain Python function here. One, Day1's whole job is
 to produce a number the rest of the series can be compared against, and a number
 that moves because the judge model changed is worthless. Two, every failure this
 bench is meant to expose — a wrong ratio, an ungrounded trace ID, an answer with
-no query behind it — is mechanically checkable. Day21 is where judging gets hard
+no query behind it — is mechanically checkable. A later day is where judging gets hard
 enough to need an LLM, and that day also shows why the judge itself needs
 gatekeeping.
 

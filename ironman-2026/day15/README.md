@@ -1,58 +1,72 @@
-# Day15：拓撲對帳
+# Day15：把 registry 接進 Signal Plane
 
-這一天跑的是 agent 服務裡本來就有的 `app/signals/reconcile.py`，沒有改它。這個資料夾放的是「跑之前該先確認什麼」的那支工具。
+這一天改的是 agent 服務自己的原始碼（`aiops-agent/service/app/signals/`），不在這個 repo 裡，所以這裡只放重現步驟。動到的東西：
 
-## `tempo_probe.py`
+| 檔案 | 改了什麼 |
+| --- | --- |
+| `signals/weaver.py` | 多一個 `alignment_report()`，`__main__` 把結果寫成 `schema_alignment.json` |
+| `signals/schema_alignment.json` | 新的產物，要 commit 進版控 |
+| `signals/dq.py` | `dq_verdict()` 讀那份產物，把 schema 對齊納入判定 |
+| `tests/test_dq.py` | 四條新斷言，蓋住 schema 那個維度 |
+| `.github/workflows/ci.yml` | Weaver job 多一步：重生產物並比對 diff |
 
-對帳報告說「這六條邊都沒觀察到」的時候，有兩種完全不同的真相：圖錯了，或是那段時間根本沒有應用流量。這支工具先把後者排除掉。
+## 產生對齊產物
 
-```bash
-python3 ironman-2026/day15/tempo_probe.py http://localhost:3210 120
-```
-
-它印三件事：這個位址上的 Tempo 到底是哪一版（避免打到另一座）、視窗內有幾筆 trace、以及其中有幾筆撐得過 `{ trace:duration > 5ms }` 這個探針過濾器。
-
-沒有應用流量的時候：
-
-```
-http://localhost:3210 → Tempo 2.6.0 (rev e85bbc57d)
-  last 120s: 214 traces
-    slowest seen           : 1ms
-    survives the >5ms filter: 0
-    ⚠ reconcile would sample 0 traces here and report every declared
-      edge as unobserved. That is 'no traffic', not 'the graph is wrong'.
-```
-
-灌了流量之後：
-
-```
-http://localhost:3210 → Tempo 2.6.0 (rev e85bbc57d)
-  last 120s: ≥500 traces
-    slowest seen           : 28ms
-    survives the >5ms filter: 467
-    (limit=500 hit — counts are floors; shorten the window to compare them)
-```
-
-## 重現文章裡的對帳結果
-
-被跑的模組是 agent 服務自己的原始碼（`aiops-agent/service/app/signals/`），不在這個 repo 裡。下面在 `aiops-agent/service/` 底下跑，`3210` 換成你的 Tempo：
+在 `aiops-agent/service/` 底下跑：
 
 ```bash
-# 先灌一點流量
-(cd ../../demo-services && ./scripts/load.sh 8 70)
+uv run python -m app.signals.weaver
+```
 
-# 對帳，並掃不同的取樣數
-for n in 50 100 300; do
-  uv run python -c "
+```
+weaver registry declares 6 Prom metrics; checked 5 contracts
+✓ all contract SLIs reference metrics declared in the Weaver registry
+  wrote schema_alignment.json
+```
+
+產物本身是決定性的，沒有時間戳，這樣 CI 才能重生一次然後比對：
+
+```json
+{
+  "checked": 5,
+  "declared_metrics": 6,
+  "undeclared": [],
+  "note": "5 contracts checked against 6 registry metrics"
+}
+```
+
+## 看 DQ 判定
+
+```bash
+uv run python -c "
 import asyncio
-from app.config import settings
-settings.tempo_url='http://localhost:3210'
 from app.signals.reconcile import reconcile
-d=asyncio.run(reconcile(lookback='now-10m', max_traces=$n))
-print(f'max_traces=$n sampled={d.traces_sampled} observed={d.observed_count} dq={d.dq_score}'
-      f' unobserved={[(e.caller,e.callee) for e in d.unobserved_edges]}')
+from app.signals.dq import dq_verdict
+print(dq_verdict())          # 還沒對帳 → unproven
+asyncio.run(reconcile())
+print(dq_verdict())          # 兩個維度都過 → proven_good True
 "
-done
 ```
 
-`max_traces` 的預設值是 50，而 50 跟 300 會給出不一樣的答案。文章講的就是這件事。
+## 重現那個 fail-open 陷阱
+
+registry 讀不到的時候，`weaver_prom_metric_names()` 回一個空集合。直接拿它去比對，每一條 SLI 都會被判成「registry 沒宣告」：
+
+```bash
+uv run python -c "
+from pathlib import Path
+from app.signals.weaver import weaver_prom_metric_names
+from app.signals.contract import get_contracts, validate_against_weaver
+empty = weaver_prom_metric_names(Path('/nonexistent/metrics.yaml'))
+for c in get_contracts().contracts:
+    for w in validate_against_weaver(c, empty): print(' ', w)
+"
+```
+
+六筆假的違規。`alignment_report()` 就是為了這件事才把「讀不到」記成 `checked: 0` 而不是記成違規。
+
+## 測試
+
+```bash
+uv run pytest tests/test_dq.py -q
+```

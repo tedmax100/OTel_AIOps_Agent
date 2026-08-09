@@ -1,123 +1,60 @@
-# Day27：下一步建議，要連「多大」一起講
+# Day27：用 Day1 的量尺，量今天的 agent
 
-`blast_radius.py` 只做一件事：在任何動作執行之前，用唯讀的方式算出它會碰到什麼。
-這一天把它跑滿，然後修掉三個讓「建議」講不清楚的地方。
+Day1 那九題還在，評分器也還在。這一天把今天這隻 agent 放到同一組題目前面，
+用同一支 grader 打分。
 
 | 檔案 | 內容 |
 | --- | --- |
-| `dryrun_probe.py` | 八個提案的唯讀乾跑＋policy 判決，最後用 generation / resourceVersion 證明它真的沒有改動任何東西。零 token |
-| `propose_probe.py` | 同一個事故、兩種 alertname 拼法，各跑一次真的 RCA，印出比對到的 runbook、governance 決策、以及產生的 action request |
+| `rerun_bench.py` | 跑 Day1 的 `bench/tasks.yaml`，可選 `--which today` / `--which baseline`，以及 `--no-governance`（把 schema catalog 跟 signal context 拿掉） |
 
-同時改的是 agent 服務自己的原始碼：
+## 為了讓比較成立，兩件事必須固定
 
-| 檔案 | 改了什麼 |
-| --- | --- |
-| `app/agent.py` | 新增 `_proposal_footprint()`：提案的當下就跑一次乾跑，把範圍跟 policy 判決一起存進 ActionRequest |
-| `app/action_requests.py` | `create_from_decision()` 收 `blast_radius` |
-| `app/blast_radius.py` | scale 到 0 的拒絕理由改成講「歸零」，不再誤報成 singleton |
-| `app/runbook.py` | alertname 正規化後的 fallback 比對＋比對失敗時的 warning |
-| `tests/` | 七條新測試（runbook 三條、blast radius 兩條、action request 兩條） |
-
-## 乾跑
-
-從 `aiops-agent/service/` 底下跑，kubeconfig 指到 demo cluster：
+**同一份資料。** 那九題是對著 Day1 的產生器 stack 寫的（`http_requests_total{job=…}`），
+不是 demo-services 叢集。所以兩隻 agent 都跑在同一個容器上：
 
 ```bash
-uv run python ../../otel-aiops-agent/ironman-2026/day27/dryrun_probe.py
+docker run -d --name day27-stack -p 9090:9090 -p 3100:3100 -p 3200:3200 -p 8080:8080 \
+  o11y-bench-o11y-stack:latest
 ```
 
-```
-roll back the suspect deploy
-  footprint: target demo/payment-service, revision 25→24, replicas 2→2, affected 2 pod(s)
-  policy   : ALLOW — within policy (affected 2 pod(s), ns demo)
+**同一支評分器。** `bench/grade.py` 從 `day01/` 直接 import，一個字沒改。真值在打分
+當下現算，所以兩隻 agent 都是跟自己跑的那一刻的資料比。
 
-roll back a single-replica service
-  footprint: target demo/user-service, revision 3→2, replicas 1→1, affected 1 pod(s), singleton
-  policy   : REFUSE — target is a singleton (single replica) — denied by policy
-
-roll back something that isn't there
-  footprint: dry-run unavailable: no Deployment named 'typo-service' in demo
-  policy   : REFUSE — dry-run unavailable (…); fail-closed
-
-roll back in kube-system
-  footprint: target kube-system/coredns, revision 1→None, replicas 1→1, affected 1 pod(s), singleton,
-             no previous revision to roll back to
-  policy   : REFUSE — namespace kube-system is protected
-
-scale 2 -> 4    ALLOW — within policy (affected 2 pod(s), ns demo)
-scale 2 -> 60   REFUSE — affected pods 58 exceeds max 5
-scale to zero   REFUSE — scaling to zero takes the service fully down
-scale without a replica count
-  policy   : REFUSE — dry-run unavailable (scale requires an integer 'replicas' arg); fail-closed
-```
-
-「scale to zero」那一列改之前的拒絕理由是 `target is a singleton`，因為 `singleton`
-的定義是「目標副本數 ≤ 1」，0 也算。訊息沒有錯，但它會把人推去試 `replicas=1`，
-而那一樣會被拒（理由才是真的 singleton）。現在歸零有自己的理由。
-
-第二段是唯讀的證據：
-
-```
-  before: replicas=2 generation=28 resourceVersion=606260
-  after : replicas=2 generation=28 resourceVersion=606260
-  6 dry-runs later, the object is unchanged
-```
-
-## 從診斷到建議
+## 跑
 
 ```bash
-uv run python ../../otel-aiops-agent/ironman-2026/day27/propose_probe.py
+# 今天這隻
+AGENT_DIR=/path/to/o11y-bench/aiops-agent/service \
+  python3 ironman-2026/day27/rerun_bench.py --which today --report /tmp/today.json
+
+# 今天這隻，但把治理資產拿掉
+AGENT_DIR=… python3 ironman-2026/day27/rerun_bench.py --which today --no-governance
+
+# Day1 那隻
+uv run --project ironman-2026/day01 python ironman-2026/day27/rerun_bench.py --which baseline
 ```
 
-改之前，同一個事故、兩種 alertname 拼法，結果完全不同：
+## 結果（同一小時、同一座 stack、每題一次）
 
 ```
-as the alert rule names it: alertname='PaymentDeclineRateHigh'
-runbook matched: None
-confidence     : 0.70
-decisions      : 0
-action requests: 0
-
-as the runbook declares it: alertname='payment-decline-rate-high'
-runbook matched: payment-bad-deploy
-confidence     : 0.90
-decisions      : 1
-  - k8s.rollout_undo → propose (high confidence but action is approval-gated)
-action requests: 1
-  - k8s.rollout_undo status=proposed args={'deployment': 'payment-service', 'namespace': 'demo'}
-    footprint at proposal time: None
+  baseline (Day1 那隻)        5.5/9    metrics 1.5  logs 1.0  traces 3.0
+  today                       3.5/9    metrics 1.0  logs 1.0  traces 1.5
+  today (no governance)       2.5/9    metrics 0.5  logs 1.0  traces 1.0
 ```
 
-兩個問題：大小寫拼法不同就整條鏈斷掉而且沒有人講話，以及**提案送到人面前時
-`blast_radius` 是 `None`**——範圍要等到人按下同意、進了執行管線才算。
-
-改之後兩邊都會比對到，而且提案自己帶著範圍：
+今天這隻在這座 stack 上比 Day1 那隻差，原因在報告裡看得很清楚：它帶著
+**另一座環境**的 schema catalog 跟 signal context，於是自信地查了不存在的東西。
 
 ```
-runbook matched: payment-bad-deploy
-decisions      : 1
-  - k8s.rollout_undo → propose
-action requests: 1
-    footprint at proposal time: {'target': 'demo/payment-service', 'current_revision': '25',
-      'target_revision': '24', 'current_replicas': 2, 'target_replicas': 2, 'affected_pods': 2,
-      'singleton': False, 'cross_namespace': False, 'in_protected_namespace': False,
-      'available': True, 'policy_ok': True,
-      'policy_reason': 'within policy (affected 2 pod(s), ns demo)'}
+promql-highest-backend-error-ratio  FAIL
+  answer: I couldn't find a metric named `http_server_requests_total`…
+traceql-error-chain-orders          PARTIAL
+  call: query_tempo_traces {'traceql': '{http.request.method="POST" …}'}
+        -> 400 unknown identifier: http
 ```
 
-用正規化比對到的時候會留一行 warning，因為這是要去修的東西，不是要一直吃下來的：
+把治理資產拿掉之後更差（2.5/9），所以結論不是「治理沒用」，是
+**治理是環境的函數**：對的環境上它是資產，錯的環境上它是負債，而完全沒有比帶錯的還糟。
 
-```
-runbook payment-bad-deploy matched alertname 'PaymentDeclineRateHigh' only after
-normalization (trigger says 'payment-decline-rate-high') — align the alert rule
-or the runbook trigger
-```
-
-執行前那道乾跑沒有拿掉，兩次都要跑：提案的那次是給人看的，執行的那次是防
-TOCTOU 的（叢集會在這中間動）。
-
-## 測試
-
-```bash
-uv run pytest tests/test_runbook.py tests/test_blast_radius.py tests/test_action_requests.py -q
-```
+單一種子，LLM 有變異（Day1 當時記錄的是 4.5/9，同一隻今天跑是 5.5/9），這些數字要當
+訊號看，不要當測量值。

@@ -1,118 +1,123 @@
-# Day24：先把量尺修好，再讓 fixture 去讀逐字稿
+# Day24：下一步建議，要連「多大」一起講
 
-Day23 跑出一場好看的 RCA，然後發現答案寫在 prompt 裡。這一天做兩件事：把洩題拿掉，
-並且讓 eval 不只看結論、也看它是怎麼查到的。
+`blast_radius.py` 只做一件事：在任何動作執行之前，用唯讀的方式算出它會碰到什麼。
+這一天把它跑滿，然後修掉三個讓「建議」講不清楚的地方。
 
 | 檔案 | 內容 |
 | --- | --- |
-| `leakcheck.py` | 把交給模型的每一個區塊（system prompt ＋ 所有注入）掃一次答案關鍵字。零 token，有洩題就 exit 1 |
-| `ab_run.py` | 同一個告警跑兩次：A 用洩題版 prompt、B 用清乾淨的，印出兩邊的工具呼叫與結論 |
-| `leaky_catalog.md` / `leaky_contracts.yaml` | 清理前那兩份 prompt 素材的原樣快照，`ab_run.py` 的 A 邊就吃這兩份 |
-| `scripts/stage_incident.sh` | 把事故種進資料裡：先跑一段 v2.4.1 健康窗，再翻 flag ＋ 換版本，然後打 odd-cents 讓它拒絕 |
+| `dryrun_probe.py` | 八個提案的唯讀乾跑＋policy 判決，最後用 generation / resourceVersion 證明它真的沒有改動任何東西。零 token |
+| `propose_probe.py` | 同一個事故、兩種 alertname 拼法，各跑一次真的 RCA，印出比對到的 runbook、governance 決策、以及產生的 action request |
 
 同時改的是 agent 服務自己的原始碼：
 
 | 檔案 | 改了什麼 |
 | --- | --- |
-| `app/schema_catalog.md` | 拿掉版本轉換、flag 名稱、`new_validator_odd_cents`，以及那段就是本次結論的回答格式範例；feature flag 那節只留機制 |
-| `demo-services/services/payment/signal.yaml` | 契約的 `role` 跟 caveat 不再寫出 flag 名字（改完要重跑 `python -m app.signals.compile`） |
-| `app/agent.py` | `run_headless()` 多回傳 `messages`，evaluation 才讀得到逐字稿 |
-| `app/eval/process.py` | 四條從逐字稿讀出來的檢查：`queried` / `grounded` / `discover_before_retry` / `evidence_or_hedge` |
-| `app/eval/harness.py` | fixture 多一個 `process:` 區塊；過程沒過就不算對 |
-| `app/eval/fixtures.yaml` | 三個 fixture 都補上 `process:`，並新增 `order-service-discover-before-query` |
-| `tests/test_eval_process.py` | 每條檢查一個該綠的、一個該紅的逐字稿 |
+| `app/agent.py` | 新增 `_proposal_footprint()`：提案的當下就跑一次乾跑，把範圍跟 policy 判決一起存進 ActionRequest |
+| `app/action_requests.py` | `create_from_decision()` 收 `blast_radius` |
+| `app/blast_radius.py` | scale 到 0 的拒絕理由改成講「歸零」，不再誤報成 singleton |
+| `app/runbook.py` | alertname 正規化後的 fallback 比對＋比對失敗時的 warning |
+| `tests/` | 七條新測試（runbook 三條、blast radius 兩條、action request 兩條） |
 
-## 掃洩題
+## 乾跑
 
-從 `aiops-agent/service/` 底下跑，不需要 API key：
+從 `aiops-agent/service/` 底下跑，kubeconfig 指到 demo cluster：
 
 ```bash
-uv run python ../../otel-aiops-agent/ironman-2026/day24/leakcheck.py --show
+uv run python ../../otel-aiops-agent/ironman-2026/day24/dryrun_probe.py
 ```
 
-清理前：
-
 ```
-scanned 5 block(s), 29854 chars
+roll back the suspect deploy
+  footprint: target demo/payment-service, revision 25→24, replicas 2→2, affected 2 pod(s)
+  policy   : ALLOW — within policy (affected 2 pod(s), ns demo)
 
-[LEAK] system prompt (schema catalog)
-         culprit version: 'v2.5.0'
-           | payment-service 在 14:05 後 decline 率從 0% 跳到 18%，全集中在 v2.5.0、
-         previous version: 'v2.4.1'
-           | | payment-service | charges. Has the `payment_use_new_validator` flag | … | v2.4.1 |
-         the flag that ships it: 'payment_use_new_validator'
-         failure mechanism: 'odd_cents'
-         decline reason value: 'new_validator_odd_cents'
-[ok  ] injected #0: ## Live capability snapshot
-[LEAK] injected #1: ## Signal context (topology v1.0.0)
-         decline reason value: 'new_validator'
-           | - caveat: … to find which deploy/reason drives it (e.g. the new_validator flag shipping in a release).
-[ok  ] injected #2: ## Dependency health (live) — payment-service
-[ok  ] injected #3: An alert just fired. Investigate the root cause and conclude
+roll back a single-replica service
+  footprint: target demo/user-service, revision 3→2, replicas 1→1, affected 1 pod(s), singleton
+  policy   : REFUSE — target is a singleton (single replica) — denied by policy
 
-6 leak(s) across 2 block(s)
-```
+roll back something that isn't there
+  footprint: dry-run unavailable: no Deployment named 'typo-service' in demo
+  policy   : REFUSE — dry-run unavailable (…); fail-closed
 
-清理後：
+roll back in kube-system
+  footprint: target kube-system/coredns, revision 1→None, replicas 1→1, affected 1 pod(s), singleton,
+             no previous revision to roll back to
+  policy   : REFUSE — namespace kube-system is protected
 
-```
-[ok  ] system prompt (schema catalog)
-[ok  ] injected #0: ## Live capability snapshot
-[ok  ] injected #1: ## Signal context (topology v1.0.0)
-[ok  ] injected #2: ## Dependency health (live) — payment-service
-[ok  ] injected #3: An alert just fired. Investigate the root cause and conclude
-
-no answer tokens in anything handed to the model.
+scale 2 -> 4    ALLOW — within policy (affected 2 pod(s), ns demo)
+scale 2 -> 60   REFUSE — affected pods 58 exceeds max 5
+scale to zero   REFUSE — scaling to zero takes the service fully down
+scale without a replica count
+  policy   : REFUSE — dry-run unavailable (scale requires an integer 'replicas' arg); fail-closed
 ```
 
-## 種一次事故
+「scale to zero」那一列改之前的拒絕理由是 `target is a singleton`，因為 `singleton`
+的定義是「目標副本數 ≤ 1」，0 也算。訊息沒有錯，但它會把人推去試 `replicas=1`，
+而那一樣會被拒（理由才是真的 singleton）。現在歸零有自己的理由。
 
-前提：k3d demo stack 起來，而且 `webapp:8002`、`payment-service:8001`、
-Prometheus/Loki/Tempo 都 port-forward 好了。
+第二段是唯讀的證據：
+
+```
+  before: replicas=2 generation=28 resourceVersion=606260
+  after : replicas=2 generation=28 resourceVersion=606260
+  6 dry-runs later, the object is unchanged
+```
+
+## 從診斷到建議
 
 ```bash
-LOAD=/path/to/o11y-bench/demo-services/scripts/load.sh \
-  ./scripts/stage_incident.sh 8 14      # 8 分鐘健康窗 + 14 分鐘事故
+uv run python ../../otel-aiops-agent/ironman-2026/day24/propose_probe.py
 ```
 
-整段刻意壓在一小時內，因為 Tempo 的 `block_retention` 是 1h——窗開得更寬，
-第 4 步「抓一條 trace 佐證」不是變慢，是變成不可能。
-
-## A/B
-
-要 `GOOGLE_API_KEY`，兩次真的 RCA：
-
-```bash
-uv run python ../../otel-aiops-agent/ironman-2026/day24/ab_run.py            # 用現在的時鐘
-uv run python ../../otel-aiops-agent/ironman-2026/day24/ab_run.py 2026-08-06T13:21:10Z
-```
-
-## 跑 eval
-
-```bash
-uv run python -m app.eval run -n 2
-```
+改之前，同一個事故、兩種 alertname 拼法，結果完全不同：
 
 ```
-aiops-agent eval — 3 fixture(s), 6 run(s), overall correct 50%
+as the alert rule names it: alertname='PaymentDeclineRateHigh'
+runbook matched: None
+confidence     : 0.70
+decisions      : 0
+action requests: 0
 
-  fixture                        correct   service   version   conf  err
-  ----------------------------------------------------------------------
-  payment-decline-service        100% (2/2)    100%     100%   0.75    0
-  user-service-no-incident        50% (1/2)    100%    n/a   0.60    0
-  order-service-discover-before-query     0% (0/2)     50%    n/a   0.65    0
-
-  failed process checks (the answer may still read fine):
-    x user-service-no-incident seed1 — discover_before_retry: query_tempo_traces errored and was re-sent unchanged
-    x order-service-discover-before-query seed0 — discover_before_retry: query_prometheus came back empty, retried query_prometheus without discovering
-    x order-service-discover-before-query seed1 — discover_before_retry: query_prometheus came back empty, retried query_loki_logs without discovering
+as the runbook declares it: alertname='payment-decline-rate-high'
+runbook matched: payment-bad-deploy
+confidence     : 0.90
+decisions      : 1
+  - k8s.rollout_undo → propose (high confidence but action is approval-gated)
+action requests: 1
+  - k8s.rollout_undo status=proposed args={'deployment': 'payment-service', 'namespace': 'demo'}
+    footprint at proposal time: None
 ```
 
-`baseline.json` 的數字跟你那座 stack 的資料有關，第一次跑完用 `--save-baseline`
-寫自己的基準，之後的回歸才是跟自己比。
+兩個問題：大小寫拼法不同就整條鏈斷掉而且沒有人講話，以及**提案送到人面前時
+`blast_radius` 是 `None`**——範圍要等到人按下同意、進了執行管線才算。
+
+改之後兩邊都會比對到，而且提案自己帶著範圍：
+
+```
+runbook matched: payment-bad-deploy
+decisions      : 1
+  - k8s.rollout_undo → propose
+action requests: 1
+    footprint at proposal time: {'target': 'demo/payment-service', 'current_revision': '25',
+      'target_revision': '24', 'current_replicas': 2, 'target_replicas': 2, 'affected_pods': 2,
+      'singleton': False, 'cross_namespace': False, 'in_protected_namespace': False,
+      'available': True, 'policy_ok': True,
+      'policy_reason': 'within policy (affected 2 pod(s), ns demo)'}
+```
+
+用正規化比對到的時候會留一行 warning，因為這是要去修的東西，不是要一直吃下來的：
+
+```
+runbook payment-bad-deploy matched alertname 'PaymentDeclineRateHigh' only after
+normalization (trigger says 'payment-decline-rate-high') — align the alert rule
+or the runbook trigger
+```
+
+執行前那道乾跑沒有拿掉，兩次都要跑：提案的那次是給人看的，執行的那次是防
+TOCTOU 的（叢集會在這中間動）。
 
 ## 測試
 
 ```bash
-uv run pytest tests/test_eval_process.py tests/test_eval_harness.py -q
+uv run pytest tests/test_runbook.py tests/test_blast_radius.py tests/test_action_requests.py -q
 ```
