@@ -14,6 +14,12 @@ Grouped by which plane the guard lives in:
                label provenance, grading mode
   blast radius the read-only footprint gate: protected/off-allowlist namespaces,
                singletons, scale-to-zero, pod ceiling, unreadable dry-run
+  calibration  the reliability curve, not the signed mean: offsetting errors,
+               an empty decision band, and thin bins that must be skipped loudly
+  actuation    can this credential still act — never checked, dead (401), stale,
+               denied, or quietly holding a verb the safety design forbids
+  reconcile    time itself moves the state machine now, and it may only make the
+               record honest: no retry, no rollback, no decision on a human's behalf
   breaker      runaway (global rate limit) and flapping (consecutive failures on
                one target), plus "only a human closes it again"
 
@@ -32,7 +38,7 @@ from pathlib import Path
 SERVICE = Path(__file__).resolve().parents[3] / "aiops-agent" / "service"
 sys.path.insert(0, str(SERVICE))
 
-from app import blast_radius, breaker, store  # noqa: E402
+from app import audit, blast_radius, breaker, store  # noqa: E402
 from app.actions import ActionSpec  # noqa: E402
 from app.blast_radius import BlastRadius  # noqa: E402
 from app.calibration import CULPRIT, compute_calibration, load_records  # noqa: E402
@@ -167,6 +173,253 @@ def governance_guards() -> None:
     )
 
 
+# ---- calibration curve ------------------------------------------------------
+
+
+def _curve(*groups: tuple[float, int, int]) -> dict:
+    """(stated confidence, n, n_correct)... → a real calibration dict, built by
+    running the real math over real records. A hand-written {"labeled": ...,
+    "overconfidence": ...} can express a curve `compute_calibration` would never
+    produce, and a guard that passes on one is guarding a shape that cannot occur."""
+    clear_calibration()
+    for conf, n, n_ok in groups:
+        for i in range(n):
+            rid = f"curve-{conf}-{i}"
+            store.cal_insert(
+                run_id=rid,
+                ts="2026-08-08T00:00:00Z",
+                confidence=conf,
+                summary="s",
+                hypothesis="h",
+                suspected_version=None,
+                services=["payment-service"],
+                grading_mode=CULPRIT,
+                path=DB,
+            )
+            store.cal_label(rid, i < n_ok, score=None, source="grader", path=DB)
+    return compute_calibration(load_records(DB), modes=(CULPRIT,))
+
+
+def calibration_curve_guards() -> None:
+    """The mean is a signed average, so two opposite errors cancel into a number
+    that reads as healthy. These assert the gate reads the bins, where they can't."""
+    print("calibration curve")
+
+    # Underconfident on the easy half, overconfident on the hard half. The mean
+    # lands inside tolerance; the agent is wrong in both directions.
+    calib = _curve((0.3, 12, 8), (0.9, 10, 5))
+    d = decide(spec(), 0.9, calib, path=DB)
+    expect(
+        "offsetting errors do not unlock AUTO, even though the mean passes",
+        d.autonomy is Autonomy.PROPOSE
+        and calib["overconfidence"] <= settings.governance_max_overconfidence,
+        f"{d.autonomy.value}: mean {calib['overconfidence']:+} is inside tolerance; "
+        f"{d.calibration_note}",
+    )
+
+    # Plenty of labels, none of them in the band where AUTO is actually granted.
+    calib = _curve((0.6, 18, 12), (0.3, 4, 1))
+    d = decide(spec(), 0.9, calib, path=DB)
+    expect(
+        "labels that never reach the decision band do not unlock AUTO",
+        d.autonomy is Autonomy.PROPOSE and "no evidence in the band" in d.calibration_note,
+        f"{d.autonomy.value}: {d.calibration_note}",
+    )
+
+    # A one-row bin is 0% or 100% accurate by construction. It must not be
+    # treated as the worst bin, and the skip must be reported rather than hidden.
+    calib = _curve((0.9, 45, 45), (0.5, 1, 0))
+    d = decide(spec(), 0.9, calib, path=DB)
+    expect(
+        "[control] a thin bin is skipped, said so, and does not block AUTO",
+        d.autonomy is Autonomy.AUTO and "too thin to count" in d.calibration_note,
+        f"{d.autonomy.value}: {d.calibration_note}",
+    )
+
+
+# ---- actuation readiness ----------------------------------------------------
+
+
+def actuation_guards() -> None:
+    """"May we act" was always gated; "can we still act" was assumed, and that
+    assumption cost this system its only real execution. Every way of not
+    knowing must read as not-ready."""
+    print("actuation readiness")
+    import time
+
+    from app.signals import actuation as act
+
+    def verdict(**kw: object) -> dict:
+        base = dict(
+            computed_ts=time.time(),
+            reachable=True,
+            in_cluster=True,
+            missing=[],
+            excess=[],
+            namespaces=["demo"],
+            error=None,
+        )
+        base.update(kw)
+        act._last = act.ActuationFit(**base)  # type: ignore[arg-type]
+        return act.actuation_verdict()
+
+    act._last = None
+    v = act.actuation_verdict()
+    expect(
+        "a credential that was never checked is not ready",
+        not v["proven_good"] and "never checked" in v["note"],
+        v["note"],
+    )
+
+    v = verdict(reachable=False, error="ApiException: Unauthorized")
+    expect(
+        "a 401 reads as an authentication failure, not as a denied permission",
+        not v["proven_good"] and "did not authenticate" in v["note"],
+        v["note"],
+    )
+
+    v = verdict(computed_ts=time.time() - 10 * settings.actuation_max_age_seconds)
+    expect(
+        "a permission checked long enough ago is a permission being assumed",
+        not v["proven_good"] and "stale" in v["note"],
+        v["note"],
+    )
+
+    v = verdict(missing=["patch apps/deployments in demo"])
+    expect(
+        "a denied required permission is not ready, and names the rule",
+        not v["proven_good"] and "patch apps/deployments in demo" in v["note"],
+        v["note"],
+    )
+
+    # Gaining `delete` is not an improvement: every blast-radius policy in this
+    # repo was written assuming the write credential cannot do it.
+    v = verdict(excess=["delete apps/deployments in demo"])
+    expect(
+        "a write credential that gained delete is refused, not congratulated",
+        not v["proven_good"] and "forbids" in v["note"],
+        v["note"],
+    )
+
+    v = verdict(in_cluster=False)
+    expect(
+        "a dev kubeconfig cannot prove anything about the deployed identity",
+        not v["proven_good"] and "local kubeconfig" in v["note"],
+        v["note"],
+    )
+
+    v = verdict()
+    d = decide(
+        spec(), 0.9, _curve((0.9, 45, 45)), {"proven_good": True, "note": "dq ok"}, v, path=DB
+    )
+    expect(
+        "[control] healthy credentials are proven-good and do reach AUTO",
+        v["proven_good"] and d.autonomy is Autonomy.AUTO,
+        f"{d.autonomy.value}: {v['note']}",
+    )
+
+    d = decide(
+        spec(),
+        0.9,
+        _curve((0.9, 45, 45)),
+        {"proven_good": True, "note": "dq ok"},
+        verdict(reachable=False, error="ApiException: Unauthorized"),
+        path=DB,
+    )
+    expect(
+        "a dead credential narrows autonomy before anything is proposed",
+        d.autonomy is Autonomy.PROPOSE and "actuation readiness" in d.reason,
+        f"{d.autonomy.value}: {d.reason}",
+    )
+    act._last = None
+
+
+# ---- lifecycle reconciliation -----------------------------------------------
+
+
+def reconcile_guards() -> None:
+    """Reconciliation may make the record honest and may do nothing else. These
+    assert both halves: that time now moves the state machine, and that it never
+    decides anything on a human's behalf."""
+    print("lifecycle reconciliation")
+    import sqlite3
+
+    from app import action_requests as arq
+    from app.action_requests import Status
+
+    def propose(fp: str) -> str:
+        d = decide(spec(name="k8s.rollout_undo", requires_approval=True), 0.6, {}, path=DB)
+        req = arq.create_from_decision(fp, d, args={"deployment": "payment-service"}, path=DB)
+        return req.request_id
+
+    def backdate(rid: str) -> None:
+        conn = sqlite3.connect(str(DB))
+        conn.execute(
+            "UPDATE action_requests SET created_ts=?, expires_ts=? WHERE request_id=?",
+            ("2020-01-01T00:00:00Z", "2020-01-01T00:15:00Z", rid),
+        )
+        conn.commit()
+        conn.close()
+
+    stale = propose("fp-stale")
+    backdate(stale)
+    fresh = propose("fp-fresh")
+    out = arq.reconcile(path=DB)
+    expect(
+        "a proposal past its TTL expires with nobody knocking",
+        stale in out["expired"] and arq.get(stale, DB).status == Status.EXPIRED.value,
+        f"expired {len(out['expired'])}, status now {arq.get(stale, DB).status}",
+    )
+    expect(
+        "[control] a proposal still inside its TTL is left alone",
+        fresh not in out["expired"] and arq.get(fresh, DB).status == Status.PROPOSED.value,
+        f"status still {arq.get(fresh, DB).status}",
+    )
+
+    abandoned = propose("fp-abandoned")
+    store.ar_transition(abandoned, Status.PROPOSED.value, Status.APPROVED.value, path=DB)
+    store.ar_transition(abandoned, Status.APPROVED.value, Status.EXECUTING.value, path=DB)
+    backdate(abandoned)
+    out = arq.reconcile(path=DB)
+    row = arq.get(abandoned, DB)
+    expect(
+        "an executing row whose executor vanished is written off, not left running",
+        abandoned in out["abandoned"] and row.status == Status.FAILED.value,
+        f"status {row.status}: {row.outcome}",
+    )
+    expect(
+        "and it is NOT rolled back, because whether the write landed is unknown",
+        "unknown" in row.outcome
+        and not [
+            e
+            for e in audit.history(request_id=abandoned, path=DB)
+            if e["phase"] == "rollback"
+        ],
+        f"outcome says: {row.outcome}",
+    )
+
+    live = propose("fp-live")
+    store.ar_transition(live, Status.PROPOSED.value, Status.APPROVED.value, path=DB)
+    store.ar_transition(live, Status.APPROVED.value, Status.EXECUTING.value, path=DB)
+    out = arq.reconcile(path=DB)
+    expect(
+        "[control] an execution still inside the settle window survives a pass",
+        live not in out["abandoned"] and arq.get(live, DB).status == Status.EXECUTING.value,
+        f"status still {arq.get(live, DB).status}",
+    )
+
+    # Day30: reject() had no TTL check while approve() did, so two equally
+    # lapsed proposals ended up telling two different stories.
+    lapsed = propose("fp-lapsed")
+    backdate(lapsed)
+    result = arq.reject(lapsed, "nathan", DB)
+    expect(
+        "rejecting a lapsed proposal expires it instead of recording a human decision",
+        result is None and arq.get(lapsed, DB).status == Status.EXPIRED.value,
+        f"status {arq.get(lapsed, DB).status}, not rejected-by-a-person",
+    )
+
+
 # ---- blast radius -----------------------------------------------------------
 
 
@@ -286,6 +539,9 @@ def breaker_guards() -> None:
 
 def main() -> int:
     governance_guards()
+    calibration_curve_guards()
+    actuation_guards()
+    reconcile_guards()
     blast_radius_guards()
     breaker_guards()
 
