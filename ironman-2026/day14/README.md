@@ -41,6 +41,15 @@ http://localhost:3210 → Tempo 2.6.0 (rev e85bbc57d)
 # 先灌一點流量
 (cd ../../demo-services && ./scripts/load.sh 8 70)
 
+# load.sh 不會走 api-gateway → payment-service 這條邊（它的付款都經由
+# order-service 進去），所以要單獨打它，否則那條邊在每個取樣數下都是
+# unobserved，也就看不到文章講的那個差異。api-gateway 沒有對外埠時先轉一個：
+#   kubectl -n demo port-forward svc/api-gateway 8010:8000
+for i in $(seq 1 15); do
+  curl -sS -o /dev/null -X POST http://localhost:8010/api/payments \
+    -H 'Content-Type: application/json' -d '{"order_id":"probe-'$i'","amount":101}'
+done
+
 # 對帳，並掃不同的取樣數
 for n in 50 100 300; do
   uv run python -c "
@@ -56,6 +65,11 @@ done
 ```
 
 `max_traces` 的預設值是 50，而 50 跟 300 會給出不一樣的答案。文章講的就是這件事。
+
+**這幾個數字不是常數。** 那條邊要在哪個取樣數才被看到，取決於它在那個視窗裡佔多少
+比例：結帳流量越密，門檻越高。實測過一次連 300 都還是 `unobserved`，得再往上調。
+所以照著跑而數字對不上是正常的，要看的是「同一份程式碼、同一張圖，答案會隨取樣數
+改變」這件事本身。
 
 ---
 
@@ -102,10 +116,13 @@ exit=0
 沒有任何資料源答得出來的時候：
 
 ```
-  ! loki did not answer (Connection refused) — treating it as no evidence
+  ! loki did not answer (<urlopen error [Errno 111] Connection refused>) — treating it as no evidence
+# topology watch — declared 5, lookback 6h
   no source answered; cannot tell alignment from silence
 exit=2
 ```
+
+（那行 `!` 印在標頭前面，因為它是查詢當下就寫出去的，不是最後才彙整的。）
 
 ## 離開碼
 
