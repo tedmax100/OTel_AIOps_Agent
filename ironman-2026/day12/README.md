@@ -7,7 +7,7 @@ breaking change 比對、意圖編譯器。這一天把它們收成一支回歸�
 
 ```
 day12/
-├── regress.sh              # 29 條斷言，跑一次約 36 秒，零 LLM 呼叫
+├── regress.sh              # 29 條斷言，跑一次約 40 秒，零 LLM 呼叫
 ├── fixtures/               # 兩份「本來就該被抓到」的樣本
 └── mcp_layered_probe.py    # 把 Day10 那個分層查不到的行為釘成一條斷言
 ```
@@ -113,3 +113,33 @@ weaver registry check -r ironman-2026/day12/shipping-v0/registry \
 ```
 
 兩個洞都是跑壞掉的服務才顯現出來的。**壞掉的服務是測試資料，不是教材。**
+
+## 這支腳本在 CI 裡
+
+`regress.sh` 不是只有手動跑。[`.github/workflows/telemetry-schema.yml`](../../.github/workflows/telemetry-schema.yml)
+的 `regress-ironman` job 會在每個動到 `ironman-2026/**` 的 PR 跟推上 main 時跑它：
+
+```yaml
+- uses: ./.github/actions/setup-weaver
+  with:
+    version: ${{ env.WEAVER_VERSION }}   # v0.25.1，釘死
+- run: pip install --quiet pyyaml
+- uses: actions/cache@v4                  # ~/.weaver/vdir_cache
+- run: bash ironman-2026/day12/regress.sh
+```
+
+幾件值得抄的事：
+
+- **CI 跑的是這支腳本，不是 `weaver registry check`。** 這個 repo 裡有一半的
+  registry 是故意寫壞的教材，直接跑 check 會讓 gate 永遠紅燈。斷言寫死預期離開碼，
+  才有辦法讓「該紅的」跟「該綠的」在同一個 job 裡共存。
+- **快取 `~/.weaver/vdir_cache`。** day08/day09 那幾份 registry 依賴官方
+  semantic-conventions，沒有快取每跑一次都要 clone，而且 GitHub 抽風時會變成假紅燈。
+  cache key 掛在 `ironman-2026/**/manifest.yaml` 上，依賴的版本改了才重抓。
+- **path filter 是 workflow 級的，不是 job 級的**，所以動到 `ironman-2026/` 也會把
+  Series 1 那個 job 一起帶起來。這是刻意的：升 weaver 版本正是那種會同時打到兩套
+  資產的改動，只跑被改到的那一套等於讓跨系列的破壞沒人看得到。
+
+還沒進 CI 的是 `verify_onboarding.py`。它前六項是機械的、可以直接當 required
+check，後面幾項（有沒有寫意圖）不適合用擋的，所以要先決定拆成兩個 job 還是只跑
+前半段。

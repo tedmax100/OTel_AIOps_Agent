@@ -3,7 +3,7 @@ kind: SteadyStateIntent
 metadata:
   service: shipping
   owner: shipping-team
-  registry: ironman-2026/day13/shipping-v1/registry
+  registry: ironman-2026/day12/shipping-v1/registry
 spec:
   objectives:
     - id: delivery-success-rate
