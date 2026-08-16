@@ -1,0 +1,17 @@
+# The "bad deploy" half of the game day: a second flags file that ships with the
+# pod template rather than with the shared ConfigMap. Scenario (a) mounts this
+# and repoints FEATURE_FLAGS_PATH at it, so the bad state lives in the
+# Deployment's template and `kubectl rollout undo` genuinely removes it.
+#
+# Scenario (b) deliberately does NOT use this file — it poisons the real
+# `payment-flags` ConfigMap instead, which a Deployment rollback cannot touch.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: payment-flags-bad
+  namespace: demo
+  labels:
+    drill: gameday
+data:
+  flags.json: |
+    {"payment_use_new_validator": true}

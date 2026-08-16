@@ -1,0 +1,16 @@
+# Per-run drill artifacts. The snapshots kept in git are the ones the write-up
+# cites; every other run produces its own pair and they add up fast (one drill
+# ≈ 400KB, and a drill that gets re-run five times is not five findings).
+snapshot-*.db
+!snapshot-before-a-20260816T051342Z.db
+!snapshot-before-a-20260816T053302Z.db
+!snapshot-after-a-20260816T053558Z.db
+!snapshot-before-a-20260816T055519Z.db
+!snapshot-after-a-20260816T060000Z.db
+!snapshot-before-b-20260816T061515Z.db
+!snapshot-after-b-20260816T062002Z.db
+
+# Written fresh at the start of every run; restoring from a stale one is exactly
+# the mistake `cleanup` refuses to make.
+.drill-state.json
+__pycache__/
