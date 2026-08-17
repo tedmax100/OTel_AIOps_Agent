@@ -7,7 +7,7 @@
 `cluster-snapshot.db` 是 2026-08-09 從 k3d `demo` namespace 裡那顆 agent pod 撈出來的 `/data/aiops.db`，已經放在這個資料夾裡，所以腳本不需要叢集也不需要 LLM：
 
 ```bash
-# 從 o11y-bench 主 repo 的根目錄跑
+# 從範例 repo 的根目錄跑
 python3 ironman-2026/day35/slo_report.py
 ```
 

@@ -13,7 +13,7 @@ DEFAULT_STORE = _HERE / "eval.db"  # separate from prod aiops.db unless overridd
 把 `eval.db` 裡已標註的紀錄搬進治理平面讀的那個 store。
 
 ```bash
-# 從 o11y-bench 主 repo 的根目錄跑
+# 從範例 repo 的根目錄跑
 python3 ironman-2026/day31/promote_labels.py           # 乾跑，只印會搬什麼
 python3 ironman-2026/day31/promote_labels.py --apply
 ```
@@ -67,7 +67,7 @@ Day31 搬進來的 35 筆讓 `compute_calibration()` 第一次有東西可算，
 唯讀，不寫任何東西，不需要叢集或 LLM。
 
 ```bash
-# 從 o11y-bench 主 repo 的根目錄跑
+# 從範例 repo 的根目錄跑
 python3 ironman-2026/day31/calibration_report.py
 ```
 
@@ -147,7 +147,7 @@ python3 ironman-2026/day31/backfill_grading_mode.py --apply
 ```
 
 ```
-/home/nathan/Project/o11y-bench/aiops.db
+.../aiops.db
   35 row(s) with no grading_mode
   resolvable: {'culprit': 15, 'inconclusive': 20};  left NULL: 0
   updated 35 row(s); now {'culprit': 15, 'inconclusive': 20}

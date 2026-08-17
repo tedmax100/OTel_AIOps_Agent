@@ -18,7 +18,7 @@ Two things had to be arranged for that comparison to mean anything:
 Usage (from the OTel_AIOps_Agent repo root), with the Day1 stack on
 localhost:9090/3100/3200 and GOOGLE_API_KEY set:
 
-    docker run -d --name day29-stack -p 9090:9090 -p 3100:3100 -p 3200:3200 \
+    docker run -d --name day27-stack -p 9090:9090 -p 3100:3100 -p 3200:3200 \
         -p 8080:8080 o11y-bench-o11y-stack:latest
 
     AGENT_DIR=../o11y-bench/aiops-agent/service \
@@ -93,7 +93,7 @@ async def run_today(question: str, tag: str, *, governance: bool = True) -> tupl
         agent_mod.SCHEMA_CATALOG = _NEUTRAL_CATALOG
         agent_mod._inject_signal_context = lambda *a, **k: None
 
-    thread_id = f"day29-{tag}"
+    thread_id = f"day27-{tag}"
     answer: list[str] = []
     async for event in agent_mod.stream_chat(question, thread_id=thread_id):
         if event.get("type") == "token":

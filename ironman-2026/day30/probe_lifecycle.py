@@ -32,7 +32,14 @@ sys.path.insert(0, str(SERVICE))
 
 import app.action_requests as arq  # noqa: E402
 from app import store  # noqa: E402
-from app.action_requests import Status, approve, create_from_decision, get, reject  # noqa: E402
+from app.action_requests import (  # noqa: E402
+    ActionRequest,
+    Status,
+    approve,
+    create_from_decision,
+    get,
+    reject,
+)
 from app.governance import Autonomy, Decision  # noqa: E402
 
 DB = Path(tempfile.mkdtemp()) / "probe.db"
@@ -55,7 +62,7 @@ def decision(action: str = "k8s.rollout_undo") -> Decision:
     )
 
 
-def new_request(fp: str):
+def new_request(fp: str) -> ActionRequest | None:
     return create_from_decision(
         fp, decision(), args={"deployment": "payment-service"}, path=DB
     )

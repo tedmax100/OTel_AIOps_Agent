@@ -65,7 +65,7 @@ outcome=idempotent: target already acted on for this incident (48e7df7697ac4034)
 跟 `day12/regress.sh` 同構：每條寫死輸入與預期拒絕理由的字串片段，全綠 exit 0，任何一道門放行 exit 1。暫存 SQLite ＋真模組，不需要叢集或 LLM。
 
 ```bash
-# 從 o11y-bench 主 repo 的根目錄跑
+# 從範例 repo 的根目錄跑
 python3 ironman-2026/day33/regress_guards.py
 python3 ironman-2026/day33/regress_guards.py -v    # 印出每一條
 ```

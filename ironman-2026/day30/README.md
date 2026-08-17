@@ -7,7 +7,7 @@
 用一個暫存 SQLite 檔加真的 `app.action_requests` / `app.store` 模組，沒有 mock、沒有叢集、沒有 LLM。
 
 ```bash
-# 從 o11y-bench 主 repo 的根目錄跑
+# 從範例 repo 的根目錄跑
 python3 ironman-2026/day30/probe_lifecycle.py
 ```
 
@@ -64,7 +64,7 @@ python3 ironman-2026/day30/probe_lifecycle.py
 用暫存 SQLite 檔加真的 `app.governance` / `app.actions` / `app.calibration` 模組，沒有 mock、沒有叢集、沒有 LLM。
 
 ```bash
-# 從 o11y-bench 主 repo 的根目錄跑
+# 從範例 repo 的根目錄跑
 python3 ironman-2026/day30/probe_governance.py
 ```
 

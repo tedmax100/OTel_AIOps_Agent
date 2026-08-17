@@ -9,7 +9,8 @@
 用 AST 而不是 grep，是因為函式內部的 `import`（延遲載入、`__main__` 底下的）也是一條真的邊，`grep "^from"` 會漏掉。這一天最重要的那個發現就藏在這種邊裡。
 
 ```bash
-# 從 o11y-bench 主 repo 的根目錄跑
+# 從範例 repo 的根目錄跑；第二個參數是 agent 服務那份 `signals` package 的路徑
+# （那份原始碼不在這個 repo 裡，換成你本機的位置）
 python3 ironman-2026/day13/importgraph.py aiops-agent/service/app/signals
 ```
 

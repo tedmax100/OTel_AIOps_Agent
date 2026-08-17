@@ -24,15 +24,20 @@ uv run python ../../otel-aiops-agent/ironman-2026/day21/probe_turn.py
 ```
 
 ```
+runbook payment-bad-deploy matched alertname 'PaymentDeclineRateHigh' only after
+normalization (trigger says 'payment-decline-rate-high') — align the alert rule
+or the runbook trigger
 budget: 6 tool calls
-messages handed to the graph: 4
+messages handed to the graph: 6
 
-0. [system   ]    806 chars  ## Live capability snapshot
-1. [system   ]   2264 chars  ## Signal context (topology v1.0.0)
-2. [system   ]    788 chars  ## Dependency health (live) — payment-service
-3. [user     ]   3444 chars  An alert just fired. Investigate the root cause and conclude with the sin…
+0. [system   ]    517 chars  ## Live capability snapshot
+1. [system   ]   2212 chars  ## Signal context (topology v1.0.0)
+2. [system   ]    785 chars  ## Runbook: payment-bad-deploy — payment-service decline-rate spike after…
+3. [system   ]   1305 chars  ## Runbook diagnostics auto-run: payment-bad-deploy
+4. [system   ]    572 chars  ## Dependency health (live) — payment-service
+5. [user     ]   3444 chars  An alert just fired. Investigate the root cause and conclude with the sin…
 
-total: 7302 chars before the first token of reasoning
+total: 8835 chars before the first token of reasoning
 ```
 
 加 `--full` 印出每一則的完整內容：
@@ -56,28 +61,32 @@ right node:
 
 改之前那一行寫的是 `read just now`，而它讀的是一天前。
 
-要在自己的環境重現，把 `startsAt` 換成你那座 stack 有事故資料的時間；
-如果那個時間點沒有資料，區塊會退成 `unavailable`，不會報錯。
+要在自己的環境重現，把 `startsAt` 換成你那座 stack 有事故資料的時間。
 
-## 為什麼只有四則
+那個時間點沒有資料的話**不會**退成 `unavailable`：contracts.yaml 裡的 error SLI 寫成
+`(sum(rate(...)) or vector(0)) / clamp_min(sum(rate(...)) or vector(0), 1)`，
+分子分母都有 fallback，所以查無資料會算出 `0` 並印成 `error 0.0% — healthy`。
+（本機在 Prometheus 保留期外的時間點跑，看到的就是這個。）
 
-注入有六個，但 `_inject_past_incidents` 跟 `_inject_runbook` 這次都是空的：
+## 為什麼只有六則
+
+注入有六個（runbook 那一個自己產兩則），少掉的是過去事故：
 
 ```bash
 uv run python -c "
-from app.runbook import match_runbook
 from app.agent import _past_incident_context
-print('runbook:', match_runbook({'alertname':'PaymentDeclineRateHigh'}, {}))
 print('past:', repr(_past_incident_context('payment-service','PaymentDeclineRateHigh')))"
 ```
 
 ```
-runbook: None
 past: ''
 ```
 
-告警名字是隨手編的所以比對不到 runbook，而過去事故庫從來沒有被寫入過。
-兩個都是 fail-open：拿不到就不注入。
+過去事故庫從來沒有被寫入過，而注入是 fail-open：拿不到就不注入。
+
+runbook 反而是有比對到的，只是靠正規化：trigger 寫 `payment-decline-rate-high`，
+告警叫 `PaymentDeclineRateHigh`。`match_runbook()` 要連 `service_name`、`severity`
+一起餵才會中，只丟 `alertname` 進去會拿到 `None`（是餵少了，不是沒有 runbook）。
 
 ## 測試
 
@@ -111,6 +120,9 @@ from app.agent import build_system_prompt
 p = build_system_prompt()
 print('v2.4.1' in p, 'new_validator' in p)"
 ```
+
+（寫這篇的當下這行印 `True True`。洩題後來被拿掉了，所以現在跑同一行會拿到
+`False False` — 要重現當時的狀態得 checkout 當時的 commit。）
 
 裡面包含版本轉換（`v2.4.1` → `v2.5.0`）、失效機制（odd-cents 被拒）、
 以及一段格式範例直接就是這次事故的結論。所以在這座 demo 上跑出來的 RCA 成績

@@ -29,7 +29,7 @@ WHERE ... AND c.correct = 1
 暫存 SQLite ＋真模組，無叢集無 LLM。
 
 ```bash
-# 從 o11y-bench 主 repo 的根目錄跑
+# 從範例 repo 的根目錄跑
 python3 ironman-2026/day32/probe_past_incidents.py
 ```
 

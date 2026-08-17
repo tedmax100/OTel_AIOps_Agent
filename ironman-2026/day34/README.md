@@ -38,7 +38,7 @@ kubectl -n demo-twin port-forward svc/prometheus 29090:9090 &
 kubectl -n demo-twin port-forward svc/loki       23100:3100 &
 kubectl -n demo-twin port-forward svc/tempo      23200:3200 &
 
-# 從 o11y-bench 主 repo 的根目錄跑
+# 從範例 repo 的根目錄跑
 python3 ironman-2026/day34/probe_env_fit.py --env both
 python3 ironman-2026/day34/probe_env_fit.py --env twin -v   # 列出每一條沒對上的
 ```

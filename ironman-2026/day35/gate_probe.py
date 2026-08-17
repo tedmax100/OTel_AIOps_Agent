@@ -42,7 +42,8 @@ from app.calibration import (  # noqa: E402
 from app.config import settings  # noqa: E402
 from app.governance import _calibration_verdict  # noqa: E402
 
-SNAPSHOT = ROOT / "OTel_AIOps_Agent" / "ironman-2026" / "day35" / "cluster-snapshot.db"
+# Next to this script, so it resolves whatever the checkout directory is called.
+SNAPSHOT = Path(__file__).resolve().parent / "cluster-snapshot.db"
 
 # The candidate stores. Day31's report script reads the first one; the service
 # writes the second in host-side dev; the pod writes the third. Same filename,
