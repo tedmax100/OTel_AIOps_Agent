@@ -1,0 +1,35 @@
+OPEN BOOK — the case library already answers these fixtures:
+  payment-decline-service: 1 case(s) recalled
+  The recall arm is retrieving an answer it was told. Whatever the delta
+  below is, it is not evidence that recall helps an unseen incident.
+
+fixture                             recall off   recall on    delta
+payment-decline-service                   67%        100%     +33%
+user-service-no-incident                  33%          0%     -33%
+order-service-discover-before-query         0%         67%     +67%
+payment-latency-false-alarm                0%          0%      +0%
+
+A delta here is a difference between two small samples of a non-deterministic model.
+Day27 measured the same code scoring 2.5-3.5 across three runs; read the transcripts
+before reading the delta.  (seeds/arm: 3)
+
+aiops-agent eval — 4 fixture(s), 12 run(s), overall correct 42%
+
+  fixture                        correct   service   version   conf  err
+  ----------------------------------------------------------------------
+  payment-decline-service        100% (3/3)    100%     100%   0.73    0
+  user-service-no-incident         0% (0/3)    100%    n/a   0.30    0
+  order-service-discover-before-query    67% (2/3)     67%    n/a   0.27    0
+  payment-latency-false-alarm      0% (0/3)      0%    n/a   0.77    0
+
+  failed process checks (the answer may still read fine):
+    x user-service-no-incident seed0 — discover_before_retry: query_prometheus came back empty, retried query_prometheus without discovering
+    x user-service-no-incident seed1 — discover_before_retry: query_loki_logs came back empty, retried query_tempo_traces without discovering
+    x user-service-no-incident seed2 — discover_before_retry: query_prometheus came back empty, retried query_loki_logs without discovering
+
+  regression vs baseline:
+    + user-service-no-incident: new fixture (correct 0%)
+    + order-service-discover-before-query: new fixture (correct 67%)
+    + payment-latency-false-alarm: new fixture (correct 0%)
+
+  calibration labels written to /tmp/claude-1000/-home-nathan-Project-o11y-bench/9812f84f-208b-4420-bb50-85eca56d34dc/scratchpad/ab-eval.db

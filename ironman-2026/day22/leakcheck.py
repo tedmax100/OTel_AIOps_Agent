@@ -74,9 +74,24 @@ def _title(text: str) -> str:
 # Titles of the injections whose content is measured, not written.
 _MEASURED = ("diagnostics auto-run", "Dependency health (live)", "Live capability snapshot")
 
+# The case-recall block (Day38). Neither authored nor measured: it is last
+# time's confirmed answer, put back on the table on purpose. Scanning it for
+# answer tokens will therefore hit — that is the block working, not failing.
+#
+# It still cannot be treated like a measured block and quietly passed. A run
+# with a non-empty recall block is an open-book run, and the number it produces
+# is not comparable to one without it. So it gets its own verdict and its own
+# line in the summary: the check stays green, and the report says out loud which
+# exam this was.
+_RECALLED = ("Past cases for this service",)
+
 
 def _measured(block_name: str) -> bool:
     return any(marker in block_name for marker in _MEASURED)
+
+
+def _recalled(block_name: str) -> bool:
+    return any(marker in block_name for marker in _RECALLED)
 
 
 def scan(blocks: list[tuple[str, str]]) -> list[tuple[str, str, str, str]]:
@@ -115,11 +130,19 @@ async def main() -> None:
     # now — during a real payment incident that legitimately includes `v2.5.0`.
     # Failing on those means the check goes red exactly when the environment is
     # working, which is how you teach everyone to ignore it.
-    hits = [h for h in scan(blocks) if not _measured(h[0])]
+    hits = [h for h in scan(blocks) if not _measured(h[0]) and not _recalled(h[0])]
+    recalled = [(name, text) for name, text in blocks if _recalled(name)]
     print(f"scanned {len(blocks)} block(s), {sum(len(t) for _, t in blocks)} chars\n")
     for name, _ in blocks:
         leaked = [h for h in hits if h[0] == name]
-        mark = "LEAK" if leaked else ("read" if _measured(name) else "ok  ")
+        if leaked:
+            mark = "LEAK"
+        elif _measured(name):
+            mark = "read"
+        elif _recalled(name):
+            mark = "RCLL"
+        else:
+            mark = "ok  "
         print(f"[{mark}] {name}")
         for _, fact, matched, line in leaked:
             print(f"         {fact}: {matched!r}")
@@ -127,6 +150,13 @@ async def main() -> None:
                 print(f"           | {line}")
 
     print()
+    if recalled:
+        cases = sum(ln.startswith("- ") for _, t in recalled for ln in t.splitlines())
+        print(
+            f"OPEN BOOK: {cases} recalled item(s) from the case library are in this prompt. "
+            "Whatever this run scores is not comparable to a run without them — an A/B "
+            "has to use a fixture the library has never seen."
+        )
     if hits:
         facts = sorted({h[1] for h in hits})
         print(

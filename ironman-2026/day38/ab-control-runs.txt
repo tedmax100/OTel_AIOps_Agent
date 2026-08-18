@@ -1,0 +1,8 @@
+arm  r                                          conf  correct
+---  -----------------------------------------  ----  -------
+off  payment-latency-false-alarm s0-1787068402  0.7   0      
+off  payment-latency-false-alarm s1-1787068402  0.7   0      
+off  payment-latency-false-alarm s2-1787068402  0.8   0      
+on   payment-latency-false-alarm s0-1787068858  0.7   0      
+on   payment-latency-false-alarm s1-1787068858  0.9   0      
+on   payment-latency-false-alarm s2-1787068858  0.7   0      
