@@ -1,0 +1,25 @@
+booting demo-services-o11y-stack:latest (scenario time 2026-08-19T15:17:25Z)…
+  stack ready; running against fixed data
+aiops-agent eval — 5 fixture(s), 15 run(s), overall correct 60%
+
+  fixture                        correct   service   version   conf  err
+  ----------------------------------------------------------------------
+  payment-decline-service        100% (3/3)    100%     100%   0.90    0
+  user-service-no-incident       100% (3/3)    100%    n/a   0.60    0
+  order-service-discover-before-query   100% (3/3)    100%    n/a   0.60    0
+  payment-latency-false-alarm      0% (0/3)      0%    n/a   0.60    0
+  order-service-auth-degradation     0% (0/3)      0%    n/a   0.70    0
+
+  failed process checks (the answer may still read fine):
+    x order-service-auth-degradation seed0 — discover_before_retry: query_loki_logs came back empty, retried query_loki_logs without discovering
+    x order-service-auth-degradation seed1 — discover_before_retry: query_loki_logs came back empty, retried query_loki_logs without discovering
+    x order-service-auth-degradation seed2 — discover_before_retry: query_loki_logs came back empty, retried query_loki_logs without discovering
+
+  regression vs baseline:
+    + user-service-no-incident: new fixture (correct 100%)
+    + order-service-discover-before-query: new fixture (correct 100%)
+    + payment-latency-false-alarm: new fixture (correct 0%)
+    + order-service-auth-degradation: new fixture (correct 0%)
+
+  calibration labels written to /home/nathan/Project/o11y-bench/aiops-agent/service/app/eval/eval.db
+EXIT=0
