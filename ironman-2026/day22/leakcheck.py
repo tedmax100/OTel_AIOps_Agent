@@ -28,11 +28,20 @@ from app.agent import build_system_prompt, run_headless
 # Each pattern is one fact an honest run has to *discover*. Keep the list keyed
 # by what the agent would otherwise have to prove, not by wording.
 ANSWER_TOKENS: list[tuple[str, str]] = [
+    # scenario: bad-validator
     ("culprit version", r"v2\.5\.0"),
     ("previous version", r"v2\.4\.1"),
     ("the flag that ships it", r"payment_use_new_validator"),
     ("failure mechanism", r"odd[- _]?cents?"),
     ("decline reason value", r"new_validator(_odd_cents)?"),
+    # scenario: session-cache. Added when the second incident was, because a
+    # scanner that only knows the first one reports a clean prompt while
+    # handing over the answer to the second — and it would have done, since
+    # the registry that feeds the vocabulary block now carries these values.
+    ("the flag that ships it", r"user_session_cache_disabled"),
+    ("failure mechanism", r"session[- _]?store"),
+    ("auth failure reason value", r"session_store_timeout"),
+    ("the thing that was turned off", r"session cache"),
 ]
 
 ALERT = {

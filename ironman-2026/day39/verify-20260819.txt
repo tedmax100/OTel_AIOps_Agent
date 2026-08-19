@@ -1,0 +1,37 @@
+[1] the symptom, on the service that alerted
+
+  orders_total by outcome, 15m
+      status=created                                               207.842
+      reason=auth status=cancelled                                 22.498
+      reason=payment status=cancelled                              2.143
+
+  order-service p95
+      (no labels)                                                  0.483
+
+[2] nothing here names the cause — that is the point
+    order-service's own labels say `reason=auth`, and stop there.
+
+[3] the cause, one hop upstream
+
+  user_auth_checks_total by outcome, 15m
+      status=authorized                                            230.345
+      reason=session_store_timeout status=error                    18.041
+      reason=transient status=error                                0.000
+
+  user-service authcheck p95
+      (no labels)                                                  0.483
+
+[4] the same story in logs
+
+  user-service events
+      event=cache.miss                                             78.000
+      event=user.logged_in                                         70.000
+      event=user.auth_failed                                       7.000
+
+[5] is the answer being given away?
+      session_store_timeout          vocabulary=False catalog=False
+      user_session_cache_disabled    vocabulary=False catalog=False
+      session cache                  vocabulary=False catalog=False
+      session store                  vocabulary=False catalog=False
+
+      clean — the agent has to walk the hop
