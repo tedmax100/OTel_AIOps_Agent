@@ -1,0 +1,48 @@
+booting demo-services-o11y-stack:latest (scenario time 2026-08-19T16:28:28Z)…
+  stack ready; running against fixed data
+OPEN BOOK — the case library already answers these fixtures:
+  order-service-auth-degradation: 2 case(s) recalled
+  The recall arm is retrieving an answer it was told. Whatever the delta
+  below is, it is not evidence that recall helps an unseen incident.
+
+fixture                             recall off   recall on    delta
+order-service-auth-degradation             0%          0%      +0%
+
+A delta here is a difference between two small samples of a non-deterministic model.
+Day27 measured the same code scoring 2.5-3.5 across three runs; read the transcripts
+before reading the delta.  (seeds/arm: 3)
+
+aiops-agent eval — 1 fixture(s), 3 run(s), overall correct 0%
+
+  fixture                        correct   service   version   conf  err
+  ----------------------------------------------------------------------
+  order-service-auth-degradation     0% (0/3)      0%    n/a   0.70    0
+
+  no change vs baseline.
+
+  calibration labels written to /home/nathan/Project/o11y-bench/aiops-agent/service/app/eval/eval.db
+EXIT=0
+
+---- why +0% is a null result and not a fix that did nothing ------------------
+
+Both arms, all six runs, produced the same answer:
+
+  The order-service is experiencing a high rate of authentication failures,
+  indicated by the `orders_total` metric with `reason='auth'`. ...
+
+That answer is not the refuted hypothesis. Scored against what the intervention
+crossed out:
+
+  0.33  a code regression in order-service itself   (want: itself, order-service, regression)
+  0.00  payment-service declines causing ...        (want: cancellations, declines, payment-service)
+  threshold 0.6
+
+So the check never fired. This run tested that the two arms are now identical
+where they used to differ — the refuted hypothesis is no longer in the prompt,
+and the -100pp from ab-intervention-20260819.txt is gone — and tested nothing
+about whether sending a repeated answer back helps, because no answer repeated.
+
+The control arm is the other thing to read here. It scored 3/3 in
+ab-intervention-20260819.txt and 0/3 here, on a code path this change does not
+touch, against the same fixture and the same generator. That is the noise floor,
+in the same place, twice.
