@@ -1,0 +1,49 @@
+booting demo-services-o11y-stack:latest (scenario time 2026-08-19T16:14:20Z)…
+  stack ready; running against fixed data
+OPEN BOOK — the case library already answers these fixtures:
+  order-service-auth-degradation: 2 case(s) recalled
+  The recall arm is retrieving an answer it was told. Whatever the delta
+  below is, it is not evidence that recall helps an unseen incident.
+
+fixture                             recall off   recall on    delta
+order-service-auth-degradation           100%          0%    -100%
+
+A delta here is a difference between two small samples of a non-deterministic model.
+Day27 measured the same code scoring 2.5-3.5 across three runs; read the transcripts
+before reading the delta.  (seeds/arm: 3)
+
+aiops-agent eval — 1 fixture(s), 3 run(s), overall correct 0%
+
+  fixture                        correct   service   version   conf  err
+  ----------------------------------------------------------------------
+  order-service-auth-degradation     0% (0/3)      0%    n/a   0.60    0
+
+  no change vs baseline.
+
+  calibration labels written to /home/nathan/Project/o11y-bench/aiops-agent/service/app/eval/eval.db
+EXIT=0
+
+---- what the two arms actually said -------------------------------------------
+
+recall OFF (3/3 correct, conf 0.8), all three seeds:
+  The order-service experienced a spike in orders failing with the reason 'auth'.
+  This spike is concentrated on git_version v1.8.2, suggesting a code re...
+
+recall ON (0/3 correct, conf 0.6), all three seeds:
+  Code regression in order-service v1.8.2 causing auth failures.
+
+what the ON arm was handed:
+  ### Already ruled out here — do not spend budget re-checking
+  - [hypothesis] payment-service declines causing the cancellations (...) — ruled out by a person
+  - [hypothesis] a code regression in order-service itself (read the order-service diff
+    for the window, nothing shipped) — ruled out by a person
+
+The ON arm's answer is the first ruled-out hypothesis, restated. Three seeds,
+identical text, and confidence *down* from 0.8 to 0.6 — it is less sure of the
+thing it was told not to spend budget on, and says it anyway.
+
+Caveat with teeth: this same fixture's OFF arm scored 0/3 in the suite run
+earlier the same day and 3/3 here, on the same code. So "the agent can solve
+this" is itself unstable, and -100pp is a within-run comparison (both arms hit
+the same container, same data, differing only in the injected block), not a
+claim that holds across runs.
