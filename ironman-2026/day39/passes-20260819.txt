@@ -1,0 +1,53 @@
+booting demo-services-o11y-stack:latest (scenario time 2026-08-19T16:43:58Z)…
+  stack ready; running against fixed data
+aiops-agent eval — 5 fixture(s), 15 run(s), overall correct 40%
+
+  fixture                        correct   service   version   conf  err
+  ----------------------------------------------------------------------
+  payment-decline-service        100% (3/3)    100%     100%   0.87    0
+  user-service-no-incident         0% (0/3)      0%    n/a   0.00    3
+  order-service-discover-before-query   100% (3/3)    100%    n/a   0.60    0
+  payment-latency-false-alarm      0% (0/3)      0%    n/a   0.70    0
+  order-service-auth-degradation     0% (0/3)      0%    n/a   0.70    0
+
+  between passes (the sampling unit — seeds inside a pass are correlated):
+    payment-decline-service                100% 100% 100%           spread   0%
+    user-service-no-incident               0% 0% 0%                 spread   0%
+    order-service-discover-before-query    100% 100% 100%           spread   0%
+    payment-latency-false-alarm            0% 0% 0%                 spread   0%
+    order-service-auth-degradation         0% 0% 0%                 spread   0%
+    Widest spread this run: 0%. A difference smaller than that is not a result.
+
+  failed process checks (the answer may still read fine):
+    x order-service-auth-degradation seed0 — discover_before_retry: query_prometheus came back empty, retried query_prometheus without discovering
+
+  (the run also hit OutputParserException x3 on user-service-no-incident: the
+  model emitted its full prose analysis and then the JSON, and the structured
+  parser rejected the pair. Pre-existing, unrelated to the sampling change, and
+  the reason that fixture reads 0% with err=3 rather than a verdict.)
+
+---- what three passes inside one container measured ---------------------------
+
+Nothing. Spread 0% on all five fixtures.
+
+That is the result, not a failed experiment. It says the model, given a byte-
+identical prompt against a container that never restarted, returns the same
+verdict every time — which is what temperature 0 is supposed to mean, and it
+rules the model out as the source of the swing this whole exercise started from.
+
+The swings that were actually observed happened between *invocations*:
+
+  order-service-auth-degradation, control arm, ab-intervention-20260819  3/3
+  order-service-auth-degradation, control arm, ab-verification-20260819  0/3
+
+Each of those booted its own container with `scenario_time = now`. The generator
+is seeded (random.seed(42)) so the data is structurally identical between boots,
+but every absolute timestamp shifts — and those timestamps are in the alert, in
+the pinned clock, and in every window the agent computes. At temperature 0 a
+changed prompt is a changed answer.
+
+So the sampling unit is not the pass and not the seed. It is the invocation, and
+what varies across it is the clock rather than the model. That reframes the
++-67pp: it is not noise to be averaged down with more samples, it is sensitivity
+to input that should not matter. Averaging hides it; the fix is to measure it on
+purpose by varying the scenario time and holding everything else.
