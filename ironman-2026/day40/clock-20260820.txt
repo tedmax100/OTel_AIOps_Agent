@@ -1,0 +1,76 @@
+clock sensitivity — 4 boots, fixture(s): order-service-auth-degradation, store /home/nathan/Project/o11y-bench/aiops-agent/service/app/eval/clock-probe.db
+  clock 2026-08-19T04:11:00Z
+  clock 2026-08-19T12:37:00Z
+  clock 2026-08-19T21:53:00Z
+  clock 2026-08-20T00:29:00Z
+
+=== scenario time 2026-08-19T04:11:00Z ========================================
+booting demo-services-o11y-stack:latest (scenario time 2026-08-19T04:11:00Z)…
+  stack ready; running against fixed data
+aiops-agent eval — 1 fixture(s), 1 run(s), overall correct 0%
+
+  fixture                        correct   service   version   conf  err
+  ----------------------------------------------------------------------
+  order-service-auth-degradation     0% (0/1)      0%    n/a   0.80    0
+
+  failed process checks (the answer may still read fine):
+    x order-service-auth-degradation seed0 — queried: 1 successful of 1 call(s)
+
+  no change vs baseline.
+
+  calibration labels written to /home/nathan/Project/o11y-bench/aiops-agent/service/app/eval/clock-probe.db
+
+=== scenario time 2026-08-19T12:37:00Z ========================================
+booting demo-services-o11y-stack:latest (scenario time 2026-08-19T12:37:00Z)…
+  stack ready; running against fixed data
+aiops-agent eval — 1 fixture(s), 1 run(s), overall correct 0%
+
+  fixture                        correct   service   version   conf  err
+  ----------------------------------------------------------------------
+  order-service-auth-degradation     0% (0/1)      0%    n/a   0.70    0
+
+  no change vs baseline.
+
+  calibration labels written to /home/nathan/Project/o11y-bench/aiops-agent/service/app/eval/clock-probe.db
+
+=== scenario time 2026-08-19T21:53:00Z ========================================
+booting demo-services-o11y-stack:latest (scenario time 2026-08-19T21:53:00Z)…
+  stack ready; running against fixed data
+aiops-agent eval — 1 fixture(s), 1 run(s), overall correct 0%
+
+  fixture                        correct   service   version   conf  err
+  ----------------------------------------------------------------------
+  order-service-auth-degradation     0% (0/1)    100%    n/a   0.70    0
+
+  failed process checks (the answer may still read fine):
+    x order-service-auth-degradation seed0 — discover_before_retry: query_loki_logs came back empty, retried query_prometheus without discovering
+
+  no change vs baseline.
+
+  calibration labels written to /home/nathan/Project/o11y-bench/aiops-agent/service/app/eval/clock-probe.db
+
+=== scenario time 2026-08-20T00:29:00Z ========================================
+booting demo-services-o11y-stack:latest (scenario time 2026-08-20T00:29:00Z)…
+  stack ready; running against fixed data
+aiops-agent eval — 1 fixture(s), 1 run(s), overall correct 0%
+
+  fixture                        correct   service   version   conf  err
+  ----------------------------------------------------------------------
+  order-service-auth-degradation     0% (0/1)    100%    n/a   0.80    0
+
+  failed process checks (the answer may still read fine):
+    x order-service-auth-degradation seed0 — discover_before_retry: query_prometheus came back empty, retried query_prometheus without discovering
+
+  no change vs baseline.
+
+  calibration labels written to /home/nathan/Project/o11y-bench/aiops-agent/service/app/eval/clock-probe.db
+
+---- one variable moved: the clock ---------------------------------------------
+
+  order-service-auth-degradation            0/1    0/1    0/1    0/1   mean   0.0%  spread   0.0pp
+
+  Widest spread across clocks: 0.0pp.
+  Day39 measured 0pp between passes inside one container. Anything
+  above that here is the scenario clock, not the model — the same input
+  sensitivity a real on-call run has when the incident happens at 04:00
+  instead of 12:00, and not something more seeds will average away.

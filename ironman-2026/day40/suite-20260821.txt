@@ -1,0 +1,19 @@
+booting demo-services-o11y-stack:latest (scenario time 2026-08-20T16:06:58Z)…
+  stack ready; running against fixed data
+aiops-agent eval — 5 fixture(s), 5 run(s), overall correct 40%
+
+  fixture                        correct   service   version   conf  err
+  ----------------------------------------------------------------------
+  payment-decline-service        100% (1/1)    100%     100%   0.80    0
+  user-service-no-incident       100% (1/1)    100%    n/a   0.60    0
+  order-service-discover-before-query     0% (0/1)      0%    n/a   0.65    0
+  payment-latency-false-alarm      0% (0/1)      0%    n/a   0.60    0
+  order-service-auth-degradation     0% (0/1)      0%    n/a   0.70    0
+
+  failed process checks (the answer may still read fine):
+    x order-service-discover-before-query seed0 — discover_before_retry: query_tempo_traces came back empty, retried query_prometheus without discovering
+
+  regression vs baseline:
+    ▼ order-service-discover-before-query: 100% → 0%
+
+  calibration labels written to /home/nathan/Project/o11y-bench/aiops-agent/service/app/eval/eval.db
