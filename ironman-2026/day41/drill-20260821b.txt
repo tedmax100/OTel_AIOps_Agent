@@ -1,0 +1,78 @@
+[16:33:36] preflight: agent reachable?
+[16:33:36]   store: {'path': '/data/aiops.db', 'exists': True, 'tables': {'calibration': 24, 'investigations': 31, 'action_requests': 22, 'executions': 5, 'audit': 102, 'runbook_feedback': 6, 'cases': 1, 'case_ruled_out': 4}}
+[16:33:36]   actuation: proven_good=True — write credentials authenticate and hold exactly the required permissions in demo (checked 11s ago)
+[16:33:36]   write credentials: live-probed OK
+[16:33:36]   write SA may patch configmap/user-flags
+[16:33:36]   kill switch: ACTIONS_ENABLED=true (execution is live)
+[16:33:36]   deployed image knows k8s.configmap_flag_set
+[16:33:36]   alert webhook secret: present
+[16:33:36]   user-flags.user_session_cache_disabled is currently False (healthy = False)
+[16:33:36] snapshot: store-before-20260820T163336Z.db (335872 bytes)
+[16:33:36] store snapshotted before the run: store-before-20260820T163336Z.db
+[16:33:36] traffic: ~5 rps through webapp (orders, carts, logins)
+[16:33:36] injecting session-cache: user_session_cache_disabled=true (auth checks fall through to the session store)
+[incident] user-flags: user_session_cache_disabled=true
+[incident] user-service auth checks now reach the session store.
+[incident] The flag file is projected from the ConfigMap, so it takes
+[incident] up to ~60s to land. No restart — a rollout in the same
+[incident] minute would give the latency chart a second explanation.
+[16:33:36] waiting 75s for the projected flag file to land
+[16:34:59] symptom is observable: orders_total and user_auth_checks_total both have series
+[16:35:00] alert posted (startsAt=2026-08-20T16:34:59Z, drill=True)
+[16:35:00] waiting for the RCA to produce an ActionRequest…
+[16:35:20]   request eae0be82321c4f12 action=k8s.configmap_flag_set autonomy=propose status=proposed
+[16:35:20] approving eae0be82321c4f12 (the human in human-in-the-loop)
+[16:35:20]   status: executing
+[16:38:10]   status: succeeded
+[16:38:10] terminal state: succeeded  outcome=executed and verified
+
+  phase          verdict      detail
+  ------------------------------------------------------------------------
+  proposed       ok           {"action": "k8s.configmap_flag_set", "autonomy": "propose", "initial_status": "propo
+  approved       ok           {"trace_id": "c37a920ba84ecc096a6e2fa35847bebf"}
+  execute        start        {"action": "k8s.configmap_flag_set", "args": {"configmap": "user-flags", "namespace"
+  precondition   ok           {"checked": 4, "trace_id": "c37a920ba84ecc096a6e2fa35847bebf"}
+  dry_run        ok           {"blast_radius": "target demo/user-flags, revision user_session_cache_disabled=True→
+  execute        success      {"result": "{'action': 'configmap_flag_set', 'configmap': 'user-flags', 'namespace':
+  verify         settle       {"settle_seconds": 165, "reason": "165s (the verify query looks back 120s, so the co
+  verify         pass         {"check": {"max_value": 0.01}, "detail": "value 0 ≤ max_value 0.01", "output_preview
+
+[16:38:10] snapshot: store-after-20260820T163810Z.db (348160 bytes)
+
+---- what the incident learned ------------------------------------------------
+
+  case key on the request: ffa6ab9638c72564
+  occurrences: 2   status: open
+  root_cause : (none — nobody has confirmed one)
+  resolution : (empty — nothing recorded what fixed it)
+  ruled out  : [query] PromQL referencing orders_total, reason (by tool_result)
+  ruled out  : [query] PromQL referencing reason, user_auth_checks_total (by tool_result)
+  ruled out  : [query] PromQL referencing user_authcheck_duration_seconds_bucket (by tool_result)
+  ruled out  : [query] PromQL referencing http_status_code (by tool_result)
+  ruled out  : [query] PromQL referencing reason (by tool_result)
+  ruled out  : [query] PromQL referencing reason (by tool_result)
+  ruled out  : [query] PromQL referencing reason (by tool_result)
+  ruled out  : [query] PromQL referencing status (by tool_result)
+  ruled out  : [query] PromQL referencing reason (by tool_result)
+
+---- what the next run is handed ----------------------------------------------
+
+    ## Past cases for this service (reference — current evidence wins)
+    
+    ### Already ruled out here — do not spend budget re-checking
+    - [query] PromQL referencing reason (no such metric in this Prometheus) [2026-08-20]
+    - [query] PromQL referencing status (no such metric in this Prometheus) [2026-08-20]
+    - [query] PromQL referencing reason (no such metric in this Prometheus) [2026-08-20]
+    - [query] PromQL referencing reason (no such metric in this Prometheus) [2026-08-20]
+    - [query] PromQL referencing reason (no such metric in this Prometheus) [2026-08-20]
+    - [query] PromQL referencing http_status_code (no such metric in this Prometheus) [2026-08-20]
+    - [query] PromQL referencing user_authcheck_duration_seconds_bucket (no such metric in this Prometheus) [2026-08-20]
+    - [query] PromQL referencing reason, user_auth_checks_total (no such metric in this Prometheus) [2026-08-20]
+
+  This was a drill, so the learning half is expected to be empty:
+  remember_resolution() returns early on drills by design. Re-run with
+  --no-drill to exercise it, knowing that writes a real incident row.
+[16:38:10] RESULT: as designed (expected succeeded)
+[16:38:10] traffic: stopped
+[16:38:10] cleanup: user_session_cache_disabled=false
+[incident] user-flags: user_session_cache_disabled=false

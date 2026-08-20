@@ -195,6 +195,67 @@ def preflight() -> None:
     log(f"  {FLAG_CM}.{FLAG} is currently {flag_value()} (healthy = False)")
 
 
+# --- traffic ----------------------------------------------------------------
+
+
+class Traffic:
+    """Requests through webapp for the whole run, because an idle cluster has no
+    incident to remediate.
+
+    The first run of this script had no traffic and still went green: no orders
+    means no `orders_total`, no auth checks means no `user_auth_checks_total`,
+    the verify query matched no series, and an empty result was read as zero.
+    The fix for *that* is in the executor (an empty vector now fails closed);
+    the fix for the drill is here. Both were needed — one of them stopped a
+    false green, the other stopped a drill that proves nothing.
+    """
+
+    def __init__(self, rps: int = 5) -> None:
+        self.rps = rps
+        self.proc: subprocess.Popen | None = None
+
+    def start(self) -> None:
+        self.proc = subprocess.Popen(
+            ["bash", str(ROOT / "demo-services" / "scripts" / "load.sh"), str(self.rps)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        log(f"traffic: ~{self.rps} rps through webapp (orders, carts, logins)")
+
+    def stop(self) -> None:
+        if self.proc is not None:
+            self.proc.terminate()
+            try:
+                self.proc.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                self.proc.kill()
+            log("traffic: stopped")
+
+
+def prom_has_series(metric: str, port: int = 9098) -> bool:
+    """Is the symptom actually observable? Asked through a temporary
+    port-forward, before the alert is posted rather than after the verify.
+
+    A run whose metrics are missing can still produce a full green audit trail,
+    which is precisely the thing not to discover from a passing drill."""
+    pf = subprocess.Popen(
+        ["kubectl", "-n", NS, "port-forward", "svc/prometheus", f"{port}:9090"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        time.sleep(4)
+        with urllib.request.urlopen(
+            f"http://localhost:{port}/api/v1/query?query={metric}", timeout=10
+        ) as resp:
+            data = json.load(resp)
+        return bool(data.get("data", {}).get("result"))
+    except Exception:
+        return False
+    finally:
+        pf.terminate()
+
+
 # --- the incident -----------------------------------------------------------
 
 
@@ -344,11 +405,12 @@ def what_the_case_learned(db: Path, request_id: str) -> None:
         print("  Nothing can be written back without it; that is the finding.")
         return
 
-    case = conn.execute("SELECT * FROM cases WHERE key = ?", (key,)).fetchone()
+    case = conn.execute("SELECT * FROM cases WHERE case_key = ?", (key,)).fetchone()
     if case is None:
         print("  No case row. The incident was investigated but never opened a case.")
         return
     res = case["resolution"]
+    print(f"  occurrences: {case['occurrences']}   status: {case['status']}")
     print(f"  root_cause : {case['root_cause'] or '(none — nobody has confirmed one)'}")
     print(f"  resolution : {res or '(empty — nothing recorded what fixed it)'}")
     if res:
@@ -358,10 +420,10 @@ def what_the_case_learned(db: Path, request_id: str) -> None:
             f"verified={r.get('verified')}"
         )
     ruled = conn.execute(
-        "SELECT kind, claim, disproved_by FROM case_ruled_out WHERE case_key = ?", (key,)
+        "SELECT kind, subject, disproved_by FROM case_ruled_out WHERE case_key = ?", (key,)
     ).fetchall()
     for r in ruled:
-        print(f"  ruled out  : [{r['kind']}] {r['claim']} (by {r['disproved_by']})")
+        print(f"  ruled out  : [{r['kind']}] {r['subject']} (by {r['disproved_by']})")
     conn.close()
 
 
@@ -389,8 +451,24 @@ def run(drill: bool) -> int:
     before = snapshot("before")
     log(f"store snapshotted before the run: {before.name}")
 
+    traffic = Traffic()
+    traffic.start()
+
     try:
         inject()
+        # Wait for the symptom to exist before paging anybody about it. Both
+        # metrics have to be present: the alerting service's and the upstream
+        # one the verify query reads, since it is the second that decides
+        # whether this run ends in a real verdict or a vacuous one.
+        for metric in ("orders_total", "user_auth_checks_total"):
+            if not prom_has_series(metric):
+                raise SystemExit(
+                    f"preflight-after-injection FAILED: {metric} has no series in Prometheus. "
+                    "The drill would run against an unobservable incident, which is how the "
+                    "first run of this script went green while nothing was wrong."
+                )
+        log("symptom is observable: orders_total and user_auth_checks_total both have series")
+
         since = fire_alert(drill)
         req = wait_for_request(since)
         final = drive(req["request_id"])
@@ -414,6 +492,7 @@ def run(drill: bool) -> int:
         log("        That is a finding, not a script bug. Write it down before re-running.")
         return 1
     finally:
+        traffic.stop()
         cleanup()
 
 

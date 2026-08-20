@@ -1,0 +1,57 @@
+[16:24:45] preflight: agent reachable?
+[16:24:45]   store: {'path': '/data/aiops.db', 'exists': True, 'tables': {'calibration': 23, 'investigations': 30, 'action_requests': 21, 'executions': 4, 'audit': 94, 'runbook_feedback': 5, 'cases': 0, 'case_ruled_out': 0}}
+[16:24:45]   actuation: proven_good=True — write credentials authenticate and hold exactly the required permissions in demo (checked 5s ago)
+[16:24:45]   write credentials: live-probed OK
+[16:24:45]   write SA may patch configmap/user-flags
+[16:24:45]   kill switch: ACTIONS_ENABLED=true (execution is live)
+[16:24:45]   deployed image knows k8s.configmap_flag_set
+[16:24:45]   alert webhook secret: present
+[16:24:45]   user-flags.user_session_cache_disabled is currently False (healthy = False)
+[16:24:45] snapshot: store-before-20260820T162445Z.db (323584 bytes)
+[16:24:45] store snapshotted before the run: store-before-20260820T162445Z.db
+[16:24:45] injecting session-cache: user_session_cache_disabled=true (auth checks fall through to the session store)
+[incident] user-flags: user_session_cache_disabled=true
+[incident] user-service auth checks now reach the session store.
+[incident] The flag file is projected from the ConfigMap, so it takes
+[incident] up to ~60s to land. No restart — a rollout in the same
+[incident] minute would give the latency chart a second explanation.
+[16:24:45] waiting 75s for the projected flag file to land
+[16:26:00] alert posted (startsAt=2026-08-20T16:26:00Z, drill=True)
+[16:26:00] waiting for the RCA to produce an ActionRequest…
+[16:26:15]   request b15df9e51c06424b action=k8s.configmap_flag_set autonomy=propose status=proposed
+[16:26:15] approving b15df9e51c06424b (the human in human-in-the-loop)
+[16:26:15]   status: executing
+[16:29:06]   status: succeeded
+[16:29:06] terminal state: succeeded  outcome=executed and verified
+
+  phase          verdict      detail
+  ------------------------------------------------------------------------
+  proposed       ok           {"action": "k8s.configmap_flag_set", "autonomy": "propose", "initial_status": "propo
+  approved       ok           {"trace_id": "1e5cb1ec978ac76f8a1aad8ef33fac24"}
+  execute        start        {"action": "k8s.configmap_flag_set", "args": {"configmap": "user-flags", "namespace"
+  precondition   ok           {"checked": 4, "trace_id": "1e5cb1ec978ac76f8a1aad8ef33fac24"}
+  dry_run        ok           {"blast_radius": "target demo/user-flags, revision user_session_cache_disabled=True→
+  execute        success      {"result": "{'action': 'configmap_flag_set', 'configmap': 'user-flags', 'namespace':
+  verify         settle       {"settle_seconds": 165, "reason": "165s (the verify query looks back 120s, so the co
+  verify         pass         {"check": {"max_value": 0.01}, "detail": "value 0 ≤ max_value 0.01", "output_preview
+
+[16:29:06] snapshot: store-after-20260820T162906Z.db (335872 bytes)
+
+---- what the incident learned ------------------------------------------------
+
+  case key on the request: ffa6ab9638c72564
+[16:29:06] cleanup: user_session_cache_disabled=false
+[incident] user-flags: user_session_cache_disabled=false
+Traceback (most recent call last):
+  File "/home/nathan/Project/o11y-bench/otel-aiops-agent/ironman-2026/day41/close_the_loop.py", line 445, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/nathan/Project/o11y-bench/otel-aiops-agent/ironman-2026/day41/close_the_loop.py", line 441, in main
+    return run(args.drill)
+           ^^^^^^^^^^^^^^^
+  File "/home/nathan/Project/o11y-bench/otel-aiops-agent/ironman-2026/day41/close_the_loop.py", line 401, in run
+    what_the_case_learned(after, req["request_id"])
+  File "/home/nathan/Project/o11y-bench/otel-aiops-agent/ironman-2026/day41/close_the_loop.py", line 347, in what_the_case_learned
+    case = conn.execute("SELECT * FROM cases WHERE key = ?", (key,)).fetchone()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: key
