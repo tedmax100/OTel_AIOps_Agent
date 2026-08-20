@@ -419,11 +419,19 @@ def what_the_case_learned(db: Path, request_id: str) -> None:
             f"               action={r.get('action')} runbook={r.get('runbook_id')} "
             f"verified={r.get('verified')}"
         )
+    # still_valid matters: a retracted dead end stays in the table as history and
+    # is skipped by recall. Printing both without the distinction is how a run
+    # reports nine live dead ends that nobody would ever be handed.
     ruled = conn.execute(
-        "SELECT kind, subject, disproved_by FROM case_ruled_out WHERE case_key = ?", (key,)
+        "SELECT kind, subject, disproved_by, still_valid FROM case_ruled_out WHERE case_key = ?",
+        (key,),
     ).fetchall()
-    for r in ruled:
+    live = [r for r in ruled if r["still_valid"]]
+    for r in live:
         print(f"  ruled out  : [{r['kind']}] {r['subject']} (by {r['disproved_by']})")
+    retracted = len(ruled) - len(live)
+    if retracted:
+        print(f"  retracted  : {retracted} dead end(s) kept as history, not recalled")
     conn.close()
 
 
