@@ -1,0 +1,35 @@
+==============================================================================
+the conditions AUTO has to clear
+==============================================================================
+
+production curve  (labels from people, on live incidents)
+  FAIL  labeled runs                       want >= 20        got 7
+  FAIL  human/grader labels                want >= 20        got 7
+  FAIL  mean overconfidence                want <= 0.1       got 0.3929
+  PASS  labeled runs at conf >= 0.8        want >= 3         got 5
+  FAIL  accuracy in that band              want >= 0.7       got 0.2
+  FAIL  worst bin off by                   want <= 0.25      got 0.8167 ([0.8,0.9))
+
+  gate says: calibration unproven (7 labeled run(s) < 20); autonomy withheld
+
+fixture record  (the grader, on questions with known answers)
+    proven_good      = False
+    labeled          = 32
+    overconfidence   = 0.4156
+    newest_age_days  = 2
+  gate says: fixtures: overconfident by +0.4156 > 0.1; autonomy narrowed (newest label 2d ago)
+
+==============================================================================
+the same fixture curve over different freshness windows
+==============================================================================
+
+    window  labeled   overconf  band n  band acc  worst bin
+        7d       32     0.4156      12    0.8333  0.7 ([0.7,0.8))
+       14d       32     0.4156      12    0.8333  0.7 ([0.7,0.8))
+       30d       41     0.2683      16     0.875  0.5571 ([0.7,0.8))
+       60d       47     0.1936      18    0.8889  0.5 ([0.7,0.8))
+       all       47     0.1936      18    0.8889  0.5 ([0.7,0.8))
+
+  the gate's window is 14d.
+  a wider window reports a *better* number here, which is the point:
+  the pool was flattering, so expiring the record made this gate stricter.
