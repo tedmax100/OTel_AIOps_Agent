@@ -1,0 +1,63 @@
+[16:43:37] preflight: agent reachable?
+[16:43:37]   store: {'path': '/data/aiops.db', 'exists': True, 'tables': {'calibration': 25, 'investigations': 32, 'action_requests': 23, 'executions': 6, 'audit': 111, 'runbook_feedback': 7, 'cases': 1, 'case_ruled_out': 9}}
+[16:43:37]   actuation: proven_good=True — write credentials authenticate and hold exactly the required permissions in demo (checked 11s ago)
+[16:43:37]   write credentials: live-probed OK
+[16:43:37]   write SA may patch configmap/user-flags
+[16:43:38]   kill switch: ACTIONS_ENABLED=true (execution is live)
+[16:43:38]   deployed image knows k8s.configmap_flag_set
+[16:43:38]   alert webhook secret: present
+[16:43:38]   user-flags.user_session_cache_disabled is currently False (healthy = False)
+[16:43:38] snapshot: store-before-20260820T164338Z.db (348160 bytes)
+[16:43:38] store snapshotted before the run: store-before-20260820T164338Z.db
+[16:43:38] traffic: ~5 rps through webapp (orders, carts, logins)
+[16:43:38] injecting session-cache: user_session_cache_disabled=true (auth checks fall through to the session store)
+[incident] user-flags: user_session_cache_disabled=true
+[incident] user-service auth checks now reach the session store.
+[incident] The flag file is projected from the ConfigMap, so it takes
+[incident] up to ~60s to land. No restart — a rollout in the same
+[incident] minute would give the latency chart a second explanation.
+[16:43:38] waiting 75s for the projected flag file to land
+[16:45:01] symptom is observable: orders_total and user_auth_checks_total both have series
+[16:45:01] alert posted (startsAt=2026-08-20T16:45:01Z, drill=False)
+[16:45:01] waiting for the RCA to produce an ActionRequest…
+[16:45:11]   request 4ce2a7f7f8844cf5 action=k8s.configmap_flag_set autonomy=propose status=proposed
+[16:45:11] approving 4ce2a7f7f8844cf5 (the human in human-in-the-loop)
+[16:45:11]   status: executing
+[16:45:16]   status: aborted
+[16:45:16] terminal state: aborted  outcome=idempotent: target already acted on for this incident (eae0be82321c4f12)
+
+  phase          verdict      detail
+  ------------------------------------------------------------------------
+  proposed       ok           {"action": "k8s.configmap_flag_set", "autonomy": "propose", "initial_status": "propo
+  approved       ok           {"trace_id": "d5c6812b2caf3ee66ef6b963b6dfb78b"}
+  execute        start        {"action": "k8s.configmap_flag_set", "args": {"configmap": "user-flags", "namespace"
+  precondition   ok           {"checked": 4, "trace_id": "d5c6812b2caf3ee66ef6b963b6dfb78b"}
+  dry_run        ok           {"blast_radius": "target demo/user-flags, revision user_session_cache_disabled=True→
+  idempotency    abort        {"superseded_by": "eae0be82321c4f12", "idem_key": "k8s.configmap_flag_set|demo/user-
+
+[16:45:16] snapshot: store-after-20260820T164516Z.db (348160 bytes)
+
+---- what the incident learned ------------------------------------------------
+
+  case key on the request: ffa6ab9638c72564
+  occurrences: 3   status: open
+  root_cause : (none — nobody has confirmed one)
+  resolution : (empty — nothing recorded what fixed it)
+  ruled out  : [query] PromQL referencing orders_total, reason (by tool_result)
+  ruled out  : [query] PromQL referencing reason, user_auth_checks_total (by tool_result)
+  ruled out  : [query] PromQL referencing user_authcheck_duration_seconds_bucket (by tool_result)
+  ruled out  : [query] PromQL referencing http_status_code (by tool_result)
+  ruled out  : [query] PromQL referencing reason (by tool_result)
+  ruled out  : [query] PromQL referencing reason (by tool_result)
+  ruled out  : [query] PromQL referencing reason (by tool_result)
+  ruled out  : [query] PromQL referencing status (by tool_result)
+  ruled out  : [query] PromQL referencing reason (by tool_result)
+
+---- what the next run is handed ----------------------------------------------
+
+    (empty)
+[16:45:16] RESULT: NOT as designed — expected succeeded, got aborted
+[16:45:16]         That is a finding, not a script bug. Write it down before re-running.
+[16:45:16] traffic: stopped
+[16:45:16] cleanup: user_session_cache_disabled=false
+[incident] user-flags: user_session_cache_disabled=false

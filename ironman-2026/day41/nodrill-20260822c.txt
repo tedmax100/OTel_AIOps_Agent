@@ -1,0 +1,58 @@
+[15:40:43] preflight: agent reachable?
+[15:40:43]   store: {'path': '/data/aiops.db', 'exists': True, 'tables': {'calibration': 29, 'investigations': 36, 'action_requests': 27, 'executions': 8, 'audit': 139, 'runbook_feedback': 9, 'cases': 1, 'case_ruled_out': 9}}
+[15:40:43]   actuation: proven_good=True — write credentials authenticate and hold exactly the required permissions in demo (checked 118s ago)
+[15:40:43]   write credentials: live-probed OK
+[15:40:43]   write SA may patch configmap/user-flags
+[15:40:43]   kill switch: ACTIONS_ENABLED=true (execution is live)
+[15:40:43]   deployed image knows k8s.configmap_flag_set
+[15:40:43]   alert webhook secret: present
+[15:40:43]   user-flags.user_session_cache_disabled is currently False (healthy = False)
+[15:40:44] snapshot: store-before-20260822T154043Z.db (380928 bytes)
+[15:40:44] store snapshotted before the run: store-before-20260822T154043Z.db
+[15:40:44] traffic: ~5 rps through webapp (orders, carts, logins)
+[15:40:44] injecting session-cache: user_session_cache_disabled=true (auth checks fall through to the session store)
+[incident] user-flags: user_session_cache_disabled=true
+[incident] user-service auth checks now reach the session store.
+[incident] The flag file is projected from the ConfigMap, so it takes
+[incident] up to ~60s to land. No restart — a rollout in the same
+[incident] minute would give the latency chart a second explanation.
+[15:40:44] waiting 75s for the projected flag file to land
+[15:42:07] symptom is observable: orders_total and user_auth_checks_total both have series
+[15:42:07] alert posted (startsAt=2026-08-22T15:42:07Z, drill=False)
+[15:42:07] waiting for the RCA to produce an ActionRequest…
+[15:42:17]   request 2eae7c4874fe43db action=k8s.configmap_flag_set autonomy=propose status=proposed
+[15:42:17] approving 2eae7c4874fe43db (the human in human-in-the-loop)
+[15:42:17]   status: executing
+[15:42:22]   status: aborted
+[15:42:22] terminal state: aborted  outcome=idempotent: target already acted on for this incident (92690e7562a54af8)
+
+  phase          verdict      detail
+  ------------------------------------------------------------------------
+  proposed       ok           {"action": "k8s.configmap_flag_set", "autonomy": "propose", "initial_status": "propo
+  approved       ok           {"trace_id": "4830486bd6b94d6d1d255b3a5368c848"}
+  execute        start        {"action": "k8s.configmap_flag_set", "args": {"configmap": "user-flags", "namespace"
+  precondition   ok           {"checked": 4, "trace_id": "4830486bd6b94d6d1d255b3a5368c848"}
+  dry_run        ok           {"blast_radius": "target demo/user-flags, revision user_session_cache_disabled=True→
+  idempotency    abort        {"superseded_by": "92690e7562a54af8", "idem_key": "k8s.configmap_flag_set|demo/user-
+
+[15:42:22] snapshot: store-after-20260822T154222Z.db (393216 bytes)
+
+---- what the incident learned ------------------------------------------------
+
+  case key on the request: ffa6ab9638c72564
+  occurrences: 7   status: open
+  root_cause : (none — nobody has confirmed one)
+  resolution : {"action": "k8s.configmap_flag_set", "args": {"configmap": "user-flags", "namespace": "demo", "key": "flags.json", "flag": "user_session_cache_disabled", "value": false}, "runbook_id": "session-cache-timeout", "request_id": "92690e7562a54af8", "verified": true, "ts": "2026-08-22T15:18:43Z"}
+               action=k8s.configmap_flag_set runbook=session-cache-timeout verified=True
+  retracted  : 9 dead end(s) kept as history, not recalled
+
+---- what the next run is handed ----------------------------------------------
+
+    ## Past cases for this service (reference — current evidence wins)
+    - order-cancel-rate-high (×7, last 2026-08-22)
+      resolved by: k8s.configmap_flag_set (verified)
+[15:42:22] RESULT: NOT as designed — expected succeeded, got aborted
+[15:42:22]         That is a finding, not a script bug. Write it down before re-running.
+[15:42:22] traffic: stopped
+[15:42:22] cleanup: user_session_cache_disabled=false
+[incident] user-flags: user_session_cache_disabled=false

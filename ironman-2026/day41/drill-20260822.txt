@@ -1,0 +1,63 @@
+[15:25:17] preflight: agent reachable?
+[15:25:17]   store: {'path': '/data/aiops.db', 'exists': True, 'tables': {'calibration': 27, 'investigations': 34, 'action_requests': 25, 'executions': 7, 'audit': 125, 'runbook_feedback': 8, 'cases': 1, 'case_ruled_out': 9}}
+[15:25:17]   actuation: proven_good=True — write credentials authenticate and hold exactly the required permissions in demo (checked 83s ago)
+[15:25:17]   write credentials: live-probed OK
+[15:25:17]   write SA may patch configmap/user-flags
+[15:25:17]   kill switch: ACTIONS_ENABLED=true (execution is live)
+[15:25:17]   deployed image knows k8s.configmap_flag_set
+[15:25:17]   alert webhook secret: present
+[15:25:17]   user-flags.user_session_cache_disabled is currently False (healthy = False)
+[15:25:17] snapshot: store-before-20260822T152517Z.db (364544 bytes)
+[15:25:17] store snapshotted before the run: store-before-20260822T152517Z.db
+[15:25:17] traffic: ~5 rps through webapp (orders, carts, logins)
+[15:25:17] injecting session-cache: user_session_cache_disabled=true (auth checks fall through to the session store)
+[incident] user-flags: user_session_cache_disabled=true
+[incident] user-service auth checks now reach the session store.
+[incident] The flag file is projected from the ConfigMap, so it takes
+[incident] up to ~60s to land. No restart — a rollout in the same
+[incident] minute would give the latency chart a second explanation.
+[15:25:17] waiting 75s for the projected flag file to land
+[15:26:40] symptom is observable: orders_total and user_auth_checks_total both have series
+[15:26:40] alert posted (startsAt=2026-08-22T15:26:40Z, drill=True)
+[15:26:40] waiting for the RCA to produce an ActionRequest…
+[15:26:50]   request 7ebc84ac0ef84717 action=k8s.configmap_flag_set autonomy=propose status=proposed
+[15:26:50] approving 7ebc84ac0ef84717 (the human in human-in-the-loop)
+[15:26:50]   status: executing
+[15:29:40]   status: succeeded
+[15:29:40] terminal state: succeeded  outcome=executed and verified
+
+  phase          verdict      detail
+  ------------------------------------------------------------------------
+  proposed       ok           {"action": "k8s.configmap_flag_set", "autonomy": "propose", "initial_status": "propo
+  approved       ok           {"trace_id": "e617bf3e750274125c6b374b6e34bf5a"}
+  execute        start        {"action": "k8s.configmap_flag_set", "args": {"configmap": "user-flags", "namespace"
+  precondition   ok           {"checked": 4, "trace_id": "e617bf3e750274125c6b374b6e34bf5a"}
+  dry_run        ok           {"blast_radius": "target demo/user-flags, revision user_session_cache_disabled=True→
+  execute        success      {"result": "{'action': 'configmap_flag_set', 'configmap': 'user-flags', 'namespace':
+  verify         settle       {"settle_seconds": 165, "reason": "165s (the verify query looks back 120s, so the co
+  verify         pass         {"check": {"max_value": 0.01}, "detail": "value 0 ≤ max_value 0.01", "output_preview
+
+[15:29:41] snapshot: store-after-20260822T152941Z.db (376832 bytes)
+
+---- what the incident learned ------------------------------------------------
+
+  case key on the request: ffa6ab9638c72564
+  occurrences: 5   status: open
+  root_cause : (none — nobody has confirmed one)
+  resolution : {"action": "k8s.configmap_flag_set", "args": {"configmap": "user-flags", "namespace": "demo", "key": "flags.json", "flag": "user_session_cache_disabled", "value": false}, "runbook_id": "session-cache-timeout", "request_id": "92690e7562a54af8", "verified": true, "ts": "2026-08-22T15:18:43Z"}
+               action=k8s.configmap_flag_set runbook=session-cache-timeout verified=True
+  retracted  : 9 dead end(s) kept as history, not recalled
+
+---- what the next run is handed ----------------------------------------------
+
+    ## Past cases for this service (reference — current evidence wins)
+    - order-cancel-rate-high (×5, last 2026-08-22)
+      resolved by: k8s.configmap_flag_set (verified)
+
+  This was a drill, so the learning half is expected to be empty:
+  remember_resolution() returns early on drills by design. Re-run with
+  --no-drill to exercise it, knowing that writes a real incident row.
+[15:29:41] RESULT: as designed (expected succeeded)
+[15:29:41] traffic: stopped
+[15:29:41] cleanup: user_session_cache_disabled=false
+[incident] user-flags: user_session_cache_disabled=false

@@ -162,6 +162,60 @@ _PROM_METRIC_RE.findall('sum by (reason) (rate(orders_total{status="cancelled"}[
 會**跨執行累積**，而且它長得跟真的一模一樣——同樣的表格、同樣的日期、同樣權威的語氣。一個會學習的
 系統，第一次真正跑起來的時候，學到的第一件事是錯的。
 
+## 六、按下去之後：排練吃掉了真實那一次，而它藏在兩道門後面
+
+`--no-drill` 跑了。第一次的結果是 `aborted`：
+
+```
+terminal state: aborted
+outcome=idempotent: target already acted on for this incident (eae0be82321c4f12)
+```
+
+`eae0be82321c4f12` 是十分鐘前那次**演習**。冪等鑰匙是 `動作|目標|事故`，裡面沒有「這是不是排練」
+這一格，所以排練花掉了這個事故唯一被允許的那次動作。而排練刻意不寫 `resolution`，被擋掉的那次也就
+永遠拿不到寫它的機會。
+
+修法跟 `target` 那次同一個形狀：後綴只加在演習那側（`...|drill`），正式請求的鑰匙一字不變，否則
+帳本裡每一把舊鑰匙都對不上自己——那是把 bug 換成另一個 bug。
+
+**修完之後再跑一次，發現同一個病其實有兩層，而擋住的是更前面那道。** 真實告警發出去，RCA 根本
+沒被叫起來，連一列 investigation 都沒有。原因在 `webhook._in_cooldown()`：
+
+```python
+def fingerprint(labels: dict) -> str:      # alertname | service | git_version
+alert_cooldown_seconds: int = 600
+```
+
+fingerprint 不吃 `drill`，cooldown 十分鐘寬。演習 15:26:40 蓋了章，真實告警 270 秒後到，被當成
+重複的告警直接丟掉。冪等那道門修得對，但它在後面，永遠等不到人。
+
+cooldown 的 key 因此也加上同樣的後綴。**`fp` 本身刻意不動**：它同時是 LangGraph 的 thread id 跟
+案例檢索的 key，切開它會讓排練的發現對它所排練的那個事故隱形，那正是 Day38 記過的「太窄」。
+
+驗證用鑰匙自己說話：
+
+```
+15:42:16  2eae7c48  ...|2b0a13c99c8f670a          aborted   superseded_by 92690e75（真實）
+15:40:17  0ac80e85  ...|2b0a13c99c8f670a|drill    aborted   superseded_by 7ebc84ac（演習）
+15:26:48  7ebc84ac  ...|2b0a13c99c8f670a|drill    succeeded
+15:15:52  92690e75  ...|2b0a13c99c8f670a          succeeded  ← resolution 的第一筆
+```
+
+15:42 那次真實告警**通過了 cooldown**（15:37 才跑過演習），提案有被建出來，這正是修之前沒發生的事。
+它最後仍然 aborted，但這次 `superseded_by` 指的是一次真實執行，不是一次排練。同樣是 aborted，
+理由從錯的變成對的。
+
+`cases.resolution` 的第一筆來自 15:15 那次：
+
+```
+resolution : {"action": "k8s.configmap_flag_set", "runbook_id": "session-cache-timeout",
+              "request_id": "92690e7562a54af8", "verified": true}
+retracted  : 9 dead end(s) kept as history, not recalled
+```
+
+**這一條的教訓不是「少寫了一格」**，是排練跟真的在這套系統裡共用了幾條路徑，而我只數到一條就以為
+數完了。要問的問題是「一次排練會在哪些地方被誤認成真的」，不是「哪一個 key 少了欄位」。
+
 ## 怎麼跑
 
 ```bash
@@ -177,15 +231,16 @@ python3 ironman-2026/day41/close_the_loop.py cleanup
 preflight 會擋這次特別會踩的那個雷：寫入 SA 到今天為止不能 patch ConfigMap，而它會通過現有每一項
 readiness 檢查，然後在唯一重要的那一次呼叫上 403。
 
-輸出：`drill-20260821.txt`（第一輪，假綠燈）、`drill-20260821b.txt`（第二輪，真的）。
+輸出：`drill-20260821.txt`（第一輪，假綠燈）、`drill-20260821b.txt`（第二輪，真的）、
+`nodrill-20260821.txt`（第一次真實執行，被排練擋下來）、`nodrill-20260822.txt`（修完之後，
+`resolution` 的第一筆）、`drill-20260822.txt` 與 `nodrill-20260822b/c.txt`（兩道門的驗證）。
 
 ## 沒做的
 
-- **`--no-drill` 沒跑。** 學習那半——`cases.resolution`、「這個動作修好過這個事故」——因此還是
-  沒有被任何一次真實執行碰過。drill 排除是對的（排練不是證據），但這座叢集上每個事故都是注入的，
-  所以「等一個真的」不是計畫。這是個要人拍板的取捨，腳本把它做成一個有預設值的旗標。
-- **已經被寫進 store 的那些假 dead end 還在。** 抽取修好了，但 `ffa6ab9638c72564` 這個案例上
-  那九列還在毒化召回。`POST /cases/{key}/forget` 可以撤，那是一次刪資料，等人決定。
+- **`fp` 兼四份差事那件事沒動。** 這次只在 cooldown 這一格加了第五種區分（排練 vs 真的），
+  Day38 那張「三種粒度，一個欄位」的表本身還在。
+- **沒有在乾淨窗內跑出一次「演習後、真實成功」的完整綠燈。** 要那張截圖得等一小時讓真實那側的
+  冪等窗過期。目前是靠 `idem_key` 的形狀跟 `superseded_by` 指到誰來證明的。
 - **`k8s.scale` 仍然可以被提案在這個事故上。** runbook 沒提供它，不代表 governance 會擋它。
 - **第二輪的 RCA 答對了沒有，這裡沒有量。** 這一天量的是處置迴路，不是診斷正確率——而診斷正確率
   正好是 day40 停下來的地方。

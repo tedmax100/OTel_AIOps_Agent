@@ -1,0 +1,26 @@
+[15:29:47] preflight: agent reachable?
+[15:29:47]   store: {'path': '/data/aiops.db', 'exists': True, 'tables': {'calibration': 28, 'investigations': 35, 'action_requests': 26, 'executions': 8, 'audit': 133, 'runbook_feedback': 9, 'cases': 1, 'case_ruled_out': 9}}
+[15:29:47]   actuation: proven_good=True — write credentials authenticate and hold exactly the required permissions in demo (checked 53s ago)
+[15:29:47]   write credentials: live-probed OK
+[15:29:47]   write SA may patch configmap/user-flags
+[15:29:47]   kill switch: ACTIONS_ENABLED=true (execution is live)
+[15:29:47]   deployed image knows k8s.configmap_flag_set
+[15:29:47]   alert webhook secret: present
+[15:29:47]   user-flags.user_session_cache_disabled is currently False (healthy = False)
+[15:29:47] snapshot: store-before-20260822T152947Z.db (376832 bytes)
+[15:29:47] store snapshotted before the run: store-before-20260822T152947Z.db
+[15:29:47] traffic: ~5 rps through webapp (orders, carts, logins)
+[15:29:47] injecting session-cache: user_session_cache_disabled=true (auth checks fall through to the session store)
+[incident] user-flags: user_session_cache_disabled=true
+[incident] user-service auth checks now reach the session store.
+[incident] The flag file is projected from the ConfigMap, so it takes
+[incident] up to ~60s to land. No restart — a rollout in the same
+[incident] minute would give the latency chart a second explanation.
+[15:29:47] waiting 75s for the projected flag file to land
+[15:31:10] symptom is observable: orders_total and user_auth_checks_total both have series
+[15:31:10] alert posted (startsAt=2026-08-22T15:31:10Z, drill=False)
+[15:31:10] waiting for the RCA to produce an ActionRequest…
+[15:36:11] traffic: stopped
+[15:36:11] cleanup: user_session_cache_disabled=false
+[incident] user-flags: user_session_cache_disabled=false
+no ActionRequest appeared. Check the agent logs: the RCA may have concluded without matching the runbook, or governance may have escalated instead.
