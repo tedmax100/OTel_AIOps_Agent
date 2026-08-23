@@ -1,0 +1,40 @@
+==============================================================================
+the labeled pool, by month
+==============================================================================
+
+     month  labeled  drills  correct
+   2026-06        7       0        2
+   2026-08        1       0        1
+
+  total labeled: 8   unlabeled: 22
+
+==============================================================================
+the decision band (confidence >= 0.8), grouped by run_id
+==============================================================================
+
+  run_id=2e5b4954f3a93971  rows=1
+    2026-06-22T15:47:45Z  conf=0.95  correct  The payment-service is experiencing a high decline r
+  run_id=1539e7b9b01d65bb  rows=4
+    2026-06-22T15:59:04Z  conf=0.95  WRONG    The payment-service v2.5.0 deployment introduced a r
+      note: 根因是 DB 連線問題，不是 validator regression
+    2026-06-22T15:59:28Z  conf=0.85  WRONG    The payment-service decline rate spike is caused by 
+    2026-06-22T16:00:18Z  conf=0.8   WRONG    The payment-service is experiencing a high decline r
+    2026-06-22T16:03:05Z  conf=0.8   WRONG    The payment-service is experiencing a high rate of d
+  run_id=2b0a13c99c8f670a-20260822T154207-641e7e  rows=1
+    2026-08-22T15:42:16Z  conf=0.9   correct  The order-service cancellation rate is high due to a
+
+  6 row(s) in the band, from 3 run id(s).
+  A run id covering several rows is a pre-Day38 chain: back then run_id was
+  the fingerprint, so every re-investigation of one alert shared it.
+
+==============================================================================
+the curve, with and without rehearsals
+==============================================================================
+
+  everything       labeled=8   overconf=0.3313   band n=6   band acc=0.3333
+  production only  labeled=8   overconf=0.3313   band n=6   band acc=0.3333
+
+  Today the two lines agree: no rehearsal has ever been labeled. That is
+  the point of doing this before labelling the backlog, not after — there
+  are 8 unlabeled drill runs sitting at confidence 0.95, all right about the
+  same seeded fault, and they would have walked into the band together.
