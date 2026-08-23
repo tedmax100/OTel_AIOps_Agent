@@ -45,7 +45,7 @@ MCP 對分層 registry 查不到 base 的屬性。這三件事今天都是預期
 一條永遠不會失敗的斷言等於沒有斷言。把 Day6 那個「package 名字打錯」的坑重現一次：
 
 ```bash
-sed -i 's/^package after_resolution/package mypolicy/' ironman-2026/day07/policies/naming.rego
+sed -i 's/^package after_resolution/package mypolicy/' ironman-2026/day12/policies/naming.rego
 bash ironman-2026/day12/regress.sh
 ```
 
@@ -107,7 +107,7 @@ python3 ironman-2026/day12/verify_onboarding.py ironman-2026/day12/shipping-v1  
 
 ```bash
 weaver registry check -r ironman-2026/day12/shipping-v0/registry \
-  -p ironman-2026/day08/policies --include-unreferenced
+  -p ironman-2026/day12/policies --include-unreferenced
 # × The attribute id `biz.user.id` is declared multiple times ...
 # 但同時也會噴出 aws.dynamodb.table_names、client.port 這些上游自己的同名定義
 ```

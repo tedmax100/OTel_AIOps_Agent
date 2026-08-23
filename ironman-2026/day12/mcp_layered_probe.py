@@ -13,6 +13,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "day10"))
 
 from mcp_probe import McpProbe  # noqa: E402
 
-probe = McpProbe("ironman-2026/day09/team-orders")
+probe = McpProbe("ironman-2026/day12/team-orders")
 print(probe.text("get_attribute", key="biz.user.id"))
 probe.close()

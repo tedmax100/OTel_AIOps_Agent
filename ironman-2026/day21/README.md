@@ -1,129 +1,118 @@
-# Day21：agent 開始想之前，手上有什麼
+# Day21：先把量尺修好，再讓 fixture 去讀逐字稿
 
-`run_headless()` 組裝完一輪之後才呼叫圖。這裡放兩支腳本：一支把那一刻的 state
-印出來（不花 token），一支真的跑一次 RCA 並保留逐字稿。
+Day21 跑出一場好看的 RCA，然後發現答案寫在 prompt 裡。這一天做兩件事：把洩題拿掉，
+並且讓 eval 不只看結論、也看它是怎麼查到的。
 
 | 檔案 | 內容 |
 | --- | --- |
-| `probe_turn.py` | 把 `_build_agent()` 換成只記錄的樁，照正常路徑跑 `run_headless()`，印出交給圖的每一則訊息。零 token |
-| `run_rca.py` | 跑真的 RCA（要 `GOOGLE_API_KEY`），把圖產出的每一則訊息側錄下來印成逐字稿 |
+| `leakcheck.py` | 把交給模型的每一個區塊（system prompt ＋ 所有注入）掃一次答案關鍵字。零 token，有洩題就 exit 1 |
+| `ab_run.py` | 同一個告警跑兩次：A 用洩題版 prompt、B 用清乾淨的，印出兩邊的工具呼叫與結論 |
+| `leaky_catalog.md` / `leaky_contracts.yaml` | 清理前那兩份 prompt 素材的原樣快照，`ab_run.py` 的 A 邊就吃這兩份 |
+| `scripts/stage_incident.sh` | 把事故種進資料裡：先跑一段 v2.4.1 健康窗，再翻 flag ＋ 換版本，然後打 odd-cents 讓它拒絕 |
 
 同時改的是 agent 服務自己的原始碼：
 
 | 檔案 | 改了什麼 |
 | --- | --- |
-| `signals/health.py` | 區塊開頭的 `read just now` 改成印出實際使用的時鐘（`current_now()`，在告警調查中會被釘到 `startsAt`） |
-| `tests/test_health.py` | 一條新斷言：在 `now_override` 裡產生的區塊要寫出被釘住的那個時間，且不得出現 `just now` |
+| `app/schema_catalog.md` | 拿掉版本轉換、flag 名稱、`new_validator_odd_cents`，以及那段就是本次結論的回答格式範例；feature flag 那節只留機制 |
+| `demo-services/services/payment/signal.yaml` | 契約的 `role` 跟 caveat 不再寫出 flag 名字（改完要重跑 `python -m app.signals.compile`） |
+| `app/agent.py` | `run_headless()` 多回傳 `messages`，evaluation 才讀得到逐字稿 |
+| `app/eval/process.py` | 四條從逐字稿讀出來的檢查：`queried` / `grounded` / `discover_before_retry` / `evidence_or_hedge` |
+| `app/eval/harness.py` | fixture 多一個 `process:` 區塊；過程沒過就不算對 |
+| `app/eval/fixtures.yaml` | 三個 fixture 都補上 `process:`，並新增 `order-service-discover-before-query` |
+| `tests/test_eval_process.py` | 每條檢查一個該綠的、一個該紅的逐字稿 |
 
-## 跑 probe
+## 掃洩題
 
-前提是 Prometheus / Loki / Tempo 都 port-forward 好了。從 `aiops-agent/service/` 底下跑：
-
-```bash
-uv run python ../../otel-aiops-agent/ironman-2026/day21/probe_turn.py
-```
-
-```
-runbook payment-bad-deploy matched alertname 'PaymentDeclineRateHigh' only after
-normalization (trigger says 'payment-decline-rate-high') — align the alert rule
-or the runbook trigger
-budget: 6 tool calls
-messages handed to the graph: 6
-
-0. [system   ]    517 chars  ## Live capability snapshot
-1. [system   ]   2212 chars  ## Signal context (topology v1.0.0)
-2. [system   ]    785 chars  ## Runbook: payment-bad-deploy — payment-service decline-rate spike after…
-3. [system   ]   1305 chars  ## Runbook diagnostics auto-run: payment-bad-deploy
-4. [system   ]    572 chars  ## Dependency health (live) — payment-service
-5. [user     ]   3444 chars  An alert just fired. Investigate the root cause and conclude with the sin…
-
-total: 8835 chars before the first token of reasoning
-```
-
-加 `--full` 印出每一則的完整內容：
+從 `aiops-agent/service/` 底下跑，不需要 API key：
 
 ```bash
-uv run python ../../otel-aiops-agent/ironman-2026/day21/probe_turn.py --full
+uv run python ../../otel-aiops-agent/ironman-2026/day21/leakcheck.py --show
 ```
 
-## 釘住的時鐘
-
-`probe_turn.py` 裡的 `ALERT["startsAt"]` 是 `2026-08-05T15:30:00Z`，也就是 payment 事故
-真的在跑的那個時間點。s4 的依賴健康會在 `now_override` 裡讀，所以印出來的是事故當下的
-數字，不是現在的：
+清理前：
 
 ```
-Each service's SLI, read at 2026-08-05T15:30:00Z (the incident clock for this
-investigation, not necessarily wall-clock now), to attribute root cause to the
-right node:
-- this service payment-service: error 61.5% — UNHEALTHY (breaches objective declined_rate < 1%)
+scanned 5 block(s), 29854 chars
+
+[LEAK] system prompt (schema catalog)
+         culprit version: 'v2.5.0'
+           | payment-service 在 14:05 後 decline 率從 0% 跳到 18%，全集中在 v2.5.0、
+         previous version: 'v2.4.1'
+           | | payment-service | charges. Has the `payment_use_new_validator` flag | … | v2.4.1 |
+         the flag that ships it: 'payment_use_new_validator'
+         failure mechanism: 'odd_cents'
+         decline reason value: 'new_validator_odd_cents'
+[ok  ] injected #0: ## Live capability snapshot
+[LEAK] injected #1: ## Signal context (topology v1.0.0)
+         decline reason value: 'new_validator'
+           | - caveat: … to find which deploy/reason drives it (e.g. the new_validator flag shipping in a release).
+[ok  ] injected #2: ## Dependency health (live) — payment-service
+[ok  ] injected #3: An alert just fired. Investigate the root cause and conclude
+
+6 leak(s) across 2 block(s)
 ```
 
-改之前那一行寫的是 `read just now`，而它讀的是一天前。
+清理後：
 
-要在自己的環境重現，把 `startsAt` 換成你那座 stack 有事故資料的時間。
+```
+[ok  ] system prompt (schema catalog)
+[ok  ] injected #0: ## Live capability snapshot
+[ok  ] injected #1: ## Signal context (topology v1.0.0)
+[ok  ] injected #2: ## Dependency health (live) — payment-service
+[ok  ] injected #3: An alert just fired. Investigate the root cause and conclude
 
-那個時間點沒有資料的話**不會**退成 `unavailable`：contracts.yaml 裡的 error SLI 寫成
-`(sum(rate(...)) or vector(0)) / clamp_min(sum(rate(...)) or vector(0), 1)`，
-分子分母都有 fallback，所以查無資料會算出 `0` 並印成 `error 0.0% — healthy`。
-（本機在 Prometheus 保留期外的時間點跑，看到的就是這個。）
+no answer tokens in anything handed to the model.
+```
 
-## 為什麼只有六則
+## 種一次事故
 
-注入有六個（runbook 那一個自己產兩則），少掉的是過去事故：
+前提：k3d demo stack 起來，而且 `webapp:8002`、`payment-service:8001`、
+Prometheus/Loki/Tempo 都 port-forward 好了。
 
 ```bash
-uv run python -c "
-from app.agent import _past_incident_context
-print('past:', repr(_past_incident_context('payment-service','PaymentDeclineRateHigh')))"
+LOAD=/path/to/o11y-bench/demo-services/scripts/load.sh \
+  ./scripts/stage_incident.sh 8 14      # 8 分鐘健康窗 + 14 分鐘事故
+```
+
+整段刻意壓在一小時內，因為 Tempo 的 `block_retention` 是 1h——窗開得更寬，
+第 4 步「抓一條 trace 佐證」不是變慢，是變成不可能。
+
+## A/B
+
+要 `GOOGLE_API_KEY`，兩次真的 RCA：
+
+```bash
+uv run python ../../otel-aiops-agent/ironman-2026/day21/ab_run.py            # 用現在的時鐘
+uv run python ../../otel-aiops-agent/ironman-2026/day21/ab_run.py 2026-08-06T13:21:10Z
+```
+
+## 跑 eval
+
+```bash
+uv run python -m app.eval run -n 2
 ```
 
 ```
-past: ''
+aiops-agent eval — 3 fixture(s), 6 run(s), overall correct 50%
+
+  fixture                        correct   service   version   conf  err
+  ----------------------------------------------------------------------
+  payment-decline-service        100% (2/2)    100%     100%   0.75    0
+  user-service-no-incident        50% (1/2)    100%    n/a   0.60    0
+  order-service-discover-before-query     0% (0/2)     50%    n/a   0.65    0
+
+  failed process checks (the answer may still read fine):
+    x user-service-no-incident seed1 — discover_before_retry: query_tempo_traces errored and was re-sent unchanged
+    x order-service-discover-before-query seed0 — discover_before_retry: query_prometheus came back empty, retried query_prometheus without discovering
+    x order-service-discover-before-query seed1 — discover_before_retry: query_prometheus came back empty, retried query_loki_logs without discovering
 ```
 
-過去事故庫從來沒有被寫入過，而注入是 fail-open：拿不到就不注入。
-
-runbook 反而是有比對到的，只是靠正規化：trigger 寫 `payment-decline-rate-high`，
-告警叫 `PaymentDeclineRateHigh`。`match_runbook()` 要連 `service_name`、`severity`
-一起餵才會中，只丟 `alertname` 進去會拿到 `None`（是餵少了，不是沒有 runbook）。
+`baseline.json` 的數字跟你那座 stack 的資料有關，第一次跑完用 `--save-baseline`
+寫自己的基準，之後的回歸才是跟自己比。
 
 ## 測試
 
 ```bash
-uv run pytest tests/test_health.py -q
+uv run pytest tests/test_eval_process.py tests/test_eval_harness.py -q
 ```
-
-## 跑真的 RCA
-
-要 `GOOGLE_API_KEY`（Gemini），從 `aiops-agent/service/` 底下跑：
-
-```bash
-uv run python ../../otel-aiops-agent/ironman-2026/day21/run_rca.py
-```
-
-一次大約十三秒、四次工具呼叫（上限六次）。輸出包含它在每次呼叫前說了什麼，
-所以看得到 Step 0 的假設樹有沒有真的列出來。
-
-## 兩個要注意的量測限制
-
-**Tempo 只留一小時。** `tempo-config` 裡 `compaction.block_retention: 1h`，
-所以任何超過一小時的告警，第 4 步「抓一條 trace 佐證」都不可能成功。
-agent 會照樣花掉預算去試，因為沒有任何地方宣告過這個保留期。
-
-**系統 prompt 洩題。** `build_system_prompt()` 的 schema catalog 為了說明
-`payment_use_new_validator` 這個 flag，把它造成的事故一起寫進去了：
-
-```bash
-uv run python -c "
-from app.agent import build_system_prompt
-p = build_system_prompt()
-print('v2.4.1' in p, 'new_validator' in p)"
-```
-
-（寫這篇的當下這行印 `True True`。洩題後來被拿掉了，所以現在跑同一行會拿到
-`False False` — 要重現當時的狀態得 checkout 當時的 commit。）
-
-裡面包含版本轉換（`v2.4.1` → `v2.5.0`）、失效機制（odd-cents 被拒）、
-以及一段格式範例直接就是這次事故的結論。所以在這座 demo 上跑出來的 RCA 成績
-**不能拿來評估 agent 的根因分析能力**，它是開書考。

@@ -19,9 +19,9 @@ import sys
 from pathlib import Path
 from typing import Any
 
-DAY07_POLICIES = "ironman-2026/day07/policies"
-DAY08_POLICIES = "ironman-2026/day08/policies"
-COMPILE_INTENT = "ironman-2026/day11/compile_intent.py"
+DAY07_POLICIES = "ironman-2026/day12/policies"
+DAY08_POLICIES = "ironman-2026/day12/policies"
+COMPILE_INTENT = "ironman-2026/day12/compile_intent.py"
 
 
 class Report:
@@ -97,7 +97,7 @@ def main() -> int:
         report.no(
             "1. registry/manifest.yaml 存在",
             f"找不到 {manifest}",
-            "從 ironman-2026/day08/base/manifest.yaml 抄一份改名字跟 schema_url",
+            "從 ironman-2026/day12/base/manifest.yaml 抄一份改名字跟 schema_url",
         )
         return 1
 
@@ -144,7 +144,7 @@ def main() -> int:
         report.no(
             "5. 有宣告 base registry 的 dependency",
             "manifest.yaml 裡沒有 dependencies",
-            "加上 ironman-2026/day08/base，然後把共用欄位改成 ref",
+            "加上 ironman-2026/day12/base，然後把共用欄位改成 ref",
         )
 
     code, out = run("weaver", "registry", "check", "-r", registry, "-p", DAY08_POLICIES)
@@ -224,7 +224,7 @@ def main() -> int:
         report.no(
             "11. 有寫下這個服務的穩定狀態意圖",
             f"{intent_dir} 底下沒有任何 YAML",
-            "從 ironman-2026/day11/intent/steady-state.yaml 抄一份，寫下什麼叫做正常",
+            "從 ironman-2026/day12/intent/steady-state.yaml 抄一份，寫下什麼叫做正常",
         )
 
     if intents:
@@ -242,7 +242,7 @@ def main() -> int:
 
     code, out = run(
         "weaver", "registry", "generate", "-r", registry,
-        "--templates", "ironman-2026/day11/templates", "python", "/tmp/onboarding-gen",
+        "--templates", "ironman-2026/day12/templates", "python", "/tmp/onboarding-gen",
     )
     if code == 0:
         report.ok("13. 生得出型別安全的常數與 enum")

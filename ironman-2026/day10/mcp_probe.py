@@ -17,8 +17,8 @@ import json
 import subprocess
 import sys
 
-BASE = "ironman-2026/day09/base-v2"
-TEAM = "ironman-2026/day09/team-orders"
+BASE = "ironman-2026/day10/base-v2"
+TEAM = "ironman-2026/day10/team-orders"
 
 
 class McpProbe:
