@@ -17,8 +17,8 @@ exists to prevent.
 
 Dry run by default.
 
-    python3 ironman-2026/day29/backfill_grading_mode.py
-    python3 ironman-2026/day29/backfill_grading_mode.py --apply
+    python3 ironman-2026/day31/backfill_grading_mode.py
+    python3 ironman-2026/day31/backfill_grading_mode.py --apply
 """
 
 from __future__ import annotations

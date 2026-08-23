@@ -14,7 +14,7 @@ Two shapes are edges and both are handled here:
     from .governance import Decision     # ImportFrom(module="governance")
     from . import store, audit           # ImportFrom(module=None, names=[...])
 
-    python3 ironman-2026/day27/importgraph.py <pkg> [--focus a,b,c]
+    python3 ironman-2026/day29/importgraph.py <pkg> [--focus a,b,c]
 
 `--focus` keeps only the listed modules plus everything directly touching them,
 so a 20-module package can be read one plane at a time.

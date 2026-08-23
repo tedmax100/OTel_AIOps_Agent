@@ -27,7 +27,7 @@ Day21 跑出一場好看的 RCA，然後發現答案寫在 prompt 裡。這一�
 從 `aiops-agent/service/` 底下跑，不需要 API key：
 
 ```bash
-uv run python ../../otel-aiops-agent/ironman-2026/day21/leakcheck.py --show
+uv run python ../../otel-aiops-agent/ironman-2026/day20/probe_turn.py
 ```
 
 清理前：
@@ -83,8 +83,8 @@ LOAD=/path/to/o11y-bench/demo-services/scripts/load.sh \
 要 `GOOGLE_API_KEY`，兩次真的 RCA：
 
 ```bash
-uv run python ../../otel-aiops-agent/ironman-2026/day21/ab_run.py            # 用現在的時鐘
-uv run python ../../otel-aiops-agent/ironman-2026/day21/ab_run.py 2026-08-06T13:21:10Z
+- this service payment-service: error 61.5% — UNHEALTHY (breaches objective declined_rate < 1%)
+改之前那一行寫的是 `read just now`，而它讀的是一天前。
 ```
 
 ## 跑 eval

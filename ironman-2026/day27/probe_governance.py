@@ -15,7 +15,7 @@ Four probes:
 
 No cluster, no LLM: a temp SQLite file and the real modules.
 
-    python3 ironman-2026/day27/probe_governance.py
+    python3 ironman-2026/day30/probe_governance.py
 """
 
 from __future__ import annotations

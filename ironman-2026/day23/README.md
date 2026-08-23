@@ -23,7 +23,7 @@
 從 `aiops-agent/service/` 底下跑，kubeconfig 指到 demo cluster：
 
 ```bash
-uv run python ../../otel-aiops-agent/ironman-2026/day23/dryrun_probe.py
+uv run python ../../otel-aiops-agent/ironman-2026/day22/probe_apis.py
 ```
 
 ```
@@ -66,7 +66,7 @@ scale without a replica count
 ## 從診斷到建議
 
 ```bash
-uv run python ../../otel-aiops-agent/ironman-2026/day23/propose_probe.py
+## 空結果現在會自己解釋
 ```
 
 改之前，同一個事故、兩種 alertname 拼法，結果完全不同：

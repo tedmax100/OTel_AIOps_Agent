@@ -25,14 +25,14 @@ day07/
 ## 1. registry 本身是綠的
 
 ```bash
-weaver registry check -r ironman-2026/day07/registry -p ironman-2026/day07/policies
+weaver registry check -r ironman-2026/day06/registry -p ironman-2026/day07/policies
 echo $?   # 0
 ```
 
 拿昨天那份沒收斂的當對照組，同一組 policy 會噴 9 個違規、離開碼 1：
 
 ```bash
-weaver registry check -r ironman-2026/day07/registry -p ironman-2026/day07/policies
+weaver registry check -r ironman-2026/day06/registry -p ironman-2026/day07/policies
 echo $?   # 1
 ```
 
@@ -50,7 +50,7 @@ workflow 裡的 `Probe` step 就是這一句加上一個 `-lt 1` 的判斷。
 ## 3. 產出 GitHub annotation
 
 ```bash
-weaver registry check -r ironman-2026/day07/registry -p ironman-2026/day07/policies \
+weaver registry check -r ironman-2026/day06/registry -p ironman-2026/day07/policies \
   --diagnostic-format gh_workflow_command --diagnostic-stdout
 ```
 

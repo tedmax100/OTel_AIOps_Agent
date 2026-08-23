@@ -20,7 +20,7 @@
 從 `aiops-agent/service/` 底下跑，stack 要 port-forward 好：
 
 ```bash
-uv run python ../../otel-aiops-agent/ironman-2026/day22/probe_apis.py
+| `app/agent.py` | `run_headless()` 多回傳 `messages`，evaluation 才讀得到逐字稿 |
 ```
 
 ```
@@ -147,7 +147,7 @@ uv run pytest tests/test_query.py -q      # 54 passed
 從 `aiops-agent/service/` 底下跑。前兩段不需要 API key：
 
 ```bash
-uv run python ../../otel-aiops-agent/ironman-2026/day22/judge_probe.py --no-llm
+LOAD=/path/to/o11y-bench/demo-services/scripts/load.sh \
 ```
 
 ```
@@ -176,7 +176,7 @@ curl -s -o /dev/null -w "%{http_code}\n" localhost:3200/api/traces/00714a766bcdc
 第三段要 `GOOGLE_API_KEY`：
 
 ```bash
-uv run python ../../otel-aiops-agent/ironman-2026/day22/judge_probe.py
+uv run python -m app.eval run -n 2
 ```
 
 ```

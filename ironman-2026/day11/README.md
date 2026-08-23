@@ -80,9 +80,9 @@ Day9 量過：`registry diff` 對型別改變、enum member 移除、`brief` 改
 用 Day9 那兩份 registry 各生成一次再 diff：
 
 ```bash
-weaver registry generate -r ironman-2026/day11/base-v1 \
+weaver registry generate -r ironman-2026/day09/base-v1 \
   --templates ironman-2026/day11/templates python /tmp/g1
-weaver registry generate -r ironman-2026/day11/base-v2 \
+weaver registry generate -r ironman-2026/day09/base-v2 \
   --templates ironman-2026/day11/templates python /tmp/g2
 diff -u /tmp/g1/semconv_attrs.py /tmp/g2/semconv_attrs.py
 diff -u /tmp/g1/semconv_enums.py /tmp/g2/semconv_enums.py

@@ -21,7 +21,7 @@ Four probes on a temp store, no cluster and no LLM:
   4. a hedged non-incident must NOT come back as precedent (the Day33 column
      doing its job), and neither must an unlabeled or unknown-mode row
 
-    python3 ironman-2026/day30/probe_past_incidents.py
+    python3 ironman-2026/day32/probe_past_incidents.py
 """
 
 from __future__ import annotations

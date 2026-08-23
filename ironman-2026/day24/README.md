@@ -39,7 +39,7 @@
 改完之後，中間那四列 chat 也有了。
 
 ```bash
-uv run python ../../otel-aiops-agent/ironman-2026/day24/chat_probe.py
+uv run python ../../otel-aiops-agent/ironman-2026/day23/dryrun_probe.py
 ```
 
 ```
@@ -53,7 +53,7 @@ order-service 的 p95 latency          in_scope=True  mode=lookup       services
 `mode` 決定走哪條路：`lookup` 一次 LLM 呼叫吐出查詢、讓面板自己渲染；`investigate` 走完整的圖，而且從這天起會帶著 playbook。
 
 ```bash
-uv run python ../../otel-aiops-agent/ironman-2026/day24/chat_turn.py "payment-service 的拒絕率為什麼變高了？"
+
 ```
 
 ```
@@ -78,7 +78,7 @@ stored row: fp=ui-demo-1 source=chat confidence=0.7 trace_id=10d35edee3e4a743d43
 | ```` ```alert ```` | 提案卡＋「Create alert」按鈕 |
 
 ```bash
-uv run python ../../otel-aiops-agent/ironman-2026/day24/render_probe.py "近10筆 payment-service 的 log"
+  before: replicas=2 generation=28 resourceVersion=606260
 ```
 
 ```
@@ -105,7 +105,7 @@ $ curl -X POST localhost:8091/alerts/provision -d '{"title":"payment decline rat
 ## 三、帳單：一次 chat 調查的全貌
 
 ```bash
-uv run python ../../otel-aiops-agent/ironman-2026/day24/trace_tree.py <trace_id>
+兩個問題：大小寫拼法不同就整條鏈斷掉而且沒有人講話，以及**提案送到人面前時
 ```
 
 ```

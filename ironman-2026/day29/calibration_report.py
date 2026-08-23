@@ -17,7 +17,7 @@ Four views of the same 35 rows:
 
 Read-only. No cluster, no LLM.
 
-    python3 ironman-2026/day29/calibration_report.py
+    python3 ironman-2026/day31/calibration_report.py
 """
 
 from __future__ import annotations
