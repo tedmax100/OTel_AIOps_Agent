@@ -130,14 +130,36 @@ investigation 存的 alert labels，加上 `suspected_version` 裡的 `-drill`�
 所以任何走 `load_records()` 的讀者，看到的都是「一筆錯誤判決，沒有任何理由」。
 今天要稽核「這個判決本身是不是錯的」，缺的正是這一欄。
 
-## 五、撤回之後，數字會變醜
+## 五、撤回之後，數字變醜了——而且方向是反的
 
-這是重點，所以講清楚：撤回四筆之後，labeled 從 8 掉到 4，
-決策區從 6 列掉到 2 列——**低於門檻 3**。治理的那句話會從
-「準確率不足」變成「決策區沒有足夠證據」。
+這是重點，所以講清楚。撤回那四筆之後，同一支 probe 跑出來：
 
-看起來像退步。實際上是從「量到一個錯的數字」變成「誠實說沒有足夠證據」。
+```
+  total labeled: 4   unlabeled: 26
+
+  decision band (conf >= 0.8)
+    2026-06-22  conf=0.95  correct   payment-service ... v2.5.0 validator
+    2026-08-22  conf=0.9   correct   order-service ... session store
+    2 row(s) in the band, from 2 run id(s)
+
+  production only   labeled=4  overconf=-0.1875  band n=2  band acc=1.0
+```
+
+labeled 8 → 4，決策區 6 列 → 2 列，**低於門檻 3**。所以治理那句話會從
+「準確率不足」變成「決策區沒有足夠證據」——看起來像退步，
+實際上是從「量到一個錯的數字」變成「誠實說沒有足夠證據」。
 一個 n=6 而且四列來自同一次失誤的準確率，本來就不該被當成對這隻 agent 的評價。
+
+但更值得看的是 **overconfidence 從 +0.3929 翻成 −0.1875**。負號代表偏保守：
+剩下的樣本裡，agent 反而是**低估**自己。
+
+也就是說 Day42 寫的「信心與正確率反向、它最有把握的時候最容易錯」，
+在方向上就是錯的——那個 +0.39 跟那個 0.2，都是同一條污染鏈撐出來的。
+昨天那篇需要今天這篇來翻案，而翻案的理由不是換了模型或換了演算法，
+是**把不該算數的證據拿掉**。
+
+撤回前後兩份輸出都留在這個目錄（`pool-20260823.txt` 與
+`pool-20260823-after-retraction.txt`），可以自己對照。
 
 要把數字做回來，路徑很清楚：**八月有 15 筆非排練的高信心 run 還沒標**。
 Todo 頁現在每一列都有 Correct / Wrong，標完就地消失、上面的表當場跳動，
@@ -158,12 +180,13 @@ Todo 頁現在每一列都有 Correct / Wrong，標完就地消失、上面的�
 | Plugin | Todo 與 Cases 兩頁；Todo 可直接標註，Cases 可寫根因 |
 | 維運腳本 | `backfill_calibration_drill.py`、`retract_calibration_labels.py`（皆 dry-run 預設） |
 | 修掉 | `cal_load()` 漏讀 `error_dimension` / `correction_note` |
+| 翻案 | Day42 的「信心與正確率反向」不成立：overconfidence +0.3929 → **−0.1875** |
 
 ```bash
 python3 ironman-2026/day43/probe_label_pool.py          # 對著叢集
 python3 ironman-2026/day43/probe_label_pool.py --local  # 對著本機 checkout
 ```
 
-完整輸出在 `pool-20260823.txt`。
+完整輸出在 `pool-20260823.txt`（撤回前）與 `pool-20260823-after-retraction.txt`（撤回後）。
 
 明天：把那 15 筆標完，第一次看到一個**只由這隻 agent、在真實事故上**產生的校準曲線。

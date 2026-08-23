@@ -1,0 +1,34 @@
+==============================================================================
+the labeled pool, by month
+==============================================================================
+
+     month  labeled  drills  correct
+   2026-06        3       0        2
+   2026-08        1       0        1
+
+  total labeled: 4   unlabeled: 26
+
+==============================================================================
+the decision band (confidence >= 0.8), grouped by run_id
+==============================================================================
+
+  run_id=2e5b4954f3a93971  rows=1
+    2026-06-22T15:47:45Z  conf=0.95  correct  The payment-service is experiencing a high decline r
+  run_id=2b0a13c99c8f670a-20260822T154207-641e7e  rows=1
+    2026-08-22T15:42:16Z  conf=0.9   correct  The order-service cancellation rate is high due to a
+
+  2 row(s) in the band, from 2 run id(s).
+  A run id covering several rows is a pre-Day38 chain: back then run_id was
+  the fingerprint, so every re-investigation of one alert shared it.
+
+==============================================================================
+the curve, with and without rehearsals
+==============================================================================
+
+  everything       labeled=4   overconf=-0.1875  band n=2   band acc=1.0
+  production only  labeled=4   overconf=-0.1875  band n=2   band acc=1.0
+
+  Today the two lines agree: no rehearsal has ever been labeled. That is
+  the point of doing this before labelling the backlog, not after — there
+  are 8 unlabeled drill runs sitting at confidence 0.95, all right about the
+  same seeded fault, and they would have walked into the band together.
