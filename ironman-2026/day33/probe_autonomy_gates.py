@@ -36,7 +36,12 @@ PROBE = r"""
 from datetime import UTC, datetime
 from pathlib import Path
 
-from app.calibration import bin_evidence, compute_calibration, load_records
+from app.calibration import (
+    bin_evidence,
+    compute_calibration,
+    load_records,
+    production_records,
+)
 from app.config import settings
 from app.eval.record import load as load_fixture_record
 from app.governance import _SELF_LABEL_SOURCES, _calibration_verdict, regression_verdict
@@ -54,8 +59,13 @@ print("=" * 78)
 print("the conditions AUTO has to clear")
 print("=" * 78)
 
-prod = compute_calibration(load_records(), modes=modes)
-human = store.cal_count_by_source(exclude_sources=_SELF_LABEL_SOURCES, modes=modes)
+# Drills are excluded here for the same reason governance excludes them: six
+# replays of one seeded fault are one piece of evidence, not six. Reading
+# load_records() directly made this probe report 11 where the gate saw 5.
+prod = compute_calibration(production_records(load_records()), modes=modes)
+human = store.cal_count_by_source(
+    exclude_sources=_SELF_LABEL_SOURCES, modes=modes, exclude_drills=True
+)
 ev = bin_evidence(prod, min_bin_count=S.governance_min_bin_count, band_lo=S.governance_conf_high)
 
 print()
