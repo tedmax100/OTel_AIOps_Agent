@@ -2,10 +2,10 @@
 """Drive the second incident all the way round: alert → runbook → propose →
 approve → execute → verify → *and then check what the incident learned*.
 
-    python3 ironman-2026/day28/close_the_loop.py preflight
-    python3 ironman-2026/day28/close_the_loop.py run          # drill (default)
-    python3 ironman-2026/day28/close_the_loop.py run --no-drill
-    python3 ironman-2026/day28/close_the_loop.py cleanup
+    python3 ironman-2026/day27/close_the_loop.py preflight
+    python3 ironman-2026/day27/close_the_loop.py run          # drill (default)
+    python3 ironman-2026/day27/close_the_loop.py run --no-drill
+    python3 ironman-2026/day27/close_the_loop.py cleanup
 
 Why another game day
 --------------------

@@ -16,7 +16,7 @@ Four probes here, each printing what the row actually looks like afterwards:
 
 No cluster, no LLM: a temp SQLite file and the real modules.
 
-    python3 ironman-2026/day30/probe_lifecycle.py
+    python3 ironman-2026/day27/probe_lifecycle.py
 """
 
 from __future__ import annotations

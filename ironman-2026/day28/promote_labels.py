@@ -19,8 +19,8 @@ This is that bridge, made explicit rather than implicit:
   - idempotent: a run_id already present in the target is skipped
   - dry-run by default; `--apply` is the only thing that writes
 
-    python3 ironman-2026/day31/promote_labels.py            # show what would move
-    python3 ironman-2026/day31/promote_labels.py --apply
+    python3 ironman-2026/day28/promote_labels.py            # show what would move
+    python3 ironman-2026/day28/promote_labels.py --apply
 """
 
 from __future__ import annotations

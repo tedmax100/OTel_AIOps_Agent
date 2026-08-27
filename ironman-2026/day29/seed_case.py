@@ -24,9 +24,9 @@ seeded fingerprint is computed from a different version than the one the eval
 alert will carry, so under the old key the two are unrelated investigations and
 recall cannot fire. If it fires, the case key survived the redeploy.
 
-    python3 ironman-2026/day31/seed_case.py                 # into aiops.db
-    python3 ironman-2026/day31/seed_case.py --clear         # remove it again
-    python3 ironman-2026/day31/seed_case.py --store /tmp/x.db
+    python3 ironman-2026/day29/seed_case.py                 # into aiops.db
+    python3 ironman-2026/day29/seed_case.py --clear         # remove it again
+    python3 ironman-2026/day29/seed_case.py --store /tmp/x.db
 """
 
 from __future__ import annotations

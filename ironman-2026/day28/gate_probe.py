@@ -19,7 +19,7 @@ This probe runs the gate over three datasets and prints what changed:
 
 Read-only. No cluster, no LLM.
 
-    python3 ironman-2026/day29/gate_probe.py
+    python3 ironman-2026/day28/gate_probe.py
 """
 
 from __future__ import annotations

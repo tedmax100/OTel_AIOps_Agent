@@ -29,7 +29,7 @@ schema and the migrations on open, so reading an old store through the normal
 path silently upgrades it — which is exactly how a read-only probe once added a
 column to the very snapshot being kept as evidence that the column was absent.
 
-    python3 ironman-2026/day31/probe_case_memory.py
+    python3 ironman-2026/day29/probe_case_memory.py
 """
 
 from __future__ import annotations

@@ -13,7 +13,7 @@ purpose: the whole point of this layer is that it can be recomputed without a
 model and without a running incident.
 
 Run from `aiops-agent/service/`:
-    uv run python ../../otel-aiops-agent/ironman-2026/day35/probe_applicability.py
+    uv run python ../../otel-aiops-agent/ironman-2026/day32/probe_applicability.py
 """
 
 from __future__ import annotations

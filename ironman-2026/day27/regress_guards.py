@@ -25,8 +25,8 @@ Grouped by which plane the guard lives in:
 
 Temp SQLite plus the real modules. No cluster, no LLM.
 
-    python3 ironman-2026/day33/regress_guards.py
-    python3 ironman-2026/day33/regress_guards.py -v    # print every case
+    python3 ironman-2026/day27/regress_guards.py
+    python3 ironman-2026/day27/regress_guards.py -v    # print every case
 """
 
 from __future__ import annotations

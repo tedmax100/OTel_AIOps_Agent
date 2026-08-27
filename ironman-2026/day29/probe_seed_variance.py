@@ -15,8 +15,8 @@ bit-deterministic rather than a sample of anything.
 Reads the eval store, groups by (fixture, run) and asks two questions:
 does the *text* differ between seeds, and does the *verdict*.
 
-    python3 ironman-2026/day32/probe_seed_variance.py
-    python3 ironman-2026/day32/probe_seed_variance.py --store path/to/eval.db
+    python3 ironman-2026/day29/probe_seed_variance.py
+    python3 ironman-2026/day29/probe_seed_variance.py --store path/to/eval.db
 """
 
 from __future__ import annotations

@@ -20,7 +20,7 @@ no LLM.
   5. runbook health: one verdict, read by the prompt and by the gate
   6. forgetting: the age-out, and the retraction for when a month is too long
 
-    python3 ironman-2026/day32/probe_intervention_memory.py
+    python3 ironman-2026/day29/probe_intervention_memory.py
 """
 
 from __future__ import annotations

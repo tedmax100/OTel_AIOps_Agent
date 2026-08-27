@@ -13,7 +13,7 @@ recent data answers empty for the right query too, which the output will show
 rather than hide.
 
 Run from `aiops-agent/service/`:
-    uv run python ../../otel-aiops-agent/ironman-2026/day34/probe_facts.py
+    uv run python ../../otel-aiops-agent/ironman-2026/day31/probe_facts.py
 """
 
 from __future__ import annotations

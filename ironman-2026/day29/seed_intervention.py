@@ -27,9 +27,9 @@ to: the run is being handed something a human learned from an earlier attempt at
 the same incident. The claim being tested is narrower than "recall helps" — it
 is "does removing two wrong branches change the answer".
 
-    python3 ironman-2026/day32/seed_intervention.py            # into aiops.db
-    python3 ironman-2026/day32/seed_intervention.py --clear     # retract it
-    python3 ironman-2026/day32/seed_intervention.py --store /tmp/x.db
+    python3 ironman-2026/day29/seed_intervention.py            # into aiops.db
+    python3 ironman-2026/day29/seed_intervention.py --clear     # retract it
+    python3 ironman-2026/day29/seed_intervention.py --store /tmp/x.db
 """
 
 from __future__ import annotations

@@ -12,7 +12,7 @@ prompt is a scenario that measures nothing.
 
     kubectl -n demo port-forward svc/prometheus 9090:9090 &
     kubectl -n demo port-forward svc/loki 3100:3100 &
-    python3 ironman-2026/day32/verify_incident.py
+    python3 ironman-2026/day29/verify_incident.py
 
 Expects `scripts/incident.sh start session-cache` to have been running long
 enough for the projected flag to land and for traffic to have gone through.

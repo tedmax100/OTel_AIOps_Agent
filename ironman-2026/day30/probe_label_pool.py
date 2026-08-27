@@ -15,10 +15,10 @@ Three things it prints:
   3. what the curve looks like with the rehearsals excluded.
 
     # against the running cluster (reads /data/aiops.db inside the pod)
-    python3 ironman-2026/day33/probe_label_pool.py
+    python3 ironman-2026/day30/probe_label_pool.py
 
     # against a local checkout instead of the cluster
-    python3 ironman-2026/day33/probe_label_pool.py --local
+    python3 ironman-2026/day30/probe_label_pool.py --local
 
 Read-only: it opens one SQLite file and computes. Nothing here writes.
 """

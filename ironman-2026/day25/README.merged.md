@@ -25,13 +25,13 @@ docker run -d --name day27-stack -p 9090:9090 -p 3100:3100 -p 3200:3200 -p 8080:
 ```bash
 # 今天這隻
 AGENT_DIR=/path/to/o11y-bench/aiops-agent/service \
-  python3 ironman-2026/day27/rerun_bench.py --which today --report /tmp/today.json
+  python3 ironman-2026/day25/rerun_bench.py --which today --report /tmp/today.json
 
 # 今天這隻，但把治理資產拿掉
-AGENT_DIR=… python3 ironman-2026/day27/rerun_bench.py --which today --no-governance
+AGENT_DIR=… python3 ironman-2026/day25/rerun_bench.py --which today --no-governance
 
 # Day1 那隻
-uv run --project ironman-2026/day01 python ironman-2026/day27/rerun_bench.py --which baseline
+uv run --project ironman-2026/day01 python ironman-2026/day25/rerun_bench.py --which baseline
 ```
 
 ## 結果（同一小時、同一座 stack、每題一次）

@@ -14,10 +14,10 @@ the agent look better calibrated than it currently is, because runs that predate
 most of its code are still voting.
 
     # against the running cluster (reads /data/aiops.db inside the pod)
-    python3 ironman-2026/day33/probe_autonomy_gates.py
+    python3 ironman-2026/day30/probe_autonomy_gates.py
 
     # against a local checkout instead of the cluster
-    python3 ironman-2026/day33/probe_autonomy_gates.py --local
+    python3 ironman-2026/day30/probe_autonomy_gates.py --local
 
 Read-only: it opens two SQLite files and one JSONL and computes. Nothing here
 writes, and nothing here proposes or executes an action.

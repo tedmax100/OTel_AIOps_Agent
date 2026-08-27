@@ -18,7 +18,7 @@ Section 1 reads the runbook file; the rest is fixtures, on purpose — this laye
 has to be recomputable without a model and without a live incident.
 
 Run from `aiops-agent/service/`:
-    uv run python ../../otel-aiops-agent/ironman-2026/day36/probe_branch.py
+    uv run python ../../otel-aiops-agent/ironman-2026/day32/probe_branch.py
 """
 
 from __future__ import annotations

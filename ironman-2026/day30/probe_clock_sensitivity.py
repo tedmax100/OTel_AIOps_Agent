@@ -23,10 +23,10 @@ a different minute-of-hour and across a UTC date boundary, which is the shape of
 input that should not matter and (Day39's claim) does.
 
     # one fixture, the default four clocks
-    python3 ironman-2026/day33/probe_clock_sensitivity.py --only order-service-auth-degradation
+    python3 ironman-2026/day30/probe_clock_sensitivity.py --only order-service-auth-degradation
 
     # what will run, without spending a boot or a token
-    python3 ironman-2026/day33/probe_clock_sensitivity.py --only ... --dry-run
+    python3 ironman-2026/day30/probe_clock_sensitivity.py --only ... --dry-run
 
 Each clock is one full boot plus one pass, so budget minutes and API calls per
 entry in `--times`. Uses a dedicated store so it never writes the prod library.

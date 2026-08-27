@@ -13,7 +13,7 @@ Nothing here calls an LLM or touches the stack: every fact below is hand-built,
 which is the point — the whole rule is recomputable from a stored run.
 
 Run from `aiops-agent/service/`:
-    uv run python ../../otel-aiops-agent/ironman-2026/day29/probe_sufficiency.py
+    uv run python ../../otel-aiops-agent/ironman-2026/day28/probe_sufficiency.py
 """
 
 from __future__ import annotations

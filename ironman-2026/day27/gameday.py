@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Game Day: drive one real execution through execute → settle → verify → rollback.
 
-    uv run python ironman-2026/day28/gameday.py plan
-    uv run python ironman-2026/day28/gameday.py run --scenario a
-    uv run python ironman-2026/day28/gameday.py run --scenario b
-    uv run python ironman-2026/day28/gameday.py cleanup
+    uv run python ironman-2026/day27/gameday.py plan
+    uv run python ironman-2026/day27/gameday.py run --scenario a
+    uv run python ironman-2026/day27/gameday.py run --scenario b
+    uv run python ironman-2026/day27/gameday.py cleanup
 
 Why this script exists
 ----------------------

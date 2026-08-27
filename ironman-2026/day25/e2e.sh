@@ -50,7 +50,7 @@ s2_intent() {
 s3_signal_plane() {
   (cd "$AGENT_DIR" && uv run python -m app.signals.compile) || return 1
   # The ruler has to be clean before any score means anything (Day22).
-  (cd "$AGENT_DIR" && uv run python "$OLDPWD/ironman-2026/day22/leakcheck.py" | tail -2)
+  (cd "$AGENT_DIR" && uv run python "$OLDPWD/ironman-2026/day21/leakcheck.py" | tail -2)
 }
 
 # --- 4. investigation -------------------------------------------------------
