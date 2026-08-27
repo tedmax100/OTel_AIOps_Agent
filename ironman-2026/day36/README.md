@@ -10,6 +10,9 @@ Day35 的適用性檢查其實是倒著做的。runbook 對每一張 decline-rat
 | `app/runbook.py` | 新增 `Condition`／`Step.when`／`Step.id`；`select_remediation()` 與 `format_remediation_choices()`；`DiagnosticResult` 多帶一份未截斷的 `output_text` |
 | `app/agent.py` | `_inject_runbook` 改回傳 `(runbook, diagnostics)`；提議前先分岔，分岔結果也注入給模型 |
 | `runbooks/payment-bad-deploy.yaml` | 新的 `provenance` 診斷步驟，兩條處置分支 |
+| `app/tools/k8s_write.py` | `k8s.configmap_flag_set` 多一個 `restart_deployment`：翻完 flag 順手滾一次 Deployment |
+| `app/blast_radius.py` | 乾跑要算進被重啟掉的 pod，以及「重啟的那個根本沒掛這份 ConfigMap」 |
+| `tests/test_configmap_restart.py` | 6 條 |
 | `tests/test_runbook_branch.py` | 10 條 |
 
 ## 條件長什麼樣
@@ -48,7 +51,7 @@ uv run python ../../otel-aiops-agent/ironman-2026/day36/probe_branch.py
 
 ```
 a real deploy: the image changed      -> k8s.rollout_undo
-a ConfigMap flip, plus a restart      -> manual.configmap_flag_set_and_restart
+a ConfigMap flip, plus a restart      -> k8s.configmap_flag_set (restart_deployment: payment-service)
 ```
 
 值班的人看到的是這樣，**沒被選上的那條留在畫面上，還帶著原因**：
@@ -57,24 +60,48 @@ a ConfigMap flip, plus a restart      -> manual.configmap_flag_set_and_restart
 ## Runbook remediation branch
 - [NOT FOR THIS INCIDENT] Roll back payment-service to the previous version — `k8s.rollout_undo`
   (provenance does not say 'restores a genuinely different pod template')
-- [APPLIES] Set payment_use_new_validator=false in the payment-flags ConfigMap, then restart
-  payment-service (the flag is read at process start, so the flip alone does nothing)
+- [APPLIES] Turn the new payment validator back off and restart payment-service
+  (the change is in the mounted config, not in the image)
 ```
 
 「我們沒有回滾，因為上幾次 rollout 根本沒改到跑起來的東西」是一句關於這次事故的
 事實。一份被默默縮短的清單什麼都沒教到人。
 
-## 為什麼第二條分支是 `manual.`
+## 第二條分支：重啟是動作的一部分
 
-`manual.configmap_flag_set_and_restart` 沒有註冊在 action registry 裡，是故意的。
-payment-service 的 flag 是**開機時讀一次**，所以只翻 ConfigMap 而不重啟，跑著的
-東西不會有任何變化——而 `k8s.configmap_flag_set` 不會重啟任何東西
-（user-service 是每個 request 重讀，所以同一個動作在 `session-cache-timeout`
-裡是真的可以執行的）。在這裡提議它，就是今天要修的那個錯誤換一件衣服：**診斷對，
-動作沒辦法生效**。在這個動作學會順手重啟 deployment 之前，這條分支寫給人看，
-不執行任何東西。
+payment-service 的 flag 是**開機時讀一次**，所以只翻 ConfigMap 而不重啟，跑著的東西
+不會有任何變化。第一版我把這條分支寫成一個未註冊的 `manual.` 名字（寫給人看、不執行），
+因為當時 `k8s.configmap_flag_set` 不會重啟任何東西——提議它就是今天要修的那個錯誤
+換一件衣服：**診斷對，動作沒辦法生效**。
 
-未註冊的名字本來就會被 `propose_remediations` 跳過，所以這是靠結構擋的，不是靠自律。
+當天稍晚把那個動作補完了：多一個 `restart_deployment` 參數，patch 完 ConfigMap 之後
+用 kubectl 那個 `kubectl.kubernetes.io/restartedAt` 註記把 Deployment 滾一次
+（不是砍 pod，rollout 會照 maxUnavailable 走）。於是這條分支變成真的可以執行：
+
+```yaml
+    action: k8s.configmap_flag_set
+    args:
+      flag: payment_use_new_validator
+      value: false
+      restart_deployment: payment-service     # ← 這一行才讓它成為一個修法
+```
+
+`session-cache-timeout` 那份**沒有**這一行，而且測試釘住了：user-service 是每個 request
+重讀，重啟它是白買的爆炸半徑。
+
+爆炸半徑也跟著變了——沒有重啟的時候不換掉任何一個 pod，有重啟的時候會，而那正是人在
+核准的東西。對真實叢集乾跑：
+
+```
+payment-service | pods 2 | singleton False
+   - restarts payment-service (2 pod(s)) after the flip
+order-service   | pods 2 | singleton True
+   - restarts order-service (1 pod(s)) after the flip
+   - 'order-service' does not mount this ConfigMap — restarting it will not make it read the new value
+```
+
+最後那一句是給打錯字的人看的：重啟一個根本沒掛這份 ConfigMap 的服務，什麼都不會改變，
+而那兩個參數只差一個名字。
 
 ## 分岔往「開」的方向壞
 
