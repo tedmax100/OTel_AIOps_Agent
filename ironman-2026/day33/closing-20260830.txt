@@ -1,0 +1,59 @@
+
+==============================================================================
+is this environment awake
+==============================================================================
+
+  awake — 1849 series are being written
+
+==============================================================================
+the autonomy gates
+==============================================================================
+
+  granted=False  actions_enabled=True
+
+  FAIL  calibration      overconfident by +0.113 > 0.1; autonomy narrowed
+  PASS  data_quality     topology aligned to live traffic (agreement None, 50 traces, reconciled 746s ago); SLIs match the schema registry (6 metrics)
+  PASS  actuation        write credentials authenticate and hold exactly the required permissions in demo (checked 151s ago)
+  FAIL  fixture_record   fixtures: overconfident by +0.4156 > 0.1; autonomy narrowed (newest label 9d ago)
+
+    labeled runs               23  (need 20)
+    human/grader labels        23  (need 20)
+    accuracy in the high band  0.7222  (need 0.7)
+    mean overconfidence        0.113  (max 0.1)
+    worst bin gap              0.4833  (max 0.25)
+
+==============================================================================
+action effectiveness, and how much of it has been graded
+==============================================================================
+
+  incidents  effective 0/0    rate=None
+             ran 2, graded 0, ungraded 2  (coverage 0.0)
+             n=0 below the reporting floor of 5; ratio withheld; 2 of 2 executed actions have no verdict; this ratio describes only the graded ones
+
+  drills     effective 1/3    rate=None
+             ran 7, graded 3, ungraded 4  (coverage 0.429)
+             n=3 below the reporting floor of 5; ratio withheld; 4 of 7 executed actions have no verdict; this ratio describes only the graded ones
+
+  verify vs the on-call: verify and the on-call reached the same verdict every time
+
+  waiting on a human verdict: 6
+    drill  c7a26ae3b5c341a0  k8s.configmap_flag_set   succeeded        2026-08-23T12:04:55Z
+    drill  7ebc84ac0ef84717  k8s.configmap_flag_set   succeeded        2026-08-22T15:26:48Z
+    REAL   92690e7562a54af8  k8s.configmap_flag_set   succeeded        2026-08-22T15:15:52Z
+    drill  eae0be82321c4f12  k8s.configmap_flag_set   succeeded        2026-08-20T16:35:17Z
+    drill  b15df9e51c06424b  k8s.configmap_flag_set   succeeded        2026-08-20T16:26:15Z
+    REAL   48e7df7697ac4034  k8s.rollout_undo         rollback_failed  2026-08-08T08:57:33Z
+
+==============================================================================
+proposals (outside the ratio above: nothing ran)
+==============================================================================
+
+  aborted            10
+  expired            13
+  rollback_failed    1
+  rolled_back        2
+  succeeded          6
+
+  expiry rate 0.406  — 13 of 32 decided proposals expired unanswered — nobody pressed anything before the approval TTL elapsed
+
+  (fixture record window is 14d)
