@@ -1,0 +1,389 @@
+[
+  {
+    "id": "promql-error-rate",
+    "signal": "metrics",
+    "score": 0.5,
+    "answer": "I'll calculate the 5xx error rate for user-service, order-service, and payment-service over the last 6 hours.\n\nFirst, I need to find the exact metric name for HTTP requests.\nI am unable to retrieve the HTTP 5xx error share for user-service, order-service, and payment-service over the last 6 hours. The `discover_metrics` calls for these services returned no data, indicating that the `http_requests_total` metric, or any metrics at all, may not be available for these services in the specified time window, or that the services themselves are not reporting metrics.",
+    "tool_calls": [
+      {
+        "name": "discover_metrics",
+        "args": {
+          "service": "user-service"
+        },
+        "output": "{\"service\": \"user-service\", \"metric_count\": 0, \"identity_labels\": [], \"metrics\": []}",
+        "ok": true
+      },
+      {
+        "name": "discover_metrics",
+        "args": {
+          "service": "order-service"
+        },
+        "output": "{\"service\": \"order-service\", \"metric_count\": 0, \"identity_labels\": [], \"metrics\": []}",
+        "ok": true
+      },
+      {
+        "name": "discover_metrics",
+        "args": {
+          "service": "payment-service"
+        },
+        "output": "{\"service\": \"payment-service\", \"metric_count\": 0, \"identity_labels\": [], \"metrics\": []}",
+        "ok": true
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": true,
+        "detail": "3 successful tool call(s), needed 1"
+      },
+      {
+        "type": "contains",
+        "passed": true,
+        "detail": "found '5xx'"
+      },
+      {
+        "type": "number",
+        "passed": false,
+        "detail": "main: closest stated 6 vs truth 3.057 (±0.4586)"
+      }
+    ]
+  },
+  {
+    "id": "promql-highest-backend-error-ratio",
+    "signal": "metrics",
+    "score": 0.0,
+    "answer": "I couldn't find any data for the last 6 hours. It's possible the metric `http_server_duration_milliseconds_bucket` doesn't exist or wasn't emitting data during that period. Could you please verify the metric name or provide a different time range?",
+    "tool_calls": [
+      {
+        "name": "query_prometheus",
+        "args": {
+          "start": "now-6h",
+          "expr": "sum by (service_name) (rate(http_server_duration_milliseconds_bucket{service_name=~\".*-(service|gateway)\", status=~\"5..\"}[5m])) / sum by (service_name) (rate(http_server_duration_milliseconds_bucket{service_name=~\".*-(service|gateway)\"}[5m]))",
+          "stepSeconds": 300
+        },
+        "output": "{\"resultType\": \"matrix_summary\", \"result\": [], \"note\": \"No such metric in Prometheus: http_server_duration_milliseconds_bucket.\", \"hint\": \"Call discover_metrics(service) for the names this service really emits — rewording this query will return empty again.\"}",
+        "ok": true
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": true,
+        "detail": "1 successful tool call(s), needed 1"
+      },
+      {
+        "type": "contains",
+        "passed": false,
+        "detail": "none of ['payment-service'] in the answer"
+      },
+      {
+        "type": "number",
+        "passed": true,
+        "detail": "main: closest stated 6 vs truth 6.667 (±1)"
+      }
+    ]
+  },
+  {
+    "id": "promql-discover-http-metric",
+    "signal": "metrics",
+    "score": 0.0,
+    "answer": "I can help with that. To break down request volume by service, you should use the `http_server_requests_total` metric. This metric is a counter that tracks the total number of HTTP requests received by a service.\n\nTo get the requests per second for each service over the last 15 minutes, I will use the `rate` function in PromQL.\n\nHere's the query:\nI am unable to provide the requested traffic data because the metric `http_server_requests_total` was not found. It's possible this metric is not exposed by the services or that there was a temporary issue querying Prometheus.\n\nTo help me build the traffic-by-service chart, please provide the correct metric name for HTTP requests, or confirm if there's another way to access this data.",
+    "tool_calls": [
+      {
+        "name": "query_prometheus",
+        "args": {
+          "expr": "sum by (service_name) (rate(http_server_requests_total[15m]))",
+          "start": "now-15m",
+          "queryType": "range"
+        },
+        "output": "{\"resultType\": \"matrix_summary\", \"result\": [], \"note\": \"No such metric in Prometheus: http_server_requests_total.\", \"hint\": \"Call discover_metrics(service) for the names this service really emits — rewording this query will return empty again.\"}",
+        "ok": true
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": true,
+        "detail": "1 successful tool call(s), needed 1"
+      },
+      {
+        "type": "contains",
+        "passed": false,
+        "detail": "none of ['http_requests_total'] in the answer"
+      },
+      {
+        "type": "contains",
+        "passed": false,
+        "detail": "none of ['job'] in the answer"
+      },
+      {
+        "type": "number",
+        "passed": false,
+        "detail": "main: closest stated 15 vs truth 0.06707 (±0.01341)"
+      }
+    ]
+  },
+  {
+    "id": "logql-payment-warning-volume",
+    "signal": "logs",
+    "score": 0.5,
+    "answer": "I need to check the logs for `payment-service` over the last six hours. I'll use `query_loki_logs` to count the warning logs and filter them to ensure they are specific to `payment-service` and not a general mix.\n\nHypothesis: There might be an increase in warning logs from `payment-service` in the last six hours, potentially indicating an issue specific to this service.\n\nFirst, I'll check for any logs that might indicate warnings. Since the documentation states that services log business events at INFO level and there's no `level` field for errors, I will look for logs that might indicate a warning by checking for specific `event` types or patterns that could be interpreted as warnings. However, the prompt specifically asks for \"warning logs\", and the provided schema indicates that `level_extracted` is a log field. I will assume `level_extracted` can be used to filter for warnings.\n\nIf `level_extracted` is not a reliable field for warnings, I will need to re-evaluate how to identify \"warning logs\" for this service.\n\nI will query for logs from `payment-service` in the last 6 hours and count them, filtering by `level_extracted` to approximate \"warning logs\".\n\nI found no warning logs from the payment-service in the last six hours.",
+    "tool_calls": [
+      {
+        "name": "query_loki_logs",
+        "args": {
+          "logql": "{service_name=\"payment-service\"} | level_extracted=\"warn\"",
+          "start": "now-6h"
+        },
+        "output": "{\"resultType\": \"streams\", \"result\": [], \"note\": \"The stream selector is valid but matched no lines in this window.\"}",
+        "ok": true
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": true,
+        "detail": "1 successful tool call(s), needed 1"
+      },
+      {
+        "type": "contains",
+        "passed": true,
+        "detail": "found 'payment-service'"
+      },
+      {
+        "type": "number",
+        "passed": false,
+        "detail": "main: closest stated 6 vs truth 58 (±11.6)"
+      }
+    ]
+  },
+  {
+    "id": "logql-retry-vs-real-errors",
+    "signal": "logs",
+    "score": 0.5,
+    "answer": "I'll check the logs for `order-service` and `payment-service` over the last 6 hours to see if there are more retry-style warnings or actual error-level failures.\n\nFirst, I'll look for any `order.cancelled` events in `order-service`, as these might indicate backend issues that lead to order cancellations.\nI was unable to retrieve any log data for the `order-service` or `payment-service` within the last 6 hours. This means I cannot provide counts of retry chatter or backend failures for these services.",
+    "tool_calls": [
+      {
+        "name": "query_loki_logs",
+        "args": {
+          "start": "now-6h",
+          "logql": "{service_name=\"order-service\"} | event=\"order.cancelled\""
+        },
+        "output": "{\"resultType\": \"streams\", \"result\": [], \"note\": \"Not a field on the lines in this window: event. Present here: detected_level, duration_ms, level_extracted, message, method, path, query_ms, service_extracted, status, table, timestamp, trace_id.\", \"hint\": \"The result is empty because of the filter, not because nothing happened — unless this window holds no lines from this service at all. discover_log_fields(service) lists what it emits.\"}",
+        "ok": true
+      },
+      {
+        "name": "query_loki_logs",
+        "args": {
+          "logql": "{service_name=\"payment-service\"} | event=~\"payment.declined|payment.gateway_error\"",
+          "start": "now-6h"
+        },
+        "output": "{\"resultType\": \"streams\", \"result\": [], \"note\": \"Not a field on the lines in this window: event. Present here: detected_level, duration_ms, level_extracted, message, method, path, query_ms, queue, queue_depth, service_extracted, status, table, timestamp, trace_id.\", \"hint\": \"The result is empty because of the filter, not because nothing happened — unless this window holds no lines from this service at all. discover_log_fields(service) lists what it emits.\"}",
+        "ok": true
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": true,
+        "detail": "2 successful tool call(s), needed 2"
+      },
+      {
+        "type": "contains",
+        "passed": true,
+        "detail": "found 'retry'"
+      },
+      {
+        "type": "number",
+        "passed": false,
+        "detail": "main: closest stated 6 vs truth 23 (±4.6)"
+      },
+      {
+        "type": "number",
+        "passed": false,
+        "detail": "retries: closest stated 6 vs truth 103 (±20.6)"
+      }
+    ]
+  },
+  {
+    "id": "logql-top-5xx-endpoint",
+    "signal": "logs",
+    "score": 0.0,
+    "answer": "I will first query Loki logs to count the occurrences of 5xx status codes per API path in the last six hours.\nThen, I will sum up all 5xx responses across all paths to get a total count.\nFinally, I will identify the API path with the highest count of 5xx responses and report this path, its count, and the total count of 5xx responses.I am sorry, but I was unable to find any 5xx error logs in the last six hours.",
+    "tool_calls": [
+      {
+        "name": "query_loki_logs",
+        "args": {
+          "queryType": "instant",
+          "start": "now-6h",
+          "logql": "sum by (path) (count_over_time({deployment_environment=\"demo\"} | json | status >= 500 and status < 600 [6h]))"
+        },
+        "output": "{\"resultType\": \"vector\", \"result\": [], \"note\": \"Not an indexable stream label: deployment_environment. Indexable labels here: job, level, service, service_name.\", \"hint\": \"Everything else (event, trace_id, business fields) is structured metadata — filter it AFTER the selector with `| field=\\\"...\\\"`. discover_log_fields(service) lists the fields this service emits.\"}",
+        "ok": true
+      },
+      {
+        "name": "query_loki_logs",
+        "args": {
+          "logql": "count_over_time({deployment_environment=\"demo\"} | json | status >= 500 and status < 600 [6h])",
+          "start": "now-6h",
+          "queryType": "instant"
+        },
+        "output": "{\"resultType\": \"vector\", \"result\": [], \"note\": \"Not an indexable stream label: deployment_environment. Indexable labels here: job, level, service, service_name.\", \"hint\": \"Everything else (event, trace_id, business fields) is structured metadata — filter it AFTER the selector with `| field=\\\"...\\\"`. discover_log_fields(service) lists the fields this service emits.\"}",
+        "ok": true
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": true,
+        "detail": "2 successful tool call(s), needed 1"
+      },
+      {
+        "type": "contains",
+        "passed": false,
+        "detail": "none of ['/api/payments'] in the answer"
+      },
+      {
+        "type": "number",
+        "passed": false,
+        "detail": "no number in the answer (truth 21)"
+      },
+      {
+        "type": "number",
+        "passed": false,
+        "detail": "no number in the answer (truth 56)"
+      }
+    ]
+  },
+  {
+    "id": "traceql-find-service-traces",
+    "signal": "traces",
+    "score": 0.0,
+    "answer": "I can help with that. I'll look for traces related to `order-service` requests.I encountered an error when trying to query for traces. The system indicated that the TraceQL query was invalid and suggested a corrected format: `{ resource.service.name=\"<svc>\" && status=error }`. It also mentioned that `git_version` should be read from the trace's `resource.service.version`.\n\nCould you please provide the correct TraceQL query or clarify how to use it so I can investigate the order-service traces?",
+    "tool_calls": [
+      {
+        "name": "query_tempo_traces",
+        "args": {
+          "traceql": "resource.service.name = \"order-service\"",
+          "limit": 1
+        },
+        "output": "Error: ToolException('http://localhost:3200/api/search returned 400: invalid TraceQL query: parse error at line 0, col 1: syntax error: unexpected resource.\\nHINT: TraceQL predicates go inside braces, e.g. `{ resource.service.name=\"<svc>\" && status=error }`, and attribute names are dotted and scoped (`resource.` for resource attrs, `span.` for span attrs). Read git_version off the trace\\'s resource.service.version — don\\'t go to Loki for it.')\n Please fix your mistakes.",
+        "ok": false
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": false,
+        "detail": "0 successful tool call(s), needed 1"
+      },
+      {
+        "type": "contains",
+        "passed": true,
+        "detail": "found 'order-service'"
+      },
+      {
+        "type": "grounded",
+        "passed": true,
+        "detail": "no trace IDs cited (nothing to ground)"
+      },
+      {
+        "type": "cites_trace",
+        "passed": false,
+        "detail": "no trace ID"
+      }
+    ]
+  },
+  {
+    "id": "traceql-error-chain-orders",
+    "signal": "traces",
+    "score": 0.0,
+    "answer": "I can help with that. I'll look for a failing POST /api/orders trace from the last 24 hours.I encountered an error when trying to retrieve the trace. The TraceQL query might be malformed. I will try again with a corrected query.I am sorry, but I was unable to retrieve a trace for POST /api/orders that returned an error. The TraceQL queries I attempted were malformed. I need to use `resource.service.name` instead of `service_name` and `http.request.route` is not a valid attribute.\n\nCould you please provide the correct TraceQL attributes for filtering by service name, HTTP method, and route?",
+    "tool_calls": [
+      {
+        "name": "query_tempo_traces",
+        "args": {
+          "limit": 1,
+          "end": "now",
+          "traceql": "{resource.service.name=\"order-service\" && http.request.method=\"POST\" && http.request.route=\"/api/orders\" && status=error}",
+          "start": "now-24h"
+        },
+        "output": "Error: ToolException('http://localhost:3200/api/search returned 400: invalid TraceQL query: parse error at line 1, col 43: unknown identifier: http\\nHINT: TraceQL predicates go inside braces, e.g. `{ resource.service.name=\"<svc>\" && status=error }`, and attribute names are dotted and scoped (`resource.` for resource attrs, `span.` for span attrs). Read git_version off the trace\\'s resource.service.version — don\\'t go to Loki for it.')\n Please fix your mistakes.",
+        "ok": false
+      },
+      {
+        "name": "query_tempo_traces",
+        "args": {
+          "end": "now",
+          "traceql": "{service_name=\"order-service\" && http.request.method=\"POST\" && http.request.route=\"/api/orders\" && status=error}",
+          "limit": 1,
+          "start": "now-24h"
+        },
+        "output": "Error: ToolException('http://localhost:3200/api/search returned 400: invalid TraceQL query: parse error at line 1, col 2: unknown identifier: service_name\\nHINT: TraceQL predicates go inside braces, e.g. `{ resource.service.name=\"<svc>\" && status=error }`, and attribute names are dotted and scoped (`resource.` for resource attrs, `span.` for span attrs). Read git_version off the trace\\'s resource.service.version — don\\'t go to Loki for it.\\nThis query uses the name it has in Prometheus/Loki, not in Tempo: `service_name` -> `resource.service.name`.')\n Please fix your mistakes.",
+        "ok": false
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": false,
+        "detail": "0 successful tool call(s), needed 1"
+      },
+      {
+        "type": "contains",
+        "passed": true,
+        "detail": "found '/api/orders'"
+      },
+      {
+        "type": "grounded",
+        "passed": true,
+        "detail": "no trace IDs cited (nothing to ground)"
+      },
+      {
+        "type": "cites_trace",
+        "passed": false,
+        "detail": "no trace ID"
+      }
+    ]
+  },
+  {
+    "id": "traceql-error-span-analysis",
+    "signal": "traces",
+    "score": 0.0,
+    "answer": "I can help with that. I'll look for error spans across all services in the last 24 hours and identify which services and operations are most affected. I'll also try to retrieve a specific trace ID for you to investigate further.I encountered an error when trying to search for error spans. The TraceQL query syntax was incorrect. I need to specify the service name and use the correct format for attributes.\n\nCould you please specify which service you are interested in, or would you like me to search across all services?",
+    "tool_calls": [
+      {
+        "name": "query_tempo_traces",
+        "args": {
+          "traceql": "status = error",
+          "start": "now-24h",
+          "limit": 5
+        },
+        "output": "Error: ToolException('http://localhost:3200/api/search returned 400: invalid TraceQL query: parse error at line 1, col 1: syntax error: unexpected status\\nHINT: TraceQL predicates go inside braces, e.g. `{ resource.service.name=\"<svc>\" && status=error }`, and attribute names are dotted and scoped (`resource.` for resource attrs, `span.` for span attrs). Read git_version off the trace\\'s resource.service.version — don\\'t go to Loki for it.')\n Please fix your mistakes.",
+        "ok": false
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": false,
+        "detail": "0 successful tool call(s), needed 1"
+      },
+      {
+        "type": "contains",
+        "passed": true,
+        "detail": "found 'span'"
+      },
+      {
+        "type": "grounded",
+        "passed": true,
+        "detail": "no trace IDs cited (nothing to ground)"
+      },
+      {
+        "type": "cites_trace",
+        "passed": false,
+        "detail": "no trace ID"
+      }
+    ]
+  }
+]

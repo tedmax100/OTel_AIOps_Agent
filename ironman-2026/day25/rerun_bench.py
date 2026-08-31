@@ -80,7 +80,9 @@ off the results rather than assuming them.
 """
 
 
-async def run_today(question: str, tag: str, *, governance: bool = True) -> tuple[str, list[Call]]:
+async def run_today(
+    question: str, tag: str, *, governance: bool = True, catalog: str | None = None
+) -> tuple[str, list[Call]]:
     """Today's agent, through the same chat entry point the plugin uses.
 
     The answer is streamed; the tool calls are read back off the graph's
@@ -92,6 +94,11 @@ async def run_today(question: str, tag: str, *, governance: bool = True) -> tupl
     if not governance:
         agent_mod.SCHEMA_CATALOG = _NEUTRAL_CATALOG
         agent_mod._inject_signal_context = lambda *a, **k: None
+    elif catalog is not None:
+        # The third arm: a catalog that describes THIS stack. Same slot, same
+        # prompt, only the environment knowledge differs -- which is the whole
+        # point, since the shipped catalog describes a different cluster.
+        agent_mod.SCHEMA_CATALOG = catalog
 
     thread_id = f"day27-{tag}"
     answer: list[str] = []
@@ -120,6 +127,13 @@ async def main() -> int:
         help="strip the schema catalog and signal context (they describe a different stack)",
     )
     ap.add_argument("--tasks", type=Path, default=_DAY01 / "bench" / "tasks.yaml")
+    ap.add_argument(
+        "--catalog",
+        type=Path,
+        default=None,
+        help="use this file as the schema catalog instead of the shipped one "
+        "(ignored with --no-governance)",
+    )
     ap.add_argument("--only", action="append", default=[])
     ap.add_argument("--report", type=Path, default=None)
     args = ap.parse_args()
@@ -143,7 +157,10 @@ async def main() -> int:
             answer, calls = await run_baseline(question)
         else:
             answer, calls = await run_today(
-                question, f"{task['id']}-{i}", governance=not args.no_governance
+                question,
+                f"{task['id']}-{i}",
+                governance=not args.no_governance,
+                catalog=args.catalog.read_text(encoding="utf-8") if args.catalog else None,
             )
         score, checks = grade(task, answer, calls, truths)
         first_bad = next((c for c in checks if not c.passed), None)
@@ -166,7 +183,13 @@ async def main() -> int:
         )
 
     total = sum(r["score"] for r in results)
-    label = args.which + (" (no governance)" if args.no_governance else "")
+    label = args.which + (
+        " (no governance)"
+        if args.no_governance
+        else f" (catalog: {args.catalog.name})"
+        if args.catalog
+        else ""
+    )
     print(f"\n  {label}: {total:.1f}/{len(results)}")
     by_signal: dict[str, list[float]] = {}
     for r in results:

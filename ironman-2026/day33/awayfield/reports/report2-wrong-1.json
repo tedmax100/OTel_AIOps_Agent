@@ -1,0 +1,382 @@
+[
+  {
+    "id": "promql-error-rate",
+    "signal": "metrics",
+    "score": 1.0,
+    "answer": "Over the last 6 hours, 2.72% of HTTP requests to user-service, order-service, and payment-service returned 5xx errors.\n\n```promql\nsum(rate(http_requests_total{job=~\"user-service|order-service|payment-service\", status=~\"5..\"}[6h])) / sum(rate(http_requests_total{job=~\"user-service|order-service|payment-service\"}[6h]))\n```",
+    "tool_calls": [
+      {
+        "name": "query_prometheus",
+        "args": {
+          "expr": "sum(rate(http_requests_total{job=~\"user-service|order-service|payment-service\", status=~\"5..\"}[6h])) / sum(rate(http_requests_total{job=~\"user-service|order-service|payment-service\"}[6h]))",
+          "queryType": "range",
+          "start": "now-6h"
+        },
+        "output": "{\"resultType\": \"matrix_summary\", \"result\": [{\"metric\": {}, \"points\": 361, \"last\": 0.03109, \"min\": 0.01667, \"max\": 0.04545, \"avg\": 0.02724, \"window\": [1788145675, 1788167275], \"sample\": [[1788145675, 0.0195], [1788148375, 0.0195], [1788151075, 0.01671], [1788153775, 0.01671], [1788156475, 0.02725], [1788159175, 0.04126], [1788161875, 0.03839], [1788164575, 0.03134], [1788167275, 0.03109]]}], \"note\": \"Series summarized to last/min/max/avg (+ sample if it varies); the ```promql``` panel re-runs the full query for the chart.\"}",
+        "ok": true
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": true,
+        "detail": "1 successful tool call(s), needed 1"
+      },
+      {
+        "type": "contains",
+        "passed": true,
+        "detail": "found '5xx'"
+      },
+      {
+        "type": "number",
+        "passed": true,
+        "detail": "main: closest stated 2.72 vs truth 3.109 (±0.4663)"
+      }
+    ]
+  },
+  {
+    "id": "promql-highest-backend-error-ratio",
+    "signal": "metrics",
+    "score": 0.0,
+    "answer": "I need to know which services are considered \"backend\" services. Could you please specify them?",
+    "tool_calls": [],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": false,
+        "detail": "0 successful tool call(s), needed 1"
+      },
+      {
+        "type": "contains",
+        "passed": false,
+        "detail": "none of ['payment-service'] in the answer"
+      },
+      {
+        "type": "number",
+        "passed": false,
+        "detail": "no number in the answer (truth 6.923)"
+      }
+    ]
+  },
+  {
+    "id": "promql-discover-http-metric",
+    "signal": "metrics",
+    "score": 0.0,
+    "answer": "To break down request volume by service, you should use the `orders_total` metric for `order-service` and `payment_charges_total` for `payment-service`. For `user-service`, you can use `user_lookups_total` and `user_auth_checks_total`.\n\nHere's the query to get the aggregate requests per second for the last 15 minutes, broken down by service:\n\nI am sorry, but I cannot fulfill your request. The metrics `orders_total`, `payment_charges_total`, `user_lookups_total`, and `user_auth_checks_total` do not exist in Prometheus. To create the traffic-by-service chart, I would need the correct metric names. You can discover available metrics for each service by calling `discover_metrics(service='<service_name>')`.",
+    "tool_calls": [
+      {
+        "name": "query_prometheus",
+        "args": {
+          "stepSeconds": 60,
+          "queryType": "range",
+          "start": "now-15m",
+          "expr": "sum by (service_name) (rate(orders_total[5m]) or rate(payment_charges_total[5m]) or rate(user_lookups_total[5m]) or rate(user_auth_checks_total[5m]))"
+        },
+        "output": "{\"resultType\": \"matrix_summary\", \"result\": [], \"note\": \"No such metric in Prometheus: orders_total, payment_charges_total, user_auth_checks_total, user_lookups_total.\", \"hint\": \"Call discover_metrics(service) for the names this service really emits — rewording this query will return empty again.\"}",
+        "ok": true
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": true,
+        "detail": "1 successful tool call(s), needed 1"
+      },
+      {
+        "type": "contains",
+        "passed": false,
+        "detail": "none of ['http_requests_total'] in the answer"
+      },
+      {
+        "type": "contains",
+        "passed": false,
+        "detail": "none of ['job'] in the answer"
+      },
+      {
+        "type": "number",
+        "passed": false,
+        "detail": "ground truth unavailable (empty result)"
+      }
+    ]
+  },
+  {
+    "id": "logql-payment-warning-volume",
+    "signal": "logs",
+    "score": 0.5,
+    "answer": "I can help you with that. I'll query for warning logs from `payment-service` over the last six hours and check if they are specific to this service.\n\nFirst, I need to discover the log fields for `payment-service` to ensure I'm filtering correctly.There were no warning logs from the `payment-service` over the last six hours.",
+    "tool_calls": [
+      {
+        "name": "discover_log_fields",
+        "args": {
+          "service": "payment-service"
+        },
+        "output": "{\"service\": \"payment-service\", \"fields\": [{\"field\": \"timestamp\", \"type\": \"string\", \"cardinality\": 36}, {\"field\": \"trace_id\", \"type\": \"string\", \"cardinality\": 35}, {\"field\": \"duration_ms\", \"type\": \"float\", \"cardinality\": 22}, {\"field\": \"level_extracted\", \"type\": \"string\", \"cardinality\": 3}, {\"field\": \"message\", \"type\": \"string\", \"cardinality\": 3}, {\"field\": \"status\", \"type\": \"int\", \"cardinality\": 2}, {\"field\": \"service_extracted\", \"type\": \"string\", \"cardinality\": 1}, {\"field\": \"method\", \"type\": \"string\", \"cardinality\": 1}, {\"field\": \"path\", \"type\": \"string\", \"cardinality\": 1}]}",
+        "ok": true
+      },
+      {
+        "name": "query_loki_logs",
+        "args": {
+          "stepSeconds": 60,
+          "queryType": "range",
+          "logql": "{service_name=\"payment-service\"} | level_extracted=\"warn\"",
+          "start": "now-6h"
+        },
+        "output": "{\"resultType\": \"streams\", \"result\": [], \"note\": \"The stream selector is valid but matched no lines in this window.\"}",
+        "ok": true
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": true,
+        "detail": "2 successful tool call(s), needed 1"
+      },
+      {
+        "type": "contains",
+        "passed": true,
+        "detail": "found 'payment-service'"
+      },
+      {
+        "type": "number",
+        "passed": false,
+        "detail": "no number in the answer (truth 58)"
+      }
+    ]
+  },
+  {
+    "id": "logql-retry-vs-real-errors",
+    "signal": "logs",
+    "score": 0.5,
+    "answer": "I'll check the logs for `order-service` and `payment-service` over the last 6 hours to see if there are more retry-style warnings or actual error-level failures.\n\nFirst, I'll look for retry-style warnings in `order-service`.\nI encountered an error while trying to count retry-style warnings for the `order-service`. The error message indicates a syntax issue with `count_over_time`. I will correct this and try again.\n\nIt seems I need to adjust the LogQL query to correctly count the logs. I will use `sum(count_over_time(...))` to get the total count over the specified period.\n\nLet's try this again for both services, focusing on error-level logs first, as they are more indicative of backend failures.\n\nFor `order-service`, I'll look for logs with `level_extracted=\"error\"` and for `payment-service`, I'll look for logs with `status=\"error\"` or `level_extracted=\"error\"`.\n\nI am unable to provide counts for retry warnings versus error-level failures for the `order-service` and `payment-service` over the last six hours. The queries executed did not return any data, indicating that either no such logs exist in that timeframe or the query parameters need further refinement.",
+    "tool_calls": [
+      {
+        "name": "query_loki_logs",
+        "args": {
+          "start": "now-6h",
+          "logql": "{service_name=\"order-service\"} |~ \"retry\" | count_over_time(1h)"
+        },
+        "output": "Error: ToolException('http://localhost:3100/loki/api/v1/query returned 400: parse error at line 1, col 45: syntax error: unexpected COUNT_OVER_TIME\\nHINT: check the LogQL pipeline. Log filter: `{...} | level=\"ERROR\"`. Metric/count: `sum(count_over_time({{...}} | <filters> [<window>]))` — the range goes INSIDE count_over_time, and the whole thing is wrapped in sum(...).')\n Please fix your mistakes.",
+        "ok": false
+      },
+      {
+        "name": "query_loki_logs",
+        "args": {
+          "logql": "sum(count_over_time({service_name=\"order-service\"} | level_extracted=\"error\" [6h]))",
+          "start": "now-6h"
+        },
+        "output": "{\"resultType\": \"vector\", \"result\": [], \"note\": \"The stream selector is valid but matched no lines in this window.\"}",
+        "ok": true
+      },
+      {
+        "name": "query_loki_logs",
+        "args": {
+          "start": "now-6h",
+          "logql": "sum(count_over_time({service_name=\"payment-service\"} | level_extracted=\"error\" [6h]))"
+        },
+        "output": "{\"resultType\": \"vector\", \"result\": [], \"note\": \"The stream selector is valid but matched no lines in this window.\"}",
+        "ok": true
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": true,
+        "detail": "2 successful tool call(s), needed 2"
+      },
+      {
+        "type": "contains",
+        "passed": true,
+        "detail": "found 'retry'"
+      },
+      {
+        "type": "number",
+        "passed": false,
+        "detail": "main: closest stated 6 vs truth 23 (±4.6)"
+      },
+      {
+        "type": "number",
+        "passed": false,
+        "detail": "retries: closest stated 6 vs truth 103 (±20.6)"
+      }
+    ]
+  },
+  {
+    "id": "logql-top-5xx-endpoint",
+    "signal": "logs",
+    "score": 0.0,
+    "answer": "I'll start by looking for 5xx responses in the logs.\nI couldn't find any logs matching your criteria in the last six hours. It's possible that there were no 5xx responses, or the logs are not being ingested correctly.",
+    "tool_calls": [
+      {
+        "name": "query_loki_logs",
+        "args": {
+          "queryType": "range",
+          "start": "now-6h",
+          "logql": "{deployment_environment=\"demo\"} | json | status >= 500"
+        },
+        "output": "{\"resultType\": \"streams\", \"result\": [], \"note\": \"Not an indexable stream label: deployment_environment. Indexable labels here: job, level, service, service_name.\", \"hint\": \"Everything else (event, trace_id, business fields) is structured metadata — filter it AFTER the selector with `| field=\\\"...\\\"`. discover_log_fields(service) lists the fields this service emits.\"}",
+        "ok": true
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": true,
+        "detail": "1 successful tool call(s), needed 1"
+      },
+      {
+        "type": "contains",
+        "passed": false,
+        "detail": "none of ['/api/payments'] in the answer"
+      },
+      {
+        "type": "number",
+        "passed": false,
+        "detail": "no number in the answer (truth 21)"
+      },
+      {
+        "type": "number",
+        "passed": false,
+        "detail": "no number in the answer (truth 56)"
+      }
+    ]
+  },
+  {
+    "id": "traceql-find-service-traces",
+    "signal": "traces",
+    "score": 1.0,
+    "answer": "I can help with that. I'll look for traces related to `order-service` requests.Recent requests to the order-service appear to be primarily `GET /api/products` and `GET /api/cart` operations, with a few `POST /api/orders` requests. The durations for these operations are generally under 50ms.\n\nHere's a sample trace ID: `16f9a42685c1d341a917f0208d36177c`\n\n```json\n{\"query_tempo_traces_response\": {\"hint\": \"Tighten the TraceQL (add status=error / duration> / a route) or lower limit.\", \"reason\": \"Tempo result > 8192B; returning slim summaries.\", \"traces\": [{\"durationMs\": 45, \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/products\", \"traceID\": \"16f9a42685c1d341a917f0208d36177c\"}, {\"durationMs\": 33, \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/cart\", \"traceID\": \"fb26c41e39dc73d8de17dd21fa645d6\"}, {\"durationMs\": 46, \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/cart\", \"traceID\": \"88e4979143ca65bc5e5d538e3a988ca\"}, {\"durationMs\": 17, \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/products\", \"traceID\": \"16cc7b862f2168ba3a733377c5ab0d26\"}, {\"durationMs\": 31, \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/products\", \"traceID\": \"1aa311624ccada1f5cbc2b49ce0515e5\"}, {\"durationMs\": 20, \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/products\", \"traceID\": \"11c751d2b66f586568beb67b11362f74\"}, {\"durationMs\": 48, \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/products\", \"traceID\": \"ad920ee4dbc4ebe2557c12ee7a6f11\"}, {\"durationMs\": 38, \"rootServiceName\": \"webapp\", \"rootTraceName\": \"POST /api/orders\", \"traceID\": \"153ee91dda6015c1e02a7953be0c8973\"}, {\"durationMs\": 40, \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/products\", \"traceID\": \"c32332dde2a4fca25b31716a2f532d9\"}, {\"durationMs\": 27, \"rootServiceName\": \"webapp\", \"rootTraceName\": \"POST /api/orders\", \"traceID\": \"a5e77d5943877c1c6d0a3cfe2648a36\"}, {\"durationMs\": 13, \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/cart\", \"traceID\": \"27b421ae5b2363f8f4b3e11eecb34b5\"}, {\"durationMs\": 42, \"rootServiceName\": \"webapp\", \"rootTraceName\": \"POST /api/orders\", \"traceID\": \"14c505986c585ffea582aa19d6dce519\"}, {\"durationMs\": 57, \"rootServiceName\": \"webapp\", \"rootTraceName\": \"POST /api/orders\", \"traceID\": \"13869d996820389898b0dc9e1938a291\"}, {\"durationMs\": 38, \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/cart\", \"traceID\": \"1859bfa08552ce8ed36652df0fd4aded\"}, {\"durationMs\": 54, \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/cart\", \"traceID\": \"18f268369abbf2e1058793ecc804506d\"}, {\"durationMs\": 23, \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/products\", \"traceID\": \"11c0a1933995161b22a7abdf94d67557\"}, {\"durationMs\": 15, \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/products\", \"traceID\": \"8daaa22773f08b43e1685737f4051a9\"}, {\"durationMs\": 36, \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/cart\", \"traceID\": \"232837edce44e01738735d29d9a36d8\"}, {\"durationMs\": 30, \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/cart\", \"traceID\": \"1a24daddc3ccc6808f8979ad3bb503fc\"}, {\"durationMs\": 13, \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/products\", \"traceID\": \"4eb3326617f9501c5f7ceb35917bc79\"}], \"truncated\": True}}\n```",
+    "tool_calls": [
+      {
+        "name": "query_tempo_traces",
+        "args": {
+          "service_name": "order-service",
+          "limit": 1
+        },
+        "output": "Error: ToolException('query_tempo_traces takes the whole search as one `traceql` string; it has no per-field arguments.\\nIgnored argument(s): `service_name`.\\nHINT: call it again with traceql=\"{ resource.service.name=\"order-service\" }\".')\n Please fix your mistakes.",
+        "ok": false
+      },
+      {
+        "name": "query_tempo_traces",
+        "args": {
+          "traceql": "{ resource.service.name=\"order-service\" }"
+        },
+        "output": "{\"truncated\": true, \"reason\": \"Tempo result > 8192B; returning slim summaries.\", \"traces\": [{\"traceID\": \"16f9a42685c1d341a917f0208d36177c\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/products\", \"durationMs\": 45}, {\"traceID\": \"fb26c41e39dc73d8de17dd21fa645d6\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/cart\", \"durationMs\": 33}, {\"traceID\": \"88e4979143ca65bc5e5d538e3a988ca\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/cart\", \"durationMs\": 46}, {\"traceID\": \"16cc7b862f2168ba3a733377c5ab0d26\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/products\", \"durationMs\": 17}, {\"traceID\": \"1aa311624ccada1f5cbc2b49ce0515e5\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/products\", \"durationMs\": 31}, {\"traceID\": \"11c751d2b66f586568beb67b11362f74\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/products\", \"durationMs\": 20}, {\"traceID\": \"ad920ee4dbc4ebe2557c12ee7a6f11\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/products\", \"durationMs\": 48}, {\"traceID\": \"153ee91dda6015c1e02a7953be0c8973\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"POST /api/orders\", \"durationMs\": 38}, {\"traceID\": \"c32332dde2a4fca25b31716a2f532d9\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/products\", \"durationMs\": 40}, {\"traceID\": \"a5e77d5943877c1c6d0a3cfe2648a36\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"POST /api/orders\", \"durationMs\": 27}, {\"traceID\": \"27b421ae5b2363f8f4b3e11eecb34b5\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/cart\", \"durationMs\": 13}, {\"traceID\": \"14c505986c585ffea582aa19d6dce519\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"POST /api/orders\", \"durationMs\": 42}, {\"traceID\": \"13869d996820389898b0dc9e1938a291\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"POST /api/orders\", \"durationMs\": 57}, {\"traceID\": \"1859bfa08552ce8ed36652df0fd4aded\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/cart\", \"durationMs\": 38}, {\"traceID\": \"18f268369abbf2e1058793ecc804506d\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/cart\", \"durationMs\": 54}, {\"traceID\": \"11c0a1933995161b22a7abdf94d67557\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/products\", \"durationMs\": 23}, {\"traceID\": \"8daaa22773f08b43e1685737f4051a9\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/products\", \"durationMs\": 15}, {\"traceID\": \"232837edce44e01738735d29d9a36d8\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/cart\", \"durationMs\": 36}, {\"traceID\": \"1a24daddc3ccc6808f8979ad3bb503fc\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/cart\", \"durationMs\": 30}, {\"traceID\": \"4eb3326617f9501c5f7ceb35917bc79\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/products\", \"durationMs\": 13}], \"hint\": \"Tighten the TraceQL (add status=error / duration> / a route) or lower limit.\"}",
+        "ok": true
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": true,
+        "detail": "1 successful tool call(s), needed 1"
+      },
+      {
+        "type": "contains",
+        "passed": true,
+        "detail": "found 'order-service'"
+      },
+      {
+        "type": "grounded",
+        "passed": true,
+        "detail": "all 20 cited trace ID(s) found in tool output"
+      },
+      {
+        "type": "cites_trace",
+        "passed": true,
+        "detail": "cited a trace ID"
+      }
+    ]
+  },
+  {
+    "id": "traceql-error-chain-orders",
+    "signal": "traces",
+    "score": 0.0,
+    "answer": "I encountered an error when trying to retrieve traces for POST /api/orders requests. The TraceQL query might be malformed. I will try again with a corrected query.I am sorry, but I was unable to retrieve a trace for a failed POST /api/orders request. The queries I ran returned errors, indicating an issue with the TraceQL syntax. I need to correct the query to properly search for traces.",
+    "tool_calls": [
+      {
+        "name": "query_tempo_traces",
+        "args": {
+          "limit": 1,
+          "end": "now",
+          "traceql": "resource.service.name = \"order-service\" && http.request.method = \"POST\" && http.request.route = \"/api/orders\" && status = error",
+          "start": "now-24h"
+        },
+        "output": "Error: ToolException('http://localhost:3200/api/search returned 400: invalid TraceQL query: parse error at line 0, col 1: syntax error: unexpected resource.\\nHINT: TraceQL predicates go inside braces, e.g. `{ resource.service.name=\"<svc>\" && status=error }`, and attribute names are dotted and scoped (`resource.` for resource attrs, `span.` for span attrs). Read git_version off the trace\\'s resource.service.version — don\\'t go to Loki for it.')\n Please fix your mistakes.",
+        "ok": false
+      },
+      {
+        "name": "query_tempo_traces",
+        "args": {
+          "start": "now-24h",
+          "traceql": "{resource.service.name = \"order-service\" && http.request.method = \"POST\" && http.request.route = \"/api/orders\" && status = \"error\"}",
+          "end": "now",
+          "limit": 1
+        },
+        "output": "Error: ToolException('http://localhost:3200/api/search returned 400: invalid TraceQL query: parse error at line 1, col 45: unknown identifier: http\\nHINT: TraceQL predicates go inside braces, e.g. `{ resource.service.name=\"<svc>\" && status=error }`, and attribute names are dotted and scoped (`resource.` for resource attrs, `span.` for span attrs). Read git_version off the trace\\'s resource.service.version — don\\'t go to Loki for it.\\n`status` is an intrinsic enum, not a string: write `status=error` (no quotes). Same for `kind=server`.')\n Please fix your mistakes.",
+        "ok": false
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": false,
+        "detail": "0 successful tool call(s), needed 1"
+      },
+      {
+        "type": "contains",
+        "passed": true,
+        "detail": "found '/api/orders'"
+      },
+      {
+        "type": "grounded",
+        "passed": true,
+        "detail": "no trace IDs cited (nothing to ground)"
+      },
+      {
+        "type": "cites_trace",
+        "passed": false,
+        "detail": "no trace ID"
+      }
+    ]
+  },
+  {
+    "id": "traceql-error-span-analysis",
+    "signal": "traces",
+    "score": 1.0,
+    "answer": "I can help with that. I'll look for traces with errors across all services in the last 24 hours and identify which services and operations are most affected. If I find a representative trace, I'll provide its ID.\n\nError spans are occurring across multiple operations within the `webapp` service. The most frequent failing operations appear to be `POST /api/orders` and `POST /api/payments`, followed by `GET /api/products`.\n\nHere are some specific traces where errors were observed:\n* `16cc7b862f2168ba3a733377c5ab0d26`\n* `31b80eec4b0b45a4d303d6ca7850d90a`\n* `31aa3392f1d6059787fdf3f92480c589`\n* `36cd28634b35e3224cd5ed59041fc0a4`\n* `14cfb342531fc5691a490527151e908d`\n\nConfidence: 0.5. I could not rule out competing hypotheses as I only have trace data and no other signal types to corroborate.",
+    "tool_calls": [
+      {
+        "name": "query_tempo_traces",
+        "args": {
+          "limit": 10,
+          "start": "now-24h",
+          "traceql": "{status = error}"
+        },
+        "output": "{\"truncated\": true, \"reason\": \"Tempo result > 8192B; returning slim summaries.\", \"traces\": [{\"traceID\": \"16cc7b862f2168ba3a733377c5ab0d26\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/products\", \"durationMs\": 17}, {\"traceID\": \"31b80eec4b0b45a4d303d6ca7850d90a\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"POST /api/payments\", \"durationMs\": 36}, {\"traceID\": \"31aa3392f1d6059787fdf3f92480c589\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"POST /api/orders\", \"durationMs\": 54}, {\"traceID\": \"36cd28634b35e3224cd5ed59041fc0a4\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"POST /api/orders\", \"durationMs\": 16}, {\"traceID\": \"14cfb342531fc5691a490527151e908d\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"POST /api/payments\", \"durationMs\": 43}, {\"traceID\": \"16cf6da66f2ca88a4a9cf7f7799b10f\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/products\", \"durationMs\": 19}, {\"traceID\": \"1b72b72a706131b5e85b1c5c7fddc52a\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/products\", \"durationMs\": 22}, {\"traceID\": \"1812b3bddc979f27932240856cd521c8\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"POST /api/orders\", \"durationMs\": 54}, {\"traceID\": \"347b1eeab99b589afa6cac5e7bfef795\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"POST /api/payments\", \"durationMs\": 51}, {\"traceID\": \"932b657cfe5818d571a75cb1cf6ae95\", \"rootServiceName\": \"webapp\", \"rootTraceName\": \"GET /api/products\", \"durationMs\": 49}], \"hint\": \"Tighten the TraceQL (add status=error / duration> / a route) or lower limit.\"}",
+        "ok": true
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": true,
+        "detail": "1 successful tool call(s), needed 1"
+      },
+      {
+        "type": "contains",
+        "passed": true,
+        "detail": "found 'span'"
+      },
+      {
+        "type": "grounded",
+        "passed": true,
+        "detail": "all 5 cited trace ID(s) found in tool output"
+      },
+      {
+        "type": "cites_trace",
+        "passed": true,
+        "detail": "cited a trace ID"
+      }
+    ]
+  }
+]
