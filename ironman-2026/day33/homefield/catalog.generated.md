@@ -1,0 +1,613 @@
+# Telemetry Schema Catalog
+
+Generated from the live stack at 2026-08-31T10:31:15+00:00 by `day33/awayfield/make_catalog.py`. It is an inventory of what this environment contains — nothing here is an instruction about how to call a tool, and no value below was typed in by hand.
+
+## Metrics (Prometheus)
+
+38 application metric names are present (0 runtime/scrape metrics are omitted). For each one, the labels it actually carries and the values seen:
+
+- `gateway_upstream_attempts_total` — 3 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v4.0.0`
+  - `job`: `demo/api-gateway`
+  - `outcome`: `error`, `ok`
+  - `retry`: `false`
+  - `service_name`: `api-gateway`
+  - `service_namespace`: `demo`
+  - `service_version`: `v4.0.0`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+  - `upstream`: `order-service`, `user-service`
+- `http_client_duration_milliseconds_bucket` — 208 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v0.0.1`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `http_method`: `GET`, `POST`
+  - `http_scheme`: `http`
+  - `http_status_code`: `200`, `401`, `402`, `404`, `502`, `503`
+  - `job`: `demo/aiops-agent`, `demo/api-gateway`, `demo/order-service`, `demo/webapp`
+  - `le`: histogram buckets, 16 boundaries
+  - `service_name`: `aiops-agent`, `api-gateway`, `order-service`, `webapp`
+  - `service_namespace`: `demo`
+  - `service_version`: `v0.0.1`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `telemetry_auto_version`: `0.62b1`, `0.63b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`, `1.42.1`
+- `http_client_duration_milliseconds_count` — 13 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v0.0.1`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `http_method`: `GET`, `POST`
+  - `http_scheme`: `http`
+  - `http_status_code`: `200`, `401`, `402`, `404`, `502`, `503`
+  - `job`: `demo/aiops-agent`, `demo/api-gateway`, `demo/order-service`, `demo/webapp`
+  - `service_name`: `aiops-agent`, `api-gateway`, `order-service`, `webapp`
+  - `service_namespace`: `demo`
+  - `service_version`: `v0.0.1`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `telemetry_auto_version`: `0.62b1`, `0.63b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`, `1.42.1`
+- `http_client_duration_milliseconds_sum` — 13 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v0.0.1`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `http_method`: `GET`, `POST`
+  - `http_scheme`: `http`
+  - `http_status_code`: `200`, `401`, `402`, `404`, `502`, `503`
+  - `job`: `demo/aiops-agent`, `demo/api-gateway`, `demo/order-service`, `demo/webapp`
+  - `service_name`: `aiops-agent`, `api-gateway`, `order-service`, `webapp`
+  - `service_namespace`: `demo`
+  - `service_version`: `v0.0.1`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `telemetry_auto_version`: `0.62b1`, `0.63b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`, `1.42.1`
+- `http_server_active_requests` — 17 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v0.0.1`, `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `http_flavor`: `1.1`
+  - `http_host`: `10.42.0.134:8000`, `10.42.0.135:8000`, `10.42.0.137:8000`, `10.42.0.139:8000`, `10.42.0.140:8000`, `10.42.0.144:8000`, `10.42.0.145:8000`
+  - `http_method`: `GET`, `POST`
+  - `http_scheme`: `http`
+  - `http_server_name`: `10.42.0.134:8000`, `10.42.0.135:8000`, `10.42.0.137:8000`, `10.42.0.139:8000`, `10.42.0.140:8000`, `10.42.0.144:8000`, `10.42.0.145:8000`, `api-gateway.demo.svc:8000`, … (13 values)
+  - `job`: `demo/aiops-agent`, `demo/api-gateway`, `demo/order-service`, `demo/payment-service`, `demo/user-service`, `demo/webapp`
+  - `service_name`: `aiops-agent`, `api-gateway`, `order-service`, `payment-service`, `user-service`, `webapp`
+  - `service_namespace`: `demo`
+  - `service_version`: `v0.0.1`, `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `telemetry_auto_version`: `0.62b1`, `0.63b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`, `1.42.1`
+- `http_server_duration_milliseconds_bucket` — 464 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v0.0.1`, `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `http_flavor`: `1.1`
+  - `http_host`: `10.42.0.134:8000`, `10.42.0.135:8000`, `10.42.0.137:8000`, `10.42.0.139:8000`, `10.42.0.140:8000`, `10.42.0.144:8000`, `10.42.0.145:8000`
+  - `http_method`: `GET`, `POST`
+  - `http_scheme`: `http`
+  - `http_server_name`: `10.42.0.134:8000`, `10.42.0.135:8000`, `10.42.0.137:8000`, `10.42.0.139:8000`, `10.42.0.140:8000`, `10.42.0.144:8000`, `10.42.0.145:8000`, `api-gateway.demo.svc:8000`, … (13 values)
+  - `http_status_code`: `200`, `401`, `402`, `404`, `422`, `502`, `503`
+  - `http_target`: `/api/cart`, `/api/orders`, `/api/products`, `/api/users`, `/api/users/{user_id}/authcheck`, `/api/{path}`, `/charge`, `/health`, … (9 values)
+  - `job`: `demo/aiops-agent`, `demo/api-gateway`, `demo/order-service`, `demo/payment-service`, `demo/user-service`, `demo/webapp`
+  - `le`: histogram buckets, 16 boundaries
+  - `net_host_port`: `8000`
+  - `service_name`: `aiops-agent`, `api-gateway`, `order-service`, `payment-service`, `user-service`, `webapp`
+  - `service_namespace`: `demo`
+  - `service_version`: `v0.0.1`, `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `telemetry_auto_version`: `0.62b1`, `0.63b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`, `1.42.1`
+- `http_server_duration_milliseconds_count` — 29 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v0.0.1`, `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `http_flavor`: `1.1`
+  - `http_host`: `10.42.0.134:8000`, `10.42.0.135:8000`, `10.42.0.137:8000`, `10.42.0.139:8000`, `10.42.0.140:8000`, `10.42.0.144:8000`, `10.42.0.145:8000`
+  - `http_method`: `GET`, `POST`
+  - `http_scheme`: `http`
+  - `http_server_name`: `10.42.0.134:8000`, `10.42.0.135:8000`, `10.42.0.137:8000`, `10.42.0.139:8000`, `10.42.0.140:8000`, `10.42.0.144:8000`, `10.42.0.145:8000`, `api-gateway.demo.svc:8000`, … (13 values)
+  - `http_status_code`: `200`, `401`, `402`, `404`, `422`, `502`, `503`
+  - `http_target`: `/api/cart`, `/api/orders`, `/api/products`, `/api/users`, `/api/users/{user_id}/authcheck`, `/api/{path}`, `/charge`, `/health`, … (9 values)
+  - `job`: `demo/aiops-agent`, `demo/api-gateway`, `demo/order-service`, `demo/payment-service`, `demo/user-service`, `demo/webapp`
+  - `net_host_port`: `8000`
+  - `service_name`: `aiops-agent`, `api-gateway`, `order-service`, `payment-service`, `user-service`, `webapp`
+  - `service_namespace`: `demo`
+  - `service_version`: `v0.0.1`, `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `telemetry_auto_version`: `0.62b1`, `0.63b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`, `1.42.1`
+- `http_server_duration_milliseconds_sum` — 29 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v0.0.1`, `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `http_flavor`: `1.1`
+  - `http_host`: `10.42.0.134:8000`, `10.42.0.135:8000`, `10.42.0.137:8000`, `10.42.0.139:8000`, `10.42.0.140:8000`, `10.42.0.144:8000`, `10.42.0.145:8000`
+  - `http_method`: `GET`, `POST`
+  - `http_scheme`: `http`
+  - `http_server_name`: `10.42.0.134:8000`, `10.42.0.135:8000`, `10.42.0.137:8000`, `10.42.0.139:8000`, `10.42.0.140:8000`, `10.42.0.144:8000`, `10.42.0.145:8000`, `api-gateway.demo.svc:8000`, … (13 values)
+  - `http_status_code`: `200`, `401`, `402`, `404`, `422`, `502`, `503`
+  - `http_target`: `/api/cart`, `/api/orders`, `/api/products`, `/api/users`, `/api/users/{user_id}/authcheck`, `/api/{path}`, `/charge`, `/health`, … (9 values)
+  - `job`: `demo/aiops-agent`, `demo/api-gateway`, `demo/order-service`, `demo/payment-service`, `demo/user-service`, `demo/webapp`
+  - `net_host_port`: `8000`
+  - `service_name`: `aiops-agent`, `api-gateway`, `order-service`, `payment-service`, `user-service`, `webapp`
+  - `service_namespace`: `demo`
+  - `service_version`: `v0.0.1`, `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `telemetry_auto_version`: `0.62b1`, `0.63b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`, `1.42.1`
+- `http_server_request_size_bytes_bucket` — 192 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `http_flavor`: `1.1`
+  - `http_host`: `10.42.0.134:8000`, `10.42.0.137:8000`, `10.42.0.139:8000`, `10.42.0.140:8000`, `10.42.0.144:8000`
+  - `http_method`: `POST`
+  - `http_scheme`: `http`
+  - `http_server_name`: `api-gateway.demo.svc:8000`, `localhost:8001`, `localhost:8002`, `order-service.demo.svc:8000`, `payment-service.demo.svc:8000`
+  - `http_status_code`: `200`, `401`, `402`, `404`, `422`, `502`
+  - `http_target`: `/api/orders`, `/api/{path}`, `/charge`
+  - `job`: `demo/api-gateway`, `demo/order-service`, `demo/payment-service`, `demo/webapp`
+  - `le`: histogram buckets, 16 boundaries
+  - `net_host_port`: `8000`
+  - `service_name`: `api-gateway`, `order-service`, `payment-service`, `webapp`
+  - `service_namespace`: `demo`
+  - `service_version`: `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+- `http_server_request_size_bytes_count` — 12 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `http_flavor`: `1.1`
+  - `http_host`: `10.42.0.134:8000`, `10.42.0.137:8000`, `10.42.0.139:8000`, `10.42.0.140:8000`, `10.42.0.144:8000`
+  - `http_method`: `POST`
+  - `http_scheme`: `http`
+  - `http_server_name`: `api-gateway.demo.svc:8000`, `localhost:8001`, `localhost:8002`, `order-service.demo.svc:8000`, `payment-service.demo.svc:8000`
+  - `http_status_code`: `200`, `401`, `402`, `404`, `422`, `502`
+  - `http_target`: `/api/orders`, `/api/{path}`, `/charge`
+  - `job`: `demo/api-gateway`, `demo/order-service`, `demo/payment-service`, `demo/webapp`
+  - `net_host_port`: `8000`
+  - `service_name`: `api-gateway`, `order-service`, `payment-service`, `webapp`
+  - `service_namespace`: `demo`
+  - `service_version`: `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+- `http_server_request_size_bytes_sum` — 12 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `http_flavor`: `1.1`
+  - `http_host`: `10.42.0.134:8000`, `10.42.0.137:8000`, `10.42.0.139:8000`, `10.42.0.140:8000`, `10.42.0.144:8000`
+  - `http_method`: `POST`
+  - `http_scheme`: `http`
+  - `http_server_name`: `api-gateway.demo.svc:8000`, `localhost:8001`, `localhost:8002`, `order-service.demo.svc:8000`, `payment-service.demo.svc:8000`
+  - `http_status_code`: `200`, `401`, `402`, `404`, `422`, `502`
+  - `http_target`: `/api/orders`, `/api/{path}`, `/charge`
+  - `job`: `demo/api-gateway`, `demo/order-service`, `demo/payment-service`, `demo/webapp`
+  - `net_host_port`: `8000`
+  - `service_name`: `api-gateway`, `order-service`, `payment-service`, `webapp`
+  - `service_namespace`: `demo`
+  - `service_version`: `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+- `http_server_response_size_bytes_bucket` — 464 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v0.0.1`, `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `http_flavor`: `1.1`
+  - `http_host`: `10.42.0.134:8000`, `10.42.0.135:8000`, `10.42.0.137:8000`, `10.42.0.139:8000`, `10.42.0.140:8000`, `10.42.0.144:8000`, `10.42.0.145:8000`
+  - `http_method`: `GET`, `POST`
+  - `http_scheme`: `http`
+  - `http_server_name`: `10.42.0.134:8000`, `10.42.0.135:8000`, `10.42.0.137:8000`, `10.42.0.139:8000`, `10.42.0.140:8000`, `10.42.0.144:8000`, `10.42.0.145:8000`, `api-gateway.demo.svc:8000`, … (13 values)
+  - `http_status_code`: `200`, `401`, `402`, `404`, `422`, `502`, `503`
+  - `http_target`: `/api/cart`, `/api/orders`, `/api/products`, `/api/users`, `/api/users/{user_id}/authcheck`, `/api/{path}`, `/charge`, `/health`, … (9 values)
+  - `job`: `demo/aiops-agent`, `demo/api-gateway`, `demo/order-service`, `demo/payment-service`, `demo/user-service`, `demo/webapp`
+  - `le`: histogram buckets, 16 boundaries
+  - `net_host_port`: `8000`
+  - `service_name`: `aiops-agent`, `api-gateway`, `order-service`, `payment-service`, `user-service`, `webapp`
+  - `service_namespace`: `demo`
+  - `service_version`: `v0.0.1`, `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `telemetry_auto_version`: `0.62b1`, `0.63b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`, `1.42.1`
+- `http_server_response_size_bytes_count` — 29 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v0.0.1`, `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `http_flavor`: `1.1`
+  - `http_host`: `10.42.0.134:8000`, `10.42.0.135:8000`, `10.42.0.137:8000`, `10.42.0.139:8000`, `10.42.0.140:8000`, `10.42.0.144:8000`, `10.42.0.145:8000`
+  - `http_method`: `GET`, `POST`
+  - `http_scheme`: `http`
+  - `http_server_name`: `10.42.0.134:8000`, `10.42.0.135:8000`, `10.42.0.137:8000`, `10.42.0.139:8000`, `10.42.0.140:8000`, `10.42.0.144:8000`, `10.42.0.145:8000`, `api-gateway.demo.svc:8000`, … (13 values)
+  - `http_status_code`: `200`, `401`, `402`, `404`, `422`, `502`, `503`
+  - `http_target`: `/api/cart`, `/api/orders`, `/api/products`, `/api/users`, `/api/users/{user_id}/authcheck`, `/api/{path}`, `/charge`, `/health`, … (9 values)
+  - `job`: `demo/aiops-agent`, `demo/api-gateway`, `demo/order-service`, `demo/payment-service`, `demo/user-service`, `demo/webapp`
+  - `net_host_port`: `8000`
+  - `service_name`: `aiops-agent`, `api-gateway`, `order-service`, `payment-service`, `user-service`, `webapp`
+  - `service_namespace`: `demo`
+  - `service_version`: `v0.0.1`, `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `telemetry_auto_version`: `0.62b1`, `0.63b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`, `1.42.1`
+- `http_server_response_size_bytes_sum` — 29 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v0.0.1`, `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `http_flavor`: `1.1`
+  - `http_host`: `10.42.0.134:8000`, `10.42.0.135:8000`, `10.42.0.137:8000`, `10.42.0.139:8000`, `10.42.0.140:8000`, `10.42.0.144:8000`, `10.42.0.145:8000`
+  - `http_method`: `GET`, `POST`
+  - `http_scheme`: `http`
+  - `http_server_name`: `10.42.0.134:8000`, `10.42.0.135:8000`, `10.42.0.137:8000`, `10.42.0.139:8000`, `10.42.0.140:8000`, `10.42.0.144:8000`, `10.42.0.145:8000`, `api-gateway.demo.svc:8000`, … (13 values)
+  - `http_status_code`: `200`, `401`, `402`, `404`, `422`, `502`, `503`
+  - `http_target`: `/api/cart`, `/api/orders`, `/api/products`, `/api/users`, `/api/users/{user_id}/authcheck`, `/api/{path}`, `/charge`, `/health`, … (9 values)
+  - `job`: `demo/aiops-agent`, `demo/api-gateway`, `demo/order-service`, `demo/payment-service`, `demo/user-service`, `demo/webapp`
+  - `net_host_port`: `8000`
+  - `service_name`: `aiops-agent`, `api-gateway`, `order-service`, `payment-service`, `user-service`, `webapp`
+  - `service_namespace`: `demo`
+  - `service_version`: `v0.0.1`, `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `telemetry_auto_version`: `0.62b1`, `0.63b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`, `1.42.1`
+- `order_create_duration_seconds_bucket` — 28 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v3.1.2`
+  - `job`: `demo/order-service`
+  - `le`: histogram buckets, 14 boundaries
+  - `service_name`: `order-service`
+  - `service_namespace`: `demo`
+  - `service_version`: `v3.1.2`
+  - `status`: `cancelled`, `created`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+- `order_create_duration_seconds_count` — 2 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v3.1.2`
+  - `job`: `demo/order-service`
+  - `service_name`: `order-service`
+  - `service_namespace`: `demo`
+  - `service_version`: `v3.1.2`
+  - `status`: `cancelled`, `created`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+- `order_create_duration_seconds_sum` — 2 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v3.1.2`
+  - `job`: `demo/order-service`
+  - `service_name`: `order-service`
+  - `service_namespace`: `demo`
+  - `service_version`: `v3.1.2`
+  - `status`: `cancelled`, `created`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+- `orders_total` — 4 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v3.1.2`
+  - `job`: `demo/order-service`
+  - `reason`: `auth`, `payment`, `unknown_product`
+  - `service_name`: `order-service`
+  - `service_namespace`: `demo`
+  - `service_version`: `v3.1.2`
+  - `status`: `cancelled`, `created`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+- `otel_sdk_log_created_total` — 5 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `job`: `demo/api-gateway`, `demo/order-service`, `demo/payment-service`, `demo/user-service`, `demo/webapp`
+  - `service_name`: `api-gateway`, `order-service`, `payment-service`, `user-service`, `webapp`
+  - `service_namespace`: `demo`
+  - `service_version`: `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+- `otel_sdk_metric_reader_collection_duration_seconds_bucket` — 80 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `job`: `demo/api-gateway`, `demo/order-service`, `demo/payment-service`, `demo/user-service`, `demo/webapp`
+  - `le`: histogram buckets, 16 boundaries
+  - `otel_component_name`: `periodic_metric_reader/1`
+  - `otel_component_type`: `periodic_metric_reader`
+  - `service_name`: `api-gateway`, `order-service`, `payment-service`, `user-service`, `webapp`
+  - `service_namespace`: `demo`
+  - `service_version`: `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+- `otel_sdk_metric_reader_collection_duration_seconds_count` — 5 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `job`: `demo/api-gateway`, `demo/order-service`, `demo/payment-service`, `demo/user-service`, `demo/webapp`
+  - `otel_component_name`: `periodic_metric_reader/1`
+  - `otel_component_type`: `periodic_metric_reader`
+  - `service_name`: `api-gateway`, `order-service`, `payment-service`, `user-service`, `webapp`
+  - `service_namespace`: `demo`
+  - `service_version`: `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+- `otel_sdk_metric_reader_collection_duration_seconds_sum` — 5 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `job`: `demo/api-gateway`, `demo/order-service`, `demo/payment-service`, `demo/user-service`, `demo/webapp`
+  - `otel_component_name`: `periodic_metric_reader/1`
+  - `otel_component_type`: `periodic_metric_reader`
+  - `service_name`: `api-gateway`, `order-service`, `payment-service`, `user-service`, `webapp`
+  - `service_namespace`: `demo`
+  - `service_version`: `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+- `otel_sdk_processor_log_processed_total` — 5 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `job`: `demo/api-gateway`, `demo/order-service`, `demo/payment-service`, `demo/user-service`, `demo/webapp`
+  - `otel_component_name`: `batching_log_processor/0`
+  - `otel_component_type`: `batching_log_processor`
+  - `service_name`: `api-gateway`, `order-service`, `payment-service`, `user-service`, `webapp`
+  - `service_namespace`: `demo`
+  - `service_version`: `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+- `otel_sdk_processor_log_queue_capacity` — 5 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `job`: `demo/api-gateway`, `demo/order-service`, `demo/payment-service`, `demo/user-service`, `demo/webapp`
+  - `otel_component_name`: `batching_log_processor/0`
+  - `otel_component_type`: `batching_log_processor`
+  - `service_name`: `api-gateway`, `order-service`, `payment-service`, `user-service`, `webapp`
+  - `service_namespace`: `demo`
+  - `service_version`: `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+- `otel_sdk_processor_log_queue_size` — 5 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `job`: `demo/api-gateway`, `demo/order-service`, `demo/payment-service`, `demo/user-service`, `demo/webapp`
+  - `otel_component_name`: `batching_log_processor/0`
+  - `otel_component_type`: `batching_log_processor`
+  - `service_name`: `api-gateway`, `order-service`, `payment-service`, `user-service`, `webapp`
+  - `service_namespace`: `demo`
+  - `service_version`: `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+- `otel_sdk_processor_span_processed_total` — 5 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `job`: `demo/api-gateway`, `demo/order-service`, `demo/payment-service`, `demo/user-service`, `demo/webapp`
+  - `otel_component_name`: `batching_span_processor/0`
+  - `otel_component_type`: `batching_span_processor`
+  - `service_name`: `api-gateway`, `order-service`, `payment-service`, `user-service`, `webapp`
+  - `service_namespace`: `demo`
+  - `service_version`: `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+- `otel_sdk_processor_span_queue_size` — 5 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `job`: `demo/api-gateway`, `demo/order-service`, `demo/payment-service`, `demo/user-service`, `demo/webapp`
+  - `otel_component_name`: `batching_span_processor/0`
+  - `otel_component_type`: `batching_span_processor`
+  - `service_name`: `api-gateway`, `order-service`, `payment-service`, `user-service`, `webapp`
+  - `service_namespace`: `demo`
+  - `service_version`: `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+- `otel_sdk_span_live` — 5 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `job`: `demo/api-gateway`, `demo/order-service`, `demo/payment-service`, `demo/user-service`, `demo/webapp`
+  - `otel_span_sampling_result`: `RECORD_AND_SAMPLE`
+  - `service_name`: `api-gateway`, `order-service`, `payment-service`, `user-service`, `webapp`
+  - `service_namespace`: `demo`
+  - `service_version`: `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+- `otel_sdk_span_started_total` — 14 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `job`: `demo/api-gateway`, `demo/order-service`, `demo/payment-service`, `demo/user-service`, `demo/webapp`
+  - `otel_span_parent_origin`: `local`, `none`, `remote`
+  - `otel_span_sampling_result`: `RECORD_AND_SAMPLE`
+  - `service_name`: `api-gateway`, `order-service`, `payment-service`, `user-service`, `webapp`
+  - `service_namespace`: `demo`
+  - `service_version`: `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+- `payment_charge_duration_seconds_bucket` — 42 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v2.5.0`
+  - `job`: `demo/payment-service`
+  - `le`: histogram buckets, 14 boundaries
+  - `service_name`: `payment-service`
+  - `service_namespace`: `demo`
+  - `service_version`: `v2.5.0`
+  - `status`: `authorized`, `declined`, `error`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+- `payment_charge_duration_seconds_count` — 3 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v2.5.0`
+  - `job`: `demo/payment-service`
+  - `service_name`: `payment-service`
+  - `service_namespace`: `demo`
+  - `service_version`: `v2.5.0`
+  - `status`: `authorized`, `declined`, `error`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+- `payment_charge_duration_seconds_sum` — 3 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v2.5.0`
+  - `job`: `demo/payment-service`
+  - `service_name`: `payment-service`
+  - `service_namespace`: `demo`
+  - `service_version`: `v2.5.0`
+  - `status`: `authorized`, `declined`, `error`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+- `payment_charges_total` — 3 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v2.5.0`
+  - `job`: `demo/payment-service`
+  - `reason`: `gateway`, `new_validator`
+  - `service_name`: `payment-service`
+  - `service_namespace`: `demo`
+  - `service_version`: `v2.5.0`
+  - `status`: `authorized`, `declined`, `error`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+- `user_auth_checks_total` — 3 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v1.3.0`
+  - `job`: `demo/user-service`
+  - `reason`: `not_found`, `transient`
+  - `service_name`: `user-service`
+  - `service_namespace`: `demo`
+  - `service_version`: `v1.3.0`
+  - `status`: `authorized`, `cancelled`, `error`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+- `user_authcheck_duration_seconds_bucket` — 42 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v1.3.0`
+  - `job`: `demo/user-service`
+  - `le`: histogram buckets, 14 boundaries
+  - `service_name`: `user-service`
+  - `service_namespace`: `demo`
+  - `service_version`: `v1.3.0`
+  - `status`: `authorized`, `cancelled`, `error`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+- `user_authcheck_duration_seconds_count` — 3 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v1.3.0`
+  - `job`: `demo/user-service`
+  - `service_name`: `user-service`
+  - `service_namespace`: `demo`
+  - `service_version`: `v1.3.0`
+  - `status`: `authorized`, `cancelled`, `error`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+- `user_authcheck_duration_seconds_sum` — 3 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v1.3.0`
+  - `job`: `demo/user-service`
+  - `service_name`: `user-service`
+  - `service_namespace`: `demo`
+  - `service_version`: `v1.3.0`
+  - `status`: `authorized`, `cancelled`, `error`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+- `user_lookups_total` — 1 series
+  - `deployment_environment`: `demo`
+  - `git_repo`: `tedmax100/o11y-bench`
+  - `git_version`: `v1.3.0`
+  - `job`: `demo/user-service`
+  - `op`: `list`
+  - `service_name`: `user-service`
+  - `service_namespace`: `demo`
+  - `service_version`: `v1.3.0`
+  - `telemetry_auto_version`: `0.62b1`
+  - `telemetry_sdk_language`: `python`
+  - `telemetry_sdk_name`: `opentelemetry`
+  - `telemetry_sdk_version`: `1.41.1`
+
+## Logs (Loki)
+
+Stream labels and their values:
+
+- `deployment_environment`: `demo`
+- `git_repo`: `tedmax100/o11y-bench`
+- `git_version`: `v0.0.1`, `v1.3.0`, `v2.5.0`, `v3.1.2`, `v4.0.0`, `v5.2.0`
+- `service_name`: `aiops-agent`, `api-gateway`, `order-service`, `payment-service`, `user-service`, `webapp`
+- `service_namespace`: `demo`
+
+## Traces (Tempo)
+
+Searchable tag names: `asgi.event.type`, `deployment.environment`, `git_repo`, `git_version`, `http.flavor`, `http.host`, `http.method`, `http.route`, `http.scheme`, `http.server_name`, `http.status_code`, `http.target`, `http.url`, `http.user_agent`, `net.host.port`, `net.peer.ip`, `net.peer.port`, `service.name`, `service.namespace`, `service.version`, `telemetry.auto.version`, `telemetry.sdk.language`, `telemetry.sdk.name`, `telemetry.sdk.version`
+
+Root services seen in a recent search: `aiops-agent`, `api-gateway`, `order-service`, `payment-service`, `user-service`, `webapp`
+Root span names seen: `GET`, `GET /health`, `GET /healthz`

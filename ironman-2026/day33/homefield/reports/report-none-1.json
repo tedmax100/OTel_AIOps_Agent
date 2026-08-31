@@ -1,0 +1,202 @@
+[
+  {
+    "id": "demo-decline-share",
+    "signal": "metrics",
+    "score": 0.5,
+    "answer": "Over the last 15 minutes, 20.24% of payment-service charge attempts were declined.\n\n```promql\nsum(rate(payment_charges_total{service_name=\"payment-service\",status=\"declined\"}[5m])) / sum(rate(payment_charges_total{service_name=\"payment-service\"}[5m]))\n```",
+    "tool_calls": [
+      {
+        "name": "query_prometheus",
+        "args": {
+          "end": "now",
+          "start": "now-15m",
+          "expr": "sum(rate(payment_charges_total{service_name=\"payment-service\",status=\"declined\"}[5m])) / sum(rate(payment_charges_total{service_name=\"payment-service\"}[5m]))"
+        },
+        "output": "{\"resultType\": \"matrix_summary\", \"result\": [{\"metric\": {}, \"points\": 8, \"last\": 0.6514, \"min\": 0.0, \"max\": 0.6514, \"avg\": 0.2024, \"window\": [1788171986, 1788172406], \"sample\": [[1788171986, 0.0], [1788172046, 0.0], [1788172106, 0.0], [1788172166, 0.0], [1788172226, 0.194], [1788172286, 0.3396], [1788172346, 0.4341], [1788172406, 0.6514]]}], \"note\": \"Series summarized to last/min/max/avg (+ sample if it varies); the ```promql``` panel re-runs the full query for the chart.\"}",
+        "ok": true
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": true,
+        "detail": "1 successful tool call(s), needed 1"
+      },
+      {
+        "type": "contains",
+        "passed": true,
+        "detail": "found 'declin'"
+      },
+      {
+        "type": "number",
+        "passed": false,
+        "detail": "main: closest stated 20.24 vs truth 49.06 (±9.812)"
+      }
+    ]
+  },
+  {
+    "id": "demo-decline-reason",
+    "signal": "metrics",
+    "score": 0.5,
+    "answer": "Over the last 15 minutes, there were 2.51 declines per minute, with the primary reason being 'new_validator'.\n\n```promql\nsum by (reason) (rate(payment_charges_total{service_name=\"payment-service\",status=\"declined\"}[5m]))\n```",
+    "tool_calls": [
+      {
+        "name": "query_prometheus",
+        "args": {
+          "expr": "sum by (reason) (rate(payment_charges_total{service_name=\"payment-service\",status=\"declined\"}[5m]))",
+          "start": "now-15m",
+          "end": "now"
+        },
+        "output": "{\"resultType\": \"matrix_summary\", \"result\": [{\"metric\": {\"reason\": \"new_validator\"}, \"points\": 8, \"last\": 2.514, \"min\": 0.0, \"max\": 2.514, \"avg\": 0.5725, \"window\": [1788171991, 1788172411], \"sample\": [[1788171991, 0.0], [1788172051, 0.0], [1788172111, 0.0], [1788172171, 0.0], [1788172231, 0.3266], [1788172291, 0.7394], [1788172351, 0.9998], [1788172411, 2.514]]}], \"note\": \"Series summarized to last/min/max/avg (+ sample if it varies); the ```promql``` panel re-runs the full query for the chart.\"}",
+        "ok": true
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": true,
+        "detail": "1 successful tool call(s), needed 1"
+      },
+      {
+        "type": "contains",
+        "passed": true,
+        "detail": "found 'new_validator'"
+      },
+      {
+        "type": "number",
+        "passed": false,
+        "detail": "main: closest stated 15 vs truth 767.8 (±153.6)"
+      }
+    ]
+  },
+  {
+    "id": "demo-decline-version",
+    "signal": "metrics",
+    "score": 1.0,
+    "answer": "The `v2.5.0` version of payment-service is serving the declined charges, with a rate of 2.514 declines per second over the last 15 minutes. This is primarily due to `new_validator` errors.The provided information indicates that the `v2.5.0` version of payment-service was running during the period of declined charges. However, the cluster's ReplicaSet history suggests that the rollouts for this version did not change the running process, implying that the issue is not a code regression within `v2.5.0`. The change is likely in the mounted configuration, specifically `configMap/payment-flags`. Therefore, I cannot definitively attribute the declined charges to a specific deployed version of the code.",
+    "tool_calls": [
+      {
+        "name": "query_prometheus",
+        "args": {
+          "expr": "sum by (git_version, reason) (rate(payment_charges_total{service_name=\"payment-service\", status=\"declined\"}[5m]))",
+          "end": "now",
+          "start": "now-15m"
+        },
+        "output": "{\"resultType\": \"matrix_summary\", \"result\": [{\"metric\": {\"git_version\": \"v2.5.0\", \"reason\": \"new_validator\"}, \"points\": 8, \"last\": 2.514, \"min\": 0.0, \"max\": 2.514, \"avg\": 0.5665, \"window\": [1788171996, 1788172416], \"sample\": [[1788171996, 0.0], [1788172056, 0.0], [1788172116, 0.0], [1788172176, 0.0], [1788172236, 0.3324], [1788172296, 0.6858], [1788172356, 0.9998], [1788172416, 2.514]]}], \"note\": \"Series summarized to last/min/max/avg (+ sample if it varies); the ```promql``` panel re-runs the full query for the chart.\"}",
+        "ok": true
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": true,
+        "detail": "1 successful tool call(s), needed 1"
+      },
+      {
+        "type": "contains",
+        "passed": true,
+        "detail": "found 'v2.5.0'"
+      }
+    ]
+  },
+  {
+    "id": "demo-declined-log-volume",
+    "signal": "logs",
+    "score": 0.0,
+    "answer": "I encountered an error when trying to count the payment decline events. The query failed because it reached the maximum number of series allowed for a single query. I need to adjust the query to be more efficient.\n\nCould you please specify if you are interested in a particular reason for the payment decline, or if you'd like to see the total count across all reasons? This will help me refine the query.",
+    "tool_calls": [
+      {
+        "name": "query_loki_logs",
+        "args": {
+          "queryType": "instant",
+          "logql": "count_over_time({service_name=\"payment-service\"} | event=\"payment.declined\" [15m])",
+          "end": "now",
+          "start": "now-15m"
+        },
+        "output": "Error: ToolException('http://localhost:13100/loki/api/v1/query returned 400: maximum of series (500) reached for a single query\\nHINT: check the LogQL pipeline. Log filter: `{...} | level=\"ERROR\"`. Metric/count: `sum(count_over_time({{...}} | <filters> [<window>]))` — the range goes INSIDE count_over_time, and the whole thing is wrapped in sum(...).')\n Please fix your mistakes.",
+        "ok": false
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": false,
+        "detail": "0 successful tool call(s), needed 1"
+      },
+      {
+        "type": "contains",
+        "passed": true,
+        "detail": "found 'declin'"
+      },
+      {
+        "type": "number",
+        "passed": false,
+        "detail": "no number in the answer (truth 824)"
+      }
+    ]
+  },
+  {
+    "id": "demo-decline-log-reason",
+    "signal": "logs",
+    "score": 0.5,
+    "answer": "The logs indicate that the `payment.declined` event occurred 840 times in the last 15 minutes. The `payment.gateway_error` occurred 5 times and `payment.requested` occurred 1229 times. The logs do not specify a reason for the declines.",
+    "tool_calls": [
+      {
+        "name": "query_loki_logs",
+        "args": {
+          "logql": "{service_name=\"payment-service\"} | json | amount_cents > 0",
+          "start": "now-15m"
+        },
+        "output": "{\"truncated\": true, \"reason\": \"Raw Loki output > 8192B; auto-aggregated.\", \"original_query\": \"{service_name=\\\"payment-service\\\"} | json | amount_cents > 0\", \"fallback_query\": \"topk(20, sum by (service_name, detected_level, event, git_version) (count_over_time({service_name=\\\"payment-service\\\"} [5m])))\", \"fallback_aggregation\": {\"resultType\": \"matrix\", \"result\": [{\"metric\": {\"detected_level\": \"info\", \"event\": \"payment.authorized\", \"git_version\": \"v2.5.0\", \"service_name\": \"payment-service\"}, \"values\": [[1788171822, \"11\"], [1788171831, \"21\"], [1788171840, \"30\"], [1788171849, \"38\"], [1788171858, \"48\"], [1788171867, \"65\"], [1788171876, \"71\"], [1788171885, \"80\"], [1788171894, \"93\"], [1788171903, \"102\"], [1788171912, \"115\"], [1788171921, \"126\"], [1788171930, \"146\"], [1788171939, \"160\"], [1788171948, \"170\"], [1788171957, \"179\"], [1788171966, \"185\"], [1788171975, \"195\"], [1788171984, \"206\"], [1788171993, \"219\"], [1788172002, \"228\"], [1788172011, \"236\"], [1788172020, \"254\"], [1788172029, \"265\"], [1788172038, \"277\"], [1788172047, \"291\"], [1788172056, \"307\"], [1788172065, \"321\"], [1788172074, \"334\"], [1788172083, \"345\"], [1788172092, \"359\"], [1788172101, \"372\"], [1788172110, \"384\"], [1788172119, \"393\"], [1788172128, \"393\"], [1788172137, \"399\"], [1788172146, \"407\"], [1788172155, \"404\"], [1788172164, \"402\"], [1788172173, \"403\"], [1788172182, \"405\"], [1788172191, \"402\"], [1788172200, \"403\"], [1788172209, \"402\"], [1788172218, \"408\"], [1788172227, \"404\"], [1788172236, \"400\"], [1788172245, \"401\"], [1788172254, \"401\"], [1788172263, \"409\"], [1788172272, \"418\"], [1788172281, \"418\"], [1788172290, \"417\"], [1788172299, \"422\"], [1788172308, \"427\"], [1788172317, \"421\"], [1788172326, \"419\"], [1788172335, \"419\"], [1788172344, \"417\"], [1788172353, \"413\"], [1788172362, \"409\"], [1788172371, \"410\"], [1788172380, \"410\"], [1788172389, \"407\"], [1788172398, \"401\"], [1788172407, \"410\"], [1788172416, \"400\"], [1788172425, \"399\"], [1788172434, \"384\"]]}, {\"metric\": {\"detected_level\": \"info\", \"event\": \"payment.declined\", \"git_version\": \"v2.5.0\", \"service_name\": \"payment-service\"}, \"values\": [[1788171858, \"1\"], [1788171867, \"1\"], [1788171876, \"1\"], [1788171885, \"1\"], [1788171894, \"1\"], [1788171903, \"1\"], [1788171912, \"1\"], [1788171921, \"1\"], [1788171930, \"1\"], [1788171939, \"1\"], [1788171948, \"1\"], [1788171957, \"1\"], [1788171966, \"1\"], [1788171975, \"1\"], [1788171984, \"1\"], [1788171993, \"1\"], [1788172002, \"1\"], [1788172011, \"1\"], [1788172020, \"1\"], [1788172029, \"1\"], [1788172038, \"1\"], [1788172047, \"1\"], [1788172056, \"1\"], [1788172065, \"1\"], [1788172074, \"1\"], [1788172083, \"1\"], [1788172092, \"1\"], [1788172101, \"1\"], [1788172110, \"1\"], [1788172119, \"1\"], [1788172128, \"1\"], [1788172137, \"1\"], [1788172146, \"1\"], [1788172173, \"26\"], [1788172182, \"55\"], [1788172191, \"85\"], [1788172200, \"114\"], [1788172209, \"143\"], [1788172218, \"172\"], [1788172227, \"201\"], [1788172236, \"230\"], [1788172245, \"259\"], [1788172254, \"288\"], [1788172263, \"318\"], [1788172272, \"347\"], [1788172281, \"376\"], [1788172290, \"405\"], [1788172299, \"434\"], [1788172308, \"463\"], [1788172317, \"492\"], [1788172326, \"521\"], [1788172335, \"550\"], [1788172344, \"579\"], [1788172353, \"609\"], [1788172362, \"638\"], [1788172371, \"667\"], [1788172380, \"696\"], [1788172389, \"725\"], [1788172398, \"754\"], [1788172407, \"783\"], [1788172416, \"812\"], [1788172425, \"840\"], [1788172434, \"840\"]]}, {\"metric\": {\"detected_level\": \"info\", \"event\": \"payment.gateway_error\", \"git_version\": \"v2.5.0\", \"service_name\": \"payment-service\"}, \"values\": [[1788171876, \"1\"], [1788171885, \"1\"], [1788171894, \"1\"], [1788171903, \"1\"], [1788171912, \"1\"], [1788171921, \"1\"], [1788171930, \"1\"], [1788171939, \"1\"], [1788171948, \"1\"], [1788171957, \"2\"], [1788171966, \"3\"], [1788171975, \"3\"], [1788171984, \"3\"], [1788171993, \"3\"], [1788172002, \"4\"], [1788172011, \"4\"], [1788172020, \"4\"], [1788172029, \"4\"], [1788172038, \"4\"], [1788172047, \"4\"], [1788172056, \"4\"], [1788172065, \"4\"], [1788172074, \"4\"], [1788172083, \"5\"], [1788172092, \"5\"], [1788172101, \"5\"], [1788172110, \"5\"], [1788172119, \"5\"], [1788172128, \"5\"], [1788172137, \"5\"], [1788172146, \"5\"], [1788172155, \"5\"], [1788172164, \"5\"], [1788172173, \"5\"], [1788172182, \"5\"], [1788172191, \"5\"], [1788172200, \"5\"], [1788172209, \"6\"], [1788172218, \"6\"], [1788172227, \"6\"], [1788172236, \"6\"], [1788172245, \"6\"], [1788172254, \"5\"], [1788172263, \"5\"], [1788172272, \"4\"], [1788172281, \"4\"], [1788172290, \"4\"], [1788172299, \"3\"], [1788172308, \"3\"], [1788172317, \"3\"], [1788172326, \"3\"], [1788172335, \"3\"], [1788172344, \"3\"], [1788172353, \"3\"], [1788172362, \"3\"], [1788172371, \"3\"], [1788172380, \"3\"], [1788172389, \"3\"], [1788172398, \"3\"], [1788172407, \"3\"], [1788172416, \"5\"], [1788172425, \"5\"], [1788172434, \"5\"]]}, {\"metric\": {\"detected_level\": \"info\", \"event\": \"payment.requested\", \"git_version\": \"v2.5.0\", \"service_name\": \"payment-service\"}, \"values\": [[1788171822, \"11\"], [1788171831, \"21\"], [1788171840, \"30\"], [1788171849, \"38\"], [1788171858, \"49\"], [1788171867, \"66\"], [1788171876, \"73\"], [1788171885, \"82\"], [1788171894, \"95\"], [1788171903, \"104\"], [1788171912, \"117\"], [1788171921, \"128\"], [1788171930, \"148\"], [1788171939, \"162\"], [1788171948, \"172\"], [1788171957, \"182\"], [1788171966, \"189\"], [1788171975, \"199\"], [1788171984, \"210\"], [1788171993, \"223\"], [1788172002, \"233\"], [1788172011, \"241\"], [1788172020, \"259\"], [1788172029, \"270\"], [1788172038, \"282\"], [1788172047, \"296\"], [1788172056, \"312\"], [1788172065, \"326\"], [1788172074, \"339\"], [1788172083, \"351\"], [1788172092, \"365\"], [1788172101, \"378\"], [1788172110, \"390\"], [1788172119, \"399\"], [1788172128, \"399\"], [1788172137, \"405\"], [1788172146, \"413\"], [1788172155, \"409\"], [1788172164, \"407\"], [1788172173, \"434\"], [1788172182, \"465\"], [1788172191, \"492\"], [1788172200, \"522\"], [1788172209, \"551\"], [1788172218, \"586\"], [1788172227, \"611\"], [1788172236, \"636\"], [1788172245, \"666\"], [1788172254, \"694\"], [1788172263, \"732\"], [1788172272, \"769\"], [1788172281, \"798\"], [1788172290, \"826\"], [1788172299, \"859\"], [1788172308, \"893\"], [1788172317, \"916\"], [1788172326, \"943\"], [1788172335, \"972\"], [1788172344, \"999\"], [1788172353, \"1025\"], [1788172362, \"1050\"], [1788172371, \"1080\"], [1788172380, \"1109\"], [1788172389, \"1135\"], [1788172398, \"1158\"], [1788172407, \"1196\"], [1788172416, \"1217\"], [1788172425, \"1244\"], [1788172434, \"1229\"]]}], \"stats\": {\"summary\": {\"bytesProcessedPerSecond\": 77867707, \"linesProcessedPerSecond\": 182788, \"totalBytesProcessed\": 1410905, \"totalLinesProcessed\": 3312, \"execTime\": 0.018119257, \"queueTime\": 6.7104e-05, \"subqueries\": 0, \"totalEntriesReturned\": 4, \"splits\": 0, \"shards\": 1, \"totalPostFilterLines\": 3312, \"totalStructuredMetadataBytesProcessed\": 1237094}, \"querier\": {\"store\": {\"totalChunksRef\": 0, \"totalChunksDownloaded\": 0, \"chunksDownloadTime\": 0, \"queryReferencedStructuredMetadata\": false, \"chunk\": {\"headChunkBytes\": 0, \"headChunkLines\": 0, \"decompressedBytes\": 0, \"decompressedLines\": 0, \"compressedBytes\": 0, \"totalDuplicates\": 0, \"postFilterLines\": 0, \"headChunkStructuredMetadataBytes\": 0, \"decompressedStructuredMetadataBytes\": 0}, \"chunkRefsFetchTime\": 0, \"congestionControlLatency\": 0, \"pipelineWrapperFilteredLines\": 0}}, \"ingester\": {\"totalReached\": 1, \"totalChunksMatched\": 1, \"totalBatches\": 8, \"totalLinesSent\": 3312, \"store\": {\"totalChunksRef\": 0, \"totalChunksDownloaded\": 0, \"chunksDownloadTime\": 0, \"queryReferencedStructuredMetadata\": true, \"chunk\": {\"headChunkBytes\": 169096, \"headChunkLines\": 821, \"decompressedBytes\": 1241809, \"decompressedLines\": 2491, \"compressedBytes\": 82923, \"totalDuplicates\": 0, \"postFilterLines\": 3312, \"headChunkStructuredMetadataBytes\": 141184, \"decompressedStructuredMetadataBytes\": 1095910}, \"chunkRefsFetchTime\": 138175, \"congestionControlLatency\": 0, \"pipelineWrapperFilteredLines\": 0}}, \"cache\": {\"chunk\": {\"entriesFound\": 0, \"entriesRequested\": 0, \"entriesStored\": 0, \"bytesReceived\": 0, \"bytesSent\": 0, \"requests\": 0, \"downloadTime\": 0, \"queryLengthServed\": 0}, \"index\": {\"entriesFound\": 0, \"entriesRequested\": 0, \"entriesStored\": 0, \"bytesReceived\": 0, \"bytesSent\": 0, \"requests\": 0, \"downloadTime\": 0, \"queryLengthServed\": 0}, \"result\": {\"entriesFound\": 0, \"entriesRequested\": 0, \"entriesStored\": 0, \"bytesReceived\": 0, \"bytesSent\": 0, \"requests\": 0, \"downloadTime\": 0, \"queryLengthServed\": 0}, \"statsResult\": {\"entriesFound\": 0, \"entriesRequested\": 0, \"entriesStored\": 0, \"bytesReceived\": 0, \"bytesSent\": 0, \"requests\": 0, \"downloadTime\": 0, \"queryLengthServed\": 0}, \"volumeResult\": {\"entriesFound\": 0, \"entriesRequested\": 0, \"entriesStored\": 0, \"bytesReceived\": 0, \"bytesSent\": 0, \"requests\": 0, \"downloadTime\": 0, \"queryLengthServed\": 0}, \"seriesResult\": {\"entriesFound\": 0, \"entriesRequested\": 0, \"entriesStored\": 0, \"bytesReceived\": 0, \"bytesSent\": 0, \"requests\": 0, \"downloadTime\": 0, \"queryLengthServed\": 0}, \"labelResult\": {\"entriesFound\": 0, \"entriesRequested\": 0, \"entriesStored\": 0, \"bytesReceived\": 0, \"bytesSent\": 0, \"requests\": 0, \"downloadTime\": 0, \"queryLengthServed\": 0}, \"instantMetricResult\": {\"entriesFound\": 0, \"entriesRequested\": 0, \"entriesStored\": 0, \"bytesReceived\": 0, \"bytesSent\": 0, \"requests\": 0, \"downloadTime\": 0, \"queryLengthServed\": 0}}, \"index\": {\"totalChunks\": 0, \"postFilterChunks\": 0, \"shardsDuration\": 0}}}, \"hint\": \"Your filters (| json | amount_cents > 0) could not be counted, so these numbers are for the whole stream selector and NOT for what you asked about. Loki said: http://localhost:13100/loki/api/v1/query_range returned 400: pipeline error: 'JSONParserErr' for series: '{__error__=\\\"JSONParserErr\\\", __error_details__=\\\"Value looks like object, but can't find closing '}' symbol\\\", amount_cents=\\\"300\\\", deployment_environment=\\\"demo\\\", detected_level=\\\"info\\\", event=\\\"payment.requested\\\", flags=\\\"1\\\", git_repo=\\\"tedmax100/o11y-bench\\\", git_version=\\\"v2.5.0\\\", observed_timestamp=\\\"1788171820155677154\\\", order_id=\\\"o-714b183d\\\", otelServiceName=\\\"payment-service\\\", otelSpanID=\\\"c72c798cd31b2c2c\\\", otelTraceID=\\\"05de33713fb41cb0468d2433a413d7b1\\\", o. Aggregated by (service_name, detected_level, event, git_version); shorten the window to see the filtered lines.\", \"filters_dropped\": \"| json | amount_cents > 0\"}",
+        "ok": true
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": true,
+        "detail": "1 successful tool call(s), needed 1"
+      },
+      {
+        "type": "contains",
+        "passed": false,
+        "detail": "none of ['odd', 'validator'] in the answer"
+      }
+    ]
+  },
+  {
+    "id": "demo-declined-charge-trace",
+    "signal": "traces",
+    "score": 0.5,
+    "answer": "I couldn't find any traces matching your criteria in the last 15 minutes.",
+    "tool_calls": [
+      {
+        "name": "query_tempo_traces",
+        "args": {
+          "start": "now-15m",
+          "end": "now",
+          "traceql": "{ resource.service.name = \"payment-service\" && span.name = \"POST /charge\" }"
+        },
+        "output": "{\"traces\": [], \"count\": 0}",
+        "ok": true
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": true,
+        "detail": "1 successful tool call(s), needed 1"
+      },
+      {
+        "type": "cites_trace",
+        "passed": false,
+        "detail": "no trace ID"
+      },
+      {
+        "type": "grounded",
+        "passed": true,
+        "detail": "no trace IDs cited (nothing to ground)"
+      }
+    ]
+  }
+]
