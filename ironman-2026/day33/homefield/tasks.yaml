@@ -1,0 +1,103 @@
+# Six RCA questions written against the DEMO-SERVICES schema — the environment
+# the agent's own schema catalog actually describes.
+#
+# Why this file exists: Day25's three numbers (5.5 / 3.5 / 2.5) were all measured
+# on the Day1 generator stack, i.e. with the catalog describing a DIFFERENT stack
+# than the one under test. That measures "how bad is carrying the wrong notes",
+# not "is governance worth anything". This file is the other half of the 2x2:
+# same agent, same grader, same checks — but on its home field.
+#
+# Same grader as Day1 (`day01/bench/grade.py`, imported untouched). Ground truth
+# is resolved live at grading time. Windows are 15m, not 6h: this stack's
+# business metrics only exist while the load generator runs.
+
+- id: demo-decline-share
+  signal: metrics
+  question: |
+    Over the last 15 minutes, what share of payment-service charge attempts were declined?
+    Report it as a percentage of all charge attempts in that window.
+  truth:
+    backend: prometheus
+    query: |
+      sum(increase(payment_charges_total{status="declined"}[15m]))
+      / sum(increase(payment_charges_total[15m]))
+    scale: 100
+  checks:
+    - { type: queried, min: 1 }
+    - { type: contains, any_of: ["declin"] }
+    - { type: number, tol: 0.2, unit: "%" }
+  partial_checks: [queried, contains]
+
+- id: demo-decline-reason
+  signal: metrics
+  question: |
+    Over the last 15 minutes, payment-service declined some charges. What reason is
+    carrying those declines, and how many declines were there in that window?
+  truth:
+    backend: prometheus
+    query: |
+      topk(1, sum by (reason) (increase(payment_charges_total{status="declined"}[15m])))
+    label: reason
+  checks:
+    - { type: queried, min: 1 }
+    - { type: contains, from_label: true }
+    - { type: number, tol: 0.2 }
+  partial_checks: [queried, contains]
+
+- id: demo-decline-version
+  signal: metrics
+  question: |
+    Over the last 15 minutes, which deployed version of payment-service is serving the
+    declined charges? Name the version.
+  truth:
+    backend: prometheus
+    query: |
+      topk(1, sum by (git_version) (increase(payment_charges_total{status="declined"}[15m])))
+    label: git_version
+  checks:
+    - { type: queried, min: 1 }
+    - { type: contains, from_label: true }
+  partial_checks: [queried]
+
+- id: demo-declined-log-volume
+  signal: logs
+  question: |
+    Over the last 15 minutes, how many payment decline events did payment-service log?
+    Give the count.
+  truth:
+    backend: loki
+    query: |
+      sum(count_over_time({service_name="payment-service"} | event="payment.declined" [15m]))
+  checks:
+    - { type: queried, min: 1 }
+    - { type: contains, any_of: ["declin"] }
+    - { type: number, tol: 0.2 }
+  partial_checks: [queried, contains]
+
+- id: demo-decline-log-reason
+  signal: logs
+  question: |
+    Look at payment-service's decline log lines from the last 15 minutes. What do they say
+    the reason is? Answer with the reason recorded on those lines.
+  truth:
+    backend: loki
+    query: |
+      sum(count_over_time({service_name="payment-service"} | event="payment.declined" | reason="new_validator_odd_cents" [15m]))
+  checks:
+    - { type: queried, min: 1 }
+    - { type: contains, any_of: ["odd", "validator"] }
+  partial_checks: [queried]
+
+- id: demo-declined-charge-trace
+  signal: traces
+  question: |
+    Find a trace from the last 15 minutes that contains a payment-service charge span,
+    and cite its trace ID.
+  truth:
+    backend: tempo
+    query: '{resource.service.name="payment-service" && name="POST /charge"}'
+  checks:
+    - { type: queried, min: 1 }
+    - { type: cites_trace }
+    - { type: grounded }
+  partial_checks: [queried]
