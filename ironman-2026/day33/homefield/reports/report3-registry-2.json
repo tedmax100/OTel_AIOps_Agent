@@ -1,0 +1,200 @@
+[
+  {
+    "id": "demo-decline-share",
+    "signal": "metrics",
+    "score": 1.0,
+    "answer": "I can help with that. I'll check the `payment_charges_total` metric for declined attempts and divide it by the total attempts over the last 15 minutes.Over the last 15 minutes, 61.21% of payment-service charge attempts were declined.\n\n```promql\nsum(rate(payment_charges_total{status=\"declined\"}[5m])) / sum(rate(payment_charges_total[5m]))\n```",
+    "tool_calls": [
+      {
+        "name": "query_prometheus",
+        "args": {
+          "expr": "sum(rate(payment_charges_total{status=\"declined\"}[5m])) / sum(rate(payment_charges_total[5m]))",
+          "stepSeconds": 60,
+          "start": "now-15m"
+        },
+        "output": "{\"resultType\": \"matrix_summary\", \"result\": [{\"metric\": {}, \"points\": 16, \"last\": 0.6105, \"min\": 0.6105, \"max\": 0.6139, \"avg\": 0.6121, \"window\": [1788180382, 1788181282]}], \"note\": \"Series summarized to last/min/max/avg (+ sample if it varies); the ```promql``` panel re-runs the full query for the chart.\"}",
+        "ok": true
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": true,
+        "detail": "1 successful tool call(s), needed 1"
+      },
+      {
+        "type": "contains",
+        "passed": true,
+        "detail": "found 'declin'"
+      },
+      {
+        "type": "number",
+        "passed": true,
+        "detail": "main: closest stated 61.21 vs truth 58.97 (±11.79)"
+      }
+    ]
+  },
+  {
+    "id": "demo-decline-reason",
+    "signal": "metrics",
+    "score": 0.5,
+    "answer": "I'll check the payment-service for declined charges over the last 15 minutes and break them down by reason.\n\nOver the last 15 minutes, there were 269 declined charges, primarily due to \"new_validator\".\n\n```promql\nsum by (reason) (rate(payment_charges_total{status=\"declined\"}[5m]))\n```",
+    "tool_calls": [
+      {
+        "name": "query_prometheus",
+        "args": {
+          "expr": "sum by (reason) (rate(payment_charges_total{status=\"declined\"}[5m]))",
+          "end": "now",
+          "start": "now-15m"
+        },
+        "output": "{\"resultType\": \"matrix_summary\", \"result\": [{\"metric\": {\"reason\": \"new_validator\"}, \"points\": 16, \"last\": 282.3, \"min\": 253.6, \"max\": 282.3, \"avg\": 268.0, \"window\": [1788180387, 1788181287], \"sample\": [[1788180387, 253.6], [1788180507, 257.4], [1788180627, 261.3], [1788180747, 265.2], [1788180867, 269.1], [1788180987, 272.9], [1788181107, 276.7], [1788181227, 280.5]]}], \"note\": \"Series summarized to last/min/max/avg (+ sample if it varies); the ```promql``` panel re-runs the full query for the chart.\"}",
+        "ok": true
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": true,
+        "detail": "1 successful tool call(s), needed 1"
+      },
+      {
+        "type": "contains",
+        "passed": true,
+        "detail": "found 'new_validator'"
+      },
+      {
+        "type": "number",
+        "passed": false,
+        "detail": "main: closest stated 269 vs truth 2.232e+05 (±4.464e+04)"
+      }
+    ]
+  },
+  {
+    "id": "demo-decline-version",
+    "signal": "metrics",
+    "score": 1.0,
+    "answer": "The version `v2.5.0` of payment-service is serving the declined charges over the last 15 minutes.\n\n```promql\nsum by (git_version) (rate(payment_charges_total{status=\"declined\"}[5m]))\n```The provided evidence indicates that while version `v2.5.0` of `payment-service` is associated with declined charges, the cluster's ReplicaSet history suggests that recent rollouts for this service did not change the running process. Instead, the change is likely in the mounted configuration, specifically `configMap/payment-flags`. Therefore, attributing the incident solely to `v2.5.0` without acknowledging the configuration change would be inaccurate.\n\nTo accurately reflect the situation, the investigation should focus on the configuration as the potential source of the issue, rather than a code regression in `v2.5.0`.\n\n```promql\nsum by (git_version) (rate(payment_charges_total{status=\"declined\"}[5m]))\n```",
+    "tool_calls": [
+      {
+        "name": "query_prometheus",
+        "args": {
+          "start": "now-15m",
+          "expr": "sum by (git_version) (rate(payment_charges_total{status=\"declined\"}[5m]))"
+        },
+        "output": "{\"resultType\": \"matrix_summary\", \"result\": [{\"metric\": {\"git_version\": \"v2.5.0\"}, \"points\": 16, \"last\": 277.2, \"min\": 249.1, \"max\": 277.2, \"avg\": 263.2, \"window\": [1788180392, 1788181292], \"sample\": [[1788180392, 249.1], [1788180512, 252.8], [1788180632, 256.5], [1788180752, 260.4], [1788180872, 264.3], [1788180992, 268.0], [1788181112, 271.7], [1788181232, 275.4]]}], \"note\": \"Series summarized to last/min/max/avg (+ sample if it varies); the ```promql``` panel re-runs the full query for the chart.\"}",
+        "ok": true
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": true,
+        "detail": "1 successful tool call(s), needed 1"
+      },
+      {
+        "type": "contains",
+        "passed": true,
+        "detail": "found 'v2.5.0'"
+      }
+    ]
+  },
+  {
+    "id": "demo-declined-log-volume",
+    "signal": "logs",
+    "score": 0.5,
+    "answer": "Over the last 15 minutes, the payment-service logged 971 payment decline events.\n\n```logql\n{service_name=\"payment-service\"} | event=\"payment.declined\"\n```",
+    "tool_calls": [
+      {
+        "name": "query_loki_logs",
+        "args": {
+          "queryType": "range",
+          "start": "now-15m",
+          "logql": "{service_name=\"payment-service\"} | event=\"payment.declined\""
+        },
+        "output": "{\"truncated\": true, \"reason\": \"Raw Loki output > 8192B; auto-aggregated.\", \"original_query\": \"{service_name=\\\"payment-service\\\"} | event=\\\"payment.declined\\\"\", \"fallback_query\": \"topk(20, sum by (service_name, detected_level, event, git_version) (count_over_time({service_name=\\\"payment-service\\\"} | event=\\\"payment.declined\\\" [5m])))\", \"fallback_aggregation\": {\"resultType\": \"matrix\", \"result\": [{\"metric\": {\"detected_level\": \"info\", \"event\": \"payment.declined\", \"git_version\": \"v2.5.0\", \"service_name\": \"payment-service\"}, \"values\": [[1788180390, \"971\"], [1788180399, \"971\"], [1788180408, \"971\"], [1788180417, \"971\"], [1788180426, \"971\"], [1788180435, \"971\"], [1788180444, \"970\"], [1788180453, \"970\"], [1788180462, \"971\"], [1788180471, \"971\"], [1788180480, \"971\"], [1788180489, \"971\"], [1788180498, \"971\"], [1788180507, \"971\"], [1788180516, \"970\"], [1788180525, \"970\"], [1788180534, \"971\"], [1788180543, \"971\"], [1788180552, \"971\"], [1788180561, \"971\"], [1788180570, \"971\"], [1788180579, \"971\"], [1788180588, \"970\"], [1788180597, \"971\"], [1788180606, \"971\"], [1788180615, \"971\"], [1788180624, \"971\"], [1788180633, \"971\"], [1788180642, \"971\"], [1788180651, \"971\"], [1788180660, \"970\"], [1788180669, \"971\"], [1788180678, \"971\"], [1788180687, \"971\"], [1788180696, \"971\"], [1788180705, \"971\"], [1788180714, \"971\"], [1788180723, \"971\"], [1788180732, \"971\"], [1788180741, \"970\"], [1788180750, \"971\"], [1788180759, \"971\"], [1788180768, \"971\"], [1788180777, \"971\"], [1788180786, \"971\"], [1788180795, \"971\"], [1788180804, \"970\"], [1788180813, \"970\"], [1788180822, \"970\"], [1788180831, \"971\"], [1788180840, \"971\"], [1788180849, \"971\"], [1788180858, \"971\"], [1788180867, \"971\"], [1788180876, \"970\"], [1788180885, \"970\"], [1788180894, \"970\"], [1788180903, \"970\"], [1788180912, \"971\"], [1788180921, \"971\"], [1788180930, \"971\"], [1788180939, \"971\"], [1788180948, \"970\"], [1788180957, \"970\"], [1788180966, \"970\"], [1788180975, \"970\"], [1788180984, \"970\"], [1788180993, \"971\"], [1788181002, \"971\"], [1788181011, \"970\"], [1788181020, \"970\"], [1788181029, \"970\"], [1788181038, \"970\"], [1788181047, \"970\"], [1788181056, \"970\"], [1788181065, \"970\"], [1788181074, \"970\"], [1788181083, \"970\"], [1788181092, \"971\"], [1788181101, \"970\"], [1788181110, \"970\"], [1788181119, \"970\"], [1788181128, \"970\"], [1788181137, \"970\"], [1788181146, \"970\"], [1788181155, \"970\"], [1788181164, \"970\"], [1788181173, \"971\"], [1788181182, \"970\"], [1788181191, \"970\"], [1788181200, \"970\"], [1788181209, \"970\"], [1788181218, \"970\"], [1788181227, \"970\"], [1788181236, \"970\"], [1788181245, \"971\"], [1788181254, \"971\"], [1788181263, \"971\"], [1788181272, \"970\"], [1788181281, \"970\"], [1788181290, \"970\"], [1788181299, \"957\"]]}], \"stats\": {\"summary\": {\"bytesProcessedPerSecond\": 189362578, \"linesProcessedPerSecond\": 405648, \"totalBytesProcessed\": 6517190, \"totalLinesProcessed\": 13961, \"execTime\": 0.034416462, \"queueTime\": 0.000151245, \"subqueries\": 0, \"totalEntriesReturned\": 1, \"splits\": 2, \"shards\": 2, \"totalPostFilterLines\": 4958, \"totalStructuredMetadataBytesProcessed\": 5788142}, \"querier\": {\"store\": {\"totalChunksRef\": 0, \"totalChunksDownloaded\": 0, \"chunksDownloadTime\": 0, \"queryReferencedStructuredMetadata\": false, \"chunk\": {\"headChunkBytes\": 0, \"headChunkLines\": 0, \"decompressedBytes\": 0, \"decompressedLines\": 0, \"compressedBytes\": 0, \"totalDuplicates\": 0, \"postFilterLines\": 0, \"headChunkStructuredMetadataBytes\": 0, \"decompressedStructuredMetadataBytes\": 0}, \"chunkRefsFetchTime\": 0, \"congestionControlLatency\": 0, \"pipelineWrapperFilteredLines\": 0}}, \"ingester\": {\"totalReached\": 2, \"totalChunksMatched\": 2, \"totalBatches\": 12, \"totalLinesSent\": 4839, \"store\": {\"totalChunksRef\": 1, \"totalChunksDownloaded\": 1, \"chunksDownloadTime\": 9222213, \"queryReferencedStructuredMetadata\": true, \"chunk\": {\"headChunkBytes\": 272291, \"headChunkLines\": 1322, \"decompressedBytes\": 6244899, \"decompressedLines\": 12639, \"compressedBytes\": 371570, \"totalDuplicates\": 0, \"postFilterLines\": 4958, \"headChunkStructuredMetadataBytes\": 227352, \"decompressedStructuredMetadataBytes\": 5560790}, \"chunkRefsFetchTime\": 242476, \"congestionControlLatency\": 0, \"pipelineWrapperFilteredLines\": 0}}, \"cache\": {\"chunk\": {\"entriesFound\": 0, \"entriesRequested\": 0, \"entriesStored\": 0, \"bytesReceived\": 0, \"bytesSent\": 0, \"requests\": 0, \"downloadTime\": 0, \"queryLengthServed\": 0}, \"index\": {\"entriesFound\": 0, \"entriesRequested\": 0, \"entriesStored\": 0, \"bytesReceived\": 0, \"bytesSent\": 0, \"requests\": 0, \"downloadTime\": 0, \"queryLengthServed\": 0}, \"result\": {\"entriesFound\": 0, \"entriesRequested\": 0, \"entriesStored\": 0, \"bytesReceived\": 0, \"bytesSent\": 0, \"requests\": 0, \"downloadTime\": 0, \"queryLengthServed\": 0}, \"statsResult\": {\"entriesFound\": 0, \"entriesRequested\": 0, \"entriesStored\": 0, \"bytesReceived\": 0, \"bytesSent\": 0, \"requests\": 0, \"downloadTime\": 0, \"queryLengthServed\": 0}, \"volumeResult\": {\"entriesFound\": 0, \"entriesRequested\": 0, \"entriesStored\": 0, \"bytesReceived\": 0, \"bytesSent\": 0, \"requests\": 0, \"downloadTime\": 0, \"queryLengthServed\": 0}, \"seriesResult\": {\"entriesFound\": 0, \"entriesRequested\": 0, \"entriesStored\": 0, \"bytesReceived\": 0, \"bytesSent\": 0, \"requests\": 0, \"downloadTime\": 0, \"queryLengthServed\": 0}, \"labelResult\": {\"entriesFound\": 0, \"entriesRequested\": 0, \"entriesStored\": 0, \"bytesReceived\": 0, \"bytesSent\": 0, \"requests\": 0, \"downloadTime\": 0, \"queryLengthServed\": 0}, \"instantMetricResult\": {\"entriesFound\": 0, \"entriesRequested\": 0, \"entriesStored\": 0, \"bytesReceived\": 0, \"bytesSent\": 0, \"requests\": 0, \"downloadTime\": 0, \"queryLengthServed\": 0}}, \"index\": {\"totalChunks\": 0, \"postFilterChunks\": 0, \"shardsDuration\": 0}}}, \"hint\": \"Aggregated by (service_name, detected_level, event, git_version), keeping your filters. Pick a bucket and re-query with it as an extra filter, or shorten the window.\"}",
+        "ok": true
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": true,
+        "detail": "1 successful tool call(s), needed 1"
+      },
+      {
+        "type": "contains",
+        "passed": true,
+        "detail": "found 'declin'"
+      },
+      {
+        "type": "number",
+        "passed": false,
+        "detail": "main: closest stated 971 vs truth 2908 (±581.6)"
+      }
+    ]
+  },
+  {
+    "id": "demo-decline-log-reason",
+    "signal": "logs",
+    "score": 0.5,
+    "answer": "The decline logs from the payment-service over the last 15 minutes do not contain a `reason` field. The logs only indicate that the event was `payment.declined`.",
+    "tool_calls": [
+      {
+        "name": "query_loki_logs",
+        "args": {
+          "logql": "{service_name=\"payment-service\"} | event=\"payment.declined\"",
+          "start": "now-15m"
+        },
+        "output": "{\"truncated\": true, \"reason\": \"Raw Loki output > 8192B; auto-aggregated.\", \"original_query\": \"{service_name=\\\"payment-service\\\"} | event=\\\"payment.declined\\\"\", \"fallback_query\": \"topk(20, sum by (service_name, detected_level, event, git_version) (count_over_time({service_name=\\\"payment-service\\\"} | event=\\\"payment.declined\\\" [5m])))\", \"fallback_aggregation\": {\"resultType\": \"matrix\", \"result\": [{\"metric\": {\"detected_level\": \"info\", \"event\": \"payment.declined\", \"git_version\": \"v2.5.0\", \"service_name\": \"payment-service\"}, \"values\": [[1788180399, \"971\"], [1788180408, \"971\"], [1788180417, \"971\"], [1788180426, \"971\"], [1788180435, \"971\"], [1788180444, \"970\"], [1788180453, \"970\"], [1788180462, \"971\"], [1788180471, \"971\"], [1788180480, \"971\"], [1788180489, \"971\"], [1788180498, \"971\"], [1788180507, \"971\"], [1788180516, \"970\"], [1788180525, \"970\"], [1788180534, \"971\"], [1788180543, \"971\"], [1788180552, \"971\"], [1788180561, \"971\"], [1788180570, \"971\"], [1788180579, \"971\"], [1788180588, \"970\"], [1788180597, \"971\"], [1788180606, \"971\"], [1788180615, \"971\"], [1788180624, \"971\"], [1788180633, \"971\"], [1788180642, \"971\"], [1788180651, \"971\"], [1788180660, \"970\"], [1788180669, \"971\"], [1788180678, \"971\"], [1788180687, \"971\"], [1788180696, \"971\"], [1788180705, \"971\"], [1788180714, \"971\"], [1788180723, \"971\"], [1788180732, \"971\"], [1788180741, \"970\"], [1788180750, \"971\"], [1788180759, \"971\"], [1788180768, \"971\"], [1788180777, \"971\"], [1788180786, \"971\"], [1788180795, \"971\"], [1788180804, \"970\"], [1788180813, \"970\"], [1788180822, \"970\"], [1788180831, \"971\"], [1788180840, \"971\"], [1788180849, \"971\"], [1788180858, \"971\"], [1788180867, \"971\"], [1788180876, \"970\"], [1788180885, \"970\"], [1788180894, \"970\"], [1788180903, \"970\"], [1788180912, \"971\"], [1788180921, \"971\"], [1788180930, \"971\"], [1788180939, \"971\"], [1788180948, \"970\"], [1788180957, \"970\"], [1788180966, \"970\"], [1788180975, \"970\"], [1788180984, \"970\"], [1788180993, \"971\"], [1788181002, \"971\"], [1788181011, \"970\"], [1788181020, \"970\"], [1788181029, \"970\"], [1788181038, \"970\"], [1788181047, \"970\"], [1788181056, \"970\"], [1788181065, \"970\"], [1788181074, \"970\"], [1788181083, \"970\"], [1788181092, \"971\"], [1788181101, \"970\"], [1788181110, \"970\"], [1788181119, \"970\"], [1788181128, \"970\"], [1788181137, \"970\"], [1788181146, \"970\"], [1788181155, \"970\"], [1788181164, \"970\"], [1788181173, \"971\"], [1788181182, \"970\"], [1788181191, \"970\"], [1788181200, \"970\"], [1788181209, \"970\"], [1788181218, \"970\"], [1788181227, \"970\"], [1788181236, \"970\"], [1788181245, \"971\"], [1788181254, \"971\"], [1788181263, \"971\"], [1788181272, \"970\"], [1788181281, \"970\"], [1788181290, \"970\"], [1788181299, \"970\"], [1788181308, \"944\"]]}], \"stats\": {\"summary\": {\"bytesProcessedPerSecond\": 208360525, \"linesProcessedPerSecond\": 447097, \"totalBytesProcessed\": 6525815, \"totalLinesProcessed\": 14003, \"execTime\": 0.031319824, \"queueTime\": 0.000166583, \"subqueries\": 0, \"totalEntriesReturned\": 1, \"splits\": 2, \"shards\": 2, \"totalPostFilterLines\": 4974, \"totalStructuredMetadataBytesProcessed\": 5795366}, \"querier\": {\"store\": {\"totalChunksRef\": 0, \"totalChunksDownloaded\": 0, \"chunksDownloadTime\": 0, \"queryReferencedStructuredMetadata\": false, \"chunk\": {\"headChunkBytes\": 0, \"headChunkLines\": 0, \"decompressedBytes\": 0, \"decompressedLines\": 0, \"compressedBytes\": 0, \"totalDuplicates\": 0, \"postFilterLines\": 0, \"headChunkStructuredMetadataBytes\": 0, \"decompressedStructuredMetadataBytes\": 0}, \"chunkRefsFetchTime\": 0, \"congestionControlLatency\": 0, \"pipelineWrapperFilteredLines\": 0}}, \"ingester\": {\"totalReached\": 2, \"totalChunksMatched\": 2, \"totalBatches\": 12, \"totalLinesSent\": 4826, \"store\": {\"totalChunksRef\": 1, \"totalChunksDownloaded\": 1, \"chunksDownloadTime\": 8118066, \"queryReferencedStructuredMetadata\": true, \"chunk\": {\"headChunkBytes\": 280916, \"headChunkLines\": 1364, \"decompressedBytes\": 6244899, \"decompressedLines\": 12639, \"compressedBytes\": 371570, \"totalDuplicates\": 0, \"postFilterLines\": 4974, \"headChunkStructuredMetadataBytes\": 234576, \"decompressedStructuredMetadataBytes\": 5560790}, \"chunkRefsFetchTime\": 213532, \"congestionControlLatency\": 0, \"pipelineWrapperFilteredLines\": 0}}, \"cache\": {\"chunk\": {\"entriesFound\": 0, \"entriesRequested\": 0, \"entriesStored\": 0, \"bytesReceived\": 0, \"bytesSent\": 0, \"requests\": 0, \"downloadTime\": 0, \"queryLengthServed\": 0}, \"index\": {\"entriesFound\": 0, \"entriesRequested\": 0, \"entriesStored\": 0, \"bytesReceived\": 0, \"bytesSent\": 0, \"requests\": 0, \"downloadTime\": 0, \"queryLengthServed\": 0}, \"result\": {\"entriesFound\": 0, \"entriesRequested\": 0, \"entriesStored\": 0, \"bytesReceived\": 0, \"bytesSent\": 0, \"requests\": 0, \"downloadTime\": 0, \"queryLengthServed\": 0}, \"statsResult\": {\"entriesFound\": 0, \"entriesRequested\": 0, \"entriesStored\": 0, \"bytesReceived\": 0, \"bytesSent\": 0, \"requests\": 0, \"downloadTime\": 0, \"queryLengthServed\": 0}, \"volumeResult\": {\"entriesFound\": 0, \"entriesRequested\": 0, \"entriesStored\": 0, \"bytesReceived\": 0, \"bytesSent\": 0, \"requests\": 0, \"downloadTime\": 0, \"queryLengthServed\": 0}, \"seriesResult\": {\"entriesFound\": 0, \"entriesRequested\": 0, \"entriesStored\": 0, \"bytesReceived\": 0, \"bytesSent\": 0, \"requests\": 0, \"downloadTime\": 0, \"queryLengthServed\": 0}, \"labelResult\": {\"entriesFound\": 0, \"entriesRequested\": 0, \"entriesStored\": 0, \"bytesReceived\": 0, \"bytesSent\": 0, \"requests\": 0, \"downloadTime\": 0, \"queryLengthServed\": 0}, \"instantMetricResult\": {\"entriesFound\": 0, \"entriesRequested\": 0, \"entriesStored\": 0, \"bytesReceived\": 0, \"bytesSent\": 0, \"requests\": 0, \"downloadTime\": 0, \"queryLengthServed\": 0}}, \"index\": {\"totalChunks\": 0, \"postFilterChunks\": 0, \"shardsDuration\": 0}}}, \"hint\": \"Aggregated by (service_name, detected_level, event, git_version), keeping your filters. Pick a bucket and re-query with it as an extra filter, or shorten the window.\"}",
+        "ok": true
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": true,
+        "detail": "1 successful tool call(s), needed 1"
+      },
+      {
+        "type": "contains",
+        "passed": false,
+        "detail": "none of ['odd', 'validator'] in the answer"
+      }
+    ]
+  },
+  {
+    "id": "demo-declined-charge-trace",
+    "signal": "traces",
+    "score": 0.5,
+    "answer": "I couldn't find any traces matching your criteria in the last 15 minutes.",
+    "tool_calls": [
+      {
+        "name": "query_tempo_traces",
+        "args": {
+          "traceql": "{resource.service.name=\"payment-service\" && span.kind=\"client\" && span.name=\"POST /charge\"}",
+          "end": "now",
+          "start": "now-15m"
+        },
+        "output": "{\"traces\": [], \"count\": 0}",
+        "ok": true
+      }
+    ],
+    "checks": [
+      {
+        "type": "queried",
+        "passed": true,
+        "detail": "1 successful tool call(s), needed 1"
+      },
+      {
+        "type": "cites_trace",
+        "passed": false,
+        "detail": "no trace ID"
+      },
+      {
+        "type": "grounded",
+        "passed": true,
+        "detail": "no trace IDs cited (nothing to ground)"
+      }
+    ]
+  }
+]
