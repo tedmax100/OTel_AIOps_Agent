@@ -22,6 +22,10 @@ It reports four things, in the order the article needs them:
    Outside the ratio on purpose: nothing ran, so "did the fix work" has no
    referent. But `expired` means a person was asked and never answered, and that
    is worth reading somewhere.
+5. **Override Rate and dispatch rate** (ARE ch11.5). The denominator here is the
+   whole point: `aborted` rows are a pre-execution gate refusing, `actor='system'`
+   in the audit trail, not a human overriding, and counting them as human
+   decisions would inflate OR into looking healthy for the wrong reason.
 
     # against the running cluster (reads /data/aiops.db inside the pod)
     python3 ironman-2026/day33/probe_closing_state.py
@@ -138,6 +142,16 @@ for status, count in sorted(d["by_status"].items()):
     print(f"  {status:<18} {count}")
 print()
 print(f"  expiry rate {d['expiry_rate']}  — {d['note']}")
+
+# ---- 5. Override Rate / dispatch rate (ARE ch11.5) --------------------------
+rule("override rate (ARE ch11.5) — the denominator is the point")
+print()
+o = store.override_rate()
+print(f"  total proposals            {o['total']}")
+print(f"  dispatched to a human      {o['dispatched']}   (dispatch rate {o['dispatch_rate']})")
+print(f"  rejected                   {o['rejected']}   (override rate {o['override_rate']})")
+print(f"  system aborts (excluded)   {o['system_aborts_excluded_from_denominator']}")
+print(f"  {o['note']}")
 
 print()
 print(f"  (fixture record window is {settings.governance_fixture_max_age_days}d)")
